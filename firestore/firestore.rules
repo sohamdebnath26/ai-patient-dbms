@@ -1,0 +1,149 @@
+rules_version = "2";
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function tenantId() {
+      return request.auth.token.tenantId;
+    }
+
+    function belongsToTenant(tenantId) {
+      return resource.data.tenantId == tenantId;
+    }
+
+    function hasRole(role) {
+      return request.auth.token.role == role;
+    }
+
+    function hasPermission(perm) {
+      return perm in request.auth.token.permissions;
+    }
+
+    // Patients: tenant-scoped read, write with permission
+    match /patients/{patientId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId());
+      allow create: if isAuthenticated()
+        && request.resource.data.tenantId == tenantId()
+        && hasPermission("patient:write");
+      allow update: if isAuthenticated()
+        && belongsToTenant(tenantId())
+        && hasPermission("patient:write");
+      allow delete: if false;
+    }
+
+    // Visits sub-collection under patients
+    match /patients/{patientId}/visits/{visitId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("note:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Notes sub-collection under visits
+    match /patients/{patientId}/visits/{visitId}/notes/{noteId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("note:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Medications sub-collection under patients
+    match /patients/{patientId}/medications/{medId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("patient:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Allergies sub-collection under patients
+    match /patients/{patientId}/allergies/{allergyId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("patient:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Lab results sub-collection under patients
+    match /patients/{patientId}/labResults/{labId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("patient:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Diagnoses sub-collection under patients
+    match /patients/{patientId}/diagnoses/{diagnosisId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("patient:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Attachments sub-collection under patients
+    match /patients/{patientId}/attachments/{attachmentId} {
+      allow read: if isAuthenticated()
+        && get(/databases/$(database)/documents/patients/$(patientId)).data.tenantId == tenantId();
+      allow write: if isAuthenticated()
+        && hasPermission("patient:write")
+        && request.resource.data.tenantId == tenantId();
+    }
+
+    // Tenants: read for tenant members
+    match /tenants/{tenantId} {
+      allow read: if isAuthenticated() && tenantId() == tenantId;
+      allow write: if false;
+    }
+
+    // Tenant users: admin can write, members can read
+    match /tenants/{tenantId}/users/{userId} {
+      allow read: if isAuthenticated() && tenantId() == tenantId;
+      allow write: if isAuthenticated()
+        && tenantId() == tenantId
+        && hasRole("admin");
+    }
+
+    // Tenant API keys: admin only
+    match /tenants/{tenantId}/apiKeys/{keyId} {
+      allow read: if isAuthenticated()
+        && tenantId() == tenantId
+        && hasRole("admin");
+      allow write: if false;
+    }
+
+    // Tenant config: admin only
+    match /tenants/{tenantId}/config/{docId} {
+      allow read: if isAuthenticated() && tenantId() == tenantId;
+      allow write: if false;
+    }
+
+    // Audit log: append-only, readable by admin
+    match /audit/{tenantId}/{auditEntryId} {
+      allow read: if isAuthenticated()
+        && tenantId() == tenantId
+        && (hasRole("admin") || hasRole("super-admin"));
+      allow create: if isAuthenticated()
+        && request.resource.data.tenantId == tenantId;
+      allow update, delete: if false;
+    }
+
+    // Consents: tenant-scoped, admin-writable
+    match /consents/{consentId} {
+      allow read: if isAuthenticated()
+        && (
+          resource.data.sourceTenant == tenantId() ||
+          resource.data.targetTenant == tenantId()
+        );
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "ai-patient-dbms-staging",
+    "prod": "ai-patient-dbms-prod"
+  }
+}

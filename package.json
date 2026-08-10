@@ -12,7 +12,16 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "emulators": "firebase emulators:start",
+    "emulators:export": "firebase emulators:export ./emulator-data",
+    "deploy": "firebase deploy",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:functions": "npm --prefix functions run build && firebase deploy --only functions",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "functions:build": "npm --prefix functions run build",
+    "functions:lint": "npm --prefix functions run lint"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -37,6 +46,7 @@
     "eslint": "^9.24.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.0",
+    "firebase-tools": "^13.0.0",
     "globals": "^16.0.0",
     "husky": "^9.1.0",
     "lint-staged": "^15.5.0",
@@ -49,7 +59,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix --max-warnings=0",
+      "eslint --fix --max-warnings=0 --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,css,md}": [

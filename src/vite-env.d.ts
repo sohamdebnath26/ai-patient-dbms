@@ -12,6 +12,10 @@ interface ImportMetaEnv {
   readonly VITE_FIRESTORE_EMULATOR_PORT: string;
   readonly VITE_AUTH_EMULATOR_HOST: string;
   readonly VITE_AUTH_EMULATOR_PORT: string;
+  readonly VITE_STORAGE_EMULATOR_HOST: string;
+  readonly VITE_STORAGE_EMULATOR_PORT: string;
+  readonly VITE_FUNCTIONS_EMULATOR_HOST: string;
+  readonly VITE_FUNCTIONS_EMULATOR_PORT: string;
   readonly VITE_ENABLE_AI_FEATURES: string;
   readonly VITE_ENABLE_FHIR_API: string;
 }

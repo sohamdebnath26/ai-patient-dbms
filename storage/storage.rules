@@ -1,0 +1,42 @@
+rules_version = "2";
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function tenantId() {
+      return request.auth.token.tenantId;
+    }
+
+    // Tenant-scoped attachments
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if isAuthenticated()
+        && tenantId() == tenantId;
+      allow write: if isAuthenticated()
+        && tenantId() == tenantId
+        && ("patient:write" in request.auth.token.permissions);
+    }
+
+    // AI cache: read-only for tenant members, write restricted to backend
+    match /ai-cache/{tenantId}/{allPaths=**} {
+      allow read: if isAuthenticated()
+        && tenantId() == tenantId;
+      allow write: if false;
+    }
+
+    // Temp uploads: authenticated users only
+    match /temp/{uploadSessionId} {
+      allow read: if isAuthenticated()
+        && request.auth.uid == string(resource.metadata.uploader);
+      allow write: if isAuthenticated();
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -50,6 +50,9 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# Functions build output
+functions/lib/
+
 # Optional npm cache directory
 .npm
 
@@ -118,6 +121,10 @@ dist
 
 # DynamoDB Local files
 .dynamodb/
+
+.env.local
+.env.production
+.env.staging
 
 # Firebase cache directory
 .firebase/
