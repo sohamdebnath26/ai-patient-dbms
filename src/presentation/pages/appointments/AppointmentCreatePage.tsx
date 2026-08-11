@@ -5,6 +5,7 @@ import { CreateAppointmentSchema, type CreateAppointmentInput } from "@domain/ap
 import { useBookAppointment } from "@presentation/hooks/useAppointments";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { useAuth } from "@presentation/hooks/useAuth";
+import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -12,6 +13,7 @@ import { useState } from "react";
 export function AppointmentCreatePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useProfile();
   const mutation = useBookAppointment();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: patients } = usePatientList({ page: 1, limit: 50, query: searchQuery });
@@ -23,7 +25,11 @@ export function AppointmentCreatePage() {
     setValue,
   } = useForm<CreateAppointmentInput>({
     resolver: zodResolver(CreateAppointmentSchema),
-    defaultValues: { organization_id: "", duration_minutes: 30, type: "in_person" },
+    defaultValues: {
+      organization_id: profile?.organizationId ?? "",
+      duration_minutes: 30,
+      type: "in_person",
+    },
   });
 
   function onSubmit(data: CreateAppointmentInput) {

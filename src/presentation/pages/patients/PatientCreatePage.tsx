@@ -4,12 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreatePatientSchema, type CreatePatientInput } from "@domain/patient";
 import { useCreatePatient } from "@presentation/hooks/usePatients";
 import { useAuth } from "@presentation/hooks/useAuth";
+import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useProfile();
   const createMutation = useCreatePatient();
 
   const {
@@ -19,7 +21,7 @@ export function PatientCreatePage() {
   } = useForm<CreatePatientInput>({
     resolver: zodResolver(CreatePatientSchema),
     defaultValues: {
-      organization_id: "",
+      organization_id: profile?.organizationId ?? "",
       mrn: `MRN-${Date.now()}`,
     },
   });
