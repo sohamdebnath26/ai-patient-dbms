@@ -1,0 +1,1 @@
+export { SupabasePatientRepository } from "./SupabasePatientRepository";

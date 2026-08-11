@@ -9,6 +9,14 @@ import { ForgotPasswordPage } from "@presentation/pages/auth/ForgotPasswordPage"
 import { ResetPasswordPage } from "@presentation/pages/auth/ResetPasswordPage";
 import { DashboardPage } from "@presentation/pages/DashboardPage";
 import { ProfilePage } from "@presentation/pages/profile/ProfilePage";
+import { PatientListPage } from "@presentation/pages/patients/PatientListPage";
+import { PatientCreatePage } from "@presentation/pages/patients/PatientCreatePage";
+import { PatientDetailPage } from "@presentation/pages/patients/PatientDetailPage";
+import { PatientEditPage } from "@presentation/pages/patients/PatientEditPage";
+import { AppointmentListPage } from "@presentation/pages/appointments/AppointmentListPage";
+import { AppointmentCreatePage } from "@presentation/pages/appointments/AppointmentCreatePage";
+import { AppointmentDetailPage } from "@presentation/pages/appointments/AppointmentDetailPage";
+import { EncounterDetailPage } from "@presentation/pages/encounters/EncounterDetailPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +94,70 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients"
+              element={
+                <ProtectedRoute>
+                  <PatientListPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/new"
+              element={
+                <ProtectedRoute>
+                  <PatientCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/:id"
+              element={
+                <ProtectedRoute>
+                  <PatientDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <PatientEditPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appointments"
+              element={
+                <ProtectedRoute>
+                  <AppointmentListPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appointments/new"
+              element={
+                <ProtectedRoute>
+                  <AppointmentCreatePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appointments/:id"
+              element={
+                <ProtectedRoute>
+                  <AppointmentDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/encounters/:id"
+              element={
+                <ProtectedRoute>
+                  <EncounterDetailPage />
                 </ProtectedRoute>
               }
             />
