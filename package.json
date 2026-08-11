@@ -24,6 +24,8 @@
     "functions:lint": "npm --prefix functions run lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "@tanstack/react-query": "^5.71.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^11.6.0",
@@ -33,16 +35,15 @@
     "react-hook-form": "^7.55.0",
     "react-router": "^7.5.0",
     "recharts": "^2.15.0",
-    "@tanstack/react-query": "^5.71.0",
     "zod": "^3.24.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
+    "@tailwindcss/vite": "^4.1.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.0",
-    "@tailwindcss/vite": "^4.1.0",
     "eslint": "^9.24.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.0",

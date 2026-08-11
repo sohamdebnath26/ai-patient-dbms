@@ -18,6 +18,8 @@ interface ImportMetaEnv {
   readonly VITE_FUNCTIONS_EMULATOR_PORT: string;
   readonly VITE_ENABLE_AI_FEATURES: string;
   readonly VITE_ENABLE_FHIR_API: string;
+  readonly VITE_SUPABASE_URL: string;
+  readonly VITE_SUPABASE_ANON_KEY: string;
 }
 
 interface ImportMeta {

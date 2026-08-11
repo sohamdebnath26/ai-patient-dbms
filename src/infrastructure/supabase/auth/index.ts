@@ -1,0 +1,1 @@
+export { SupabaseAuthRepository } from "./SupabaseAuthRepository";
