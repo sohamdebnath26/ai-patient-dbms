@@ -2,12 +2,10 @@ import { useNavigate, useSearchParams } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { AppShell } from "@presentation/components/AppShell";
 import { Search, Plus, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { useProfile } from "@presentation/hooks/useProfile";
 
 export function PatientListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { profile } = useProfile();
 
   const page = parseInt(searchParams.get("page") ?? "1", 10);
   const query = searchParams.get("query") ?? "";
@@ -32,22 +30,18 @@ export function PatientListPage() {
     setSearchParams(next);
   }
 
-  const canCreate = profile?.role === "doctor" || profile?.role === "receptionist";
-
   return (
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
-          {canCreate && (
-            <button
-              onClick={() => void navigate("/patients/new")}
-              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Register Patient
-            </button>
-          )}
+          <button
+            onClick={() => void navigate("/patients/new")}
+            className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Register Patient
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-3">

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate, NavLink, useLocation } from "react-router";
+import { usePatientList } from "@presentation/hooks/usePatients";
 import {
   LayoutDashboard,
   Users,
@@ -14,19 +15,20 @@ import {
   LogOut,
   Menu,
   Search,
+  Plus,
   ChevronRight,
   Bell,
 } from "lucide-react";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/patients", label: "Patients", icon: Users },
-  { to: "/appointments", label: "Appointments", icon: Calendar },
-  { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: true },
-  { to: "/images", label: "Medical Images", icon: Image, disabled: true },
-  { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: true },
-  { to: "/reports", label: "Reports", icon: FileText, disabled: true },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, addAction: null },
+  { to: "/patients", label: "Patients", icon: Users, addAction: "/patients/new" },
+  { to: "/appointments", label: "Appointments", icon: Calendar, addAction: "/appointments/new" },
+  { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: true, addAction: null },
+  { to: "/images", label: "Medical Images", icon: Image, disabled: true, addAction: null },
+  { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: true, addAction: null },
+  { to: "/reports", label: "Reports", icon: FileText, disabled: true, addAction: null },
+  { to: "/profile", label: "Profile", icon: User, addAction: null },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -35,6 +37,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  const { data: searchResults } = usePatientList({
+    page: 1,
+    limit: 5,
+    query: searchFocused ? searchQuery : undefined,
+  });
 
   const avatarLetter = useMemo(() => {
     if (profile?.firstName) return profile.firstName.charAt(0).toUpperCase();
@@ -50,6 +60,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   async function handleLogout() {
     await logout();
     void navigate("/auth/login");
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      void navigate(`/patients?query=${encodeURIComponent(searchQuery)}`);
+      setSearchFocused(false);
+    }
   }
 
   return (
@@ -96,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       setSidebarOpen(false);
                     }}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                         isActive
                           ? "bg-brand-50 text-brand-700"
                           : "hover:bg-surface-50 text-gray-600 hover:text-gray-900"
@@ -104,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     }
                   >
                     <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                    {label}
+                    <span className="flex-1">{label}</span>
                   </NavLink>
                 </li>
               ))}
@@ -242,27 +261,68 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const query = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value;
-                if (query.trim()) void navigate(`/patients?query=${encodeURIComponent(query)}`);
-              }}
-              className="hidden sm:block"
-            >
-              <div className="relative">
-                <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-                <input
-                  name="q"
-                  placeholder="Search patients..."
-                  className="border-surface-200 bg-surface-50 focus:border-brand-300 focus:ring-brand-100 w-56 rounded-lg border py-1.5 pr-3 pl-9 text-sm placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:outline-none"
-                />
-              </div>
+            <form onSubmit={handleSearch} className="relative hidden sm:block">
+              <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                name="q"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                }}
+                onFocus={() => {
+                  setSearchFocused(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setSearchFocused(false);
+                  }, 200);
+                }}
+                placeholder="Search patients..."
+                className="border-surface-200 bg-surface-50 focus:border-brand-300 focus:ring-brand-100 w-64 rounded-lg border py-1.5 pr-3 pl-9 text-sm placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:outline-none"
+              />
+              {searchFocused && searchResults && searchResults.patients.length > 0 && (
+                <div className="border-surface-200 absolute top-full right-0 left-0 z-50 mt-1 rounded-lg border bg-white shadow-lg">
+                  {searchResults.patients.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        void navigate(`/patients/${p.id}`);
+                        setSearchFocused(false);
+                        setSearchQuery("");
+                      }}
+                      className="hover:bg-surface-50 flex w-full items-center gap-3 px-4 py-2.5 text-left first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      <div className="bg-brand-50 flex h-7 w-7 items-center justify-center rounded-full">
+                        <span className="text-brand-600 text-[10px] font-bold">
+                          {p.first_name.charAt(0)}
+                          {p.last_name.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {p.first_name} {p.last_name}
+                        </p>
+                        <p className="text-xs text-gray-400">MRN: {p.mrn}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </form>
+
+            <button
+              onClick={() => {
+                void navigate("/patients/new");
+              }}
+              className="bg-brand-600 hover:bg-brand-700 hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-colors sm:inline-flex"
+            >
+              <Plus className="h-4 w-4" />
+              Add Patient
+            </button>
 
             <button className="hover:bg-surface-100 relative rounded-lg p-2 text-gray-400">
               <Bell className="h-[18px] w-[18px]" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
             </button>
           </div>
         </header>
