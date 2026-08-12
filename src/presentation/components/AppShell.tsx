@@ -15,7 +15,6 @@ import {
   LogOut,
   Menu,
   Search,
-  Plus,
   ChevronRight,
   Bell,
 } from "lucide-react";
@@ -310,16 +309,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </form>
-
-            <button
-              onClick={() => {
-                void navigate("/patients/new");
-              }}
-              className="bg-brand-600 hover:bg-brand-700 hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-colors sm:inline-flex"
-            >
-              <Plus className="h-4 w-4" />
-              Add Patient
-            </button>
 
             <button className="hover:bg-surface-100 relative rounded-lg p-2 text-gray-400">
               <Bell className="h-[18px] w-[18px]" />
