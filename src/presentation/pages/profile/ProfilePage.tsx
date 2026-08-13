@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLogout } from "@presentation/hooks/useLogout";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate } from "react-router";
@@ -14,7 +15,8 @@ import {
 } from "lucide-react";
 
 export function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const handleLogout = useLogout();
   const { profile, loading, error, updateProfile } = useProfile();
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
@@ -40,11 +42,6 @@ export function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  }
-
-  async function handleLogout() {
-    await logout();
-    void navigate("/auth/login");
   }
 
   if (loading) {

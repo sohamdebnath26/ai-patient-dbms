@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@presentation/contexts/ChatContext";
+import { useAuth } from "@presentation/hooks/useAuth";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { Sparkles, X, Send, Loader2, ChevronDown } from "lucide-react";
 
@@ -189,12 +190,13 @@ export function AIChatbot() {
 
 export function ChatLauncher() {
   const { isOpen, setOpen } = useChat();
+  const { isAuthenticated } = useAuth();
 
   function handleOpen() {
     setOpen(true);
   }
 
-  if (isOpen) return null;
+  if (!isAuthenticated || isOpen) return null;
   return (
     <button
       onClick={handleOpen}

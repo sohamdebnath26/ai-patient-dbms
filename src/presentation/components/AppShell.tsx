@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
-import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate, NavLink, useLocation } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { useChat } from "@presentation/contexts/ChatContext";
+import { useLogout } from "@presentation/hooks/useLogout";
 import {
   LayoutDashboard,
   Users,
@@ -32,10 +32,10 @@ const navItems = [
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { logout } = useAuth();
   const { profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
+  const handleLogout = useLogout();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -58,11 +58,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (profile?.firstName) return `Dr. ${profile.firstName} ${profile.lastName}`;
     return profile?.email ?? "User";
   }, [profile?.firstName, profile?.lastName, profile?.email]);
-
-  async function handleLogout() {
-    await logout();
-    void navigate("/auth/login");
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   function handleSearch(e: React.FormEvent<HTMLFormElement>) {

@@ -10,8 +10,7 @@ import type { ChatMessage } from "@application/ports/IAIModelProvider";
 import { ChatContext } from "./ChatContext";
 import type { ChatBubble } from "./ChatContext";
 
-const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-const provider = new DeepSeekProvider(apiKey);
+const provider = new DeepSeekProvider();
 const chatService = new ChatService(provider);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
@@ -84,6 +83,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const clearChat = useCallback(() => {
     setMessages([]);
+    setSelectedPatientId(null);
+    setSelectedPatientName(null);
   }, []);
 
   const value = useMemo(
