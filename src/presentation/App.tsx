@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { AuthProvider } from "@presentation/contexts/AuthProvider";
 import { ProtectedRoute } from "@presentation/components/ProtectedRoute";
+import { ChatWidget } from "@presentation/components/chat";
 import { HealthPage } from "@presentation/pages/system/HealthPage";
 import { LoginPage } from "@presentation/pages/auth/LoginPage";
 import { SignupPage } from "@presentation/pages/auth/SignupPage";
@@ -170,6 +171,7 @@ export function App() {
           </ChatProvider>
         </BrowserRouter>
       </AuthProvider>
+      <ChatWidget />
     </QueryClientProvider>
   );
 }

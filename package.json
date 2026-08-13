@@ -20,6 +20,8 @@
     "deploy:functions": "npm --prefix functions run build && firebase deploy --only functions",
     "deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
     "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "supabase:deploy:functions": "supabase functions deploy chat",
+    "supabase:secrets:set:deepseek": "supabase secrets set DEEPSEEK_API_KEY=",
     "functions:build": "npm --prefix functions run build",
     "functions:lint": "npm --prefix functions run lint"
   },

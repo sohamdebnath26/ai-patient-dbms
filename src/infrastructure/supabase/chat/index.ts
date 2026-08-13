@@ -1,0 +1,1 @@
+export { SupabaseChatService } from "./SupabaseChatService";
