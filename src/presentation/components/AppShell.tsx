@@ -3,6 +3,7 @@ import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate, NavLink, useLocation } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
+import { useChat } from "@presentation/contexts/ChatContext";
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +26,7 @@ const navItems = [
   { to: "/appointments", label: "Appointments", icon: Calendar, addAction: "/appointments/new" },
   { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: true, addAction: null },
   { to: "/images", label: "Medical Images", icon: Image, disabled: true, addAction: null },
-  { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: true, addAction: null },
+  { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: false, addAction: null },
   { to: "/reports", label: "Reports", icon: FileText, disabled: true, addAction: null },
   { to: "/profile", label: "Profile", icon: User, addAction: null },
 ];
@@ -44,6 +45,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     limit: 5,
     query: searchFocused ? searchQuery : undefined,
   });
+
+  const { setOpen: setChatOpen } = useChat();
 
   const avatarLetter = useMemo(() => {
     if (profile?.firstName) return profile.firstName.charAt(0).toUpperCase();
@@ -134,17 +137,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <ul className="space-y-0.5">
-              {navItems.slice(3, 7).map(({ to, label, icon: Icon, disabled }) => (
-                <li key={to}>
-                  {disabled ? (
-                    <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300">
-                      <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                      {label}
-                      <span className="bg-surface-100 ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold text-gray-400">
-                        Soon
+              {navItems.slice(3, 7).map(({ to, label, icon: Icon, disabled }) => {
+                if (label === "AI Assistant") {
+                  return (
+                    <li key={to}>
+                      <button
+                        onClick={() => {
+                          setChatOpen(true);
+                        }}
+                        className="hover:bg-surface-50 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                      >
+                        <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {label}
+                      </button>
+                    </li>
+                  );
+                }
+                if (disabled) {
+                  return (
+                    <li key={to}>
+                      <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300">
+                        <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {label}
+                        <span className="bg-surface-100 ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold text-gray-400">
+                          Soon
+                        </span>
                       </span>
-                    </span>
-                  ) : (
+                    </li>
+                  );
+                }
+                return (
+                  <li key={to}>
                     <NavLink
                       to={to}
                       onClick={() => {
@@ -161,9 +184,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                       {label}
                     </NavLink>
-                  )}
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
 
             <div className="mt-6 mb-3 px-2">
