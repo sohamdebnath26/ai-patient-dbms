@@ -31,7 +31,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 }
 
 export const config = {
-  runtime: "nodejs20.x",
+  runtime: "nodejs",
   maxDuration: 60,
 };
 
