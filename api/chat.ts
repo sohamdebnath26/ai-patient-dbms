@@ -1,3 +1,5 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -19,7 +21,7 @@ const ALLOWED_ORIGINS = [
   "https://ai-patient-dbms.vercel.app",
 ];
 
-function getCorsHeaders(origin: string | null): Record<string, string> {
+function getCorsHeaders(origin: string | undefined): Record<string, string> {
   const fallbackOrigin = ALLOWED_ORIGINS[0] ?? "";
   const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : fallbackOrigin;
   return {
@@ -30,51 +32,65 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
+function jsonResponse(
+  res: VercelResponse,
+  status: number,
+  body: unknown,
+  corsHeaders: Record<string, string>,
+): void {
+  res.status(status).setHeader("Content-Type", "application/json");
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    res.setHeader(key, value);
+  }
+  res.json(body);
+}
+
 export const config = {
   runtime: "nodejs",
   maxDuration: 60,
 };
 
-export default async function handler(request: Request): Promise<Response> {
-  const origin = request.headers.get("origin");
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  const originHeader = req.headers["origin"];
+  const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader;
   const corsHeaders = getCorsHeaders(origin);
 
-  if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    res.status(204);
+    for (const [key, value] of Object.entries(corsHeaders)) {
+      res.setHeader(key, value);
+    }
+    res.end();
+    return;
   }
 
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+  if (req.method !== "POST") {
+    jsonResponse(res, 405, { error: "Method not allowed" }, corsHeaders);
+    return;
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({
-        error: "AI service is not configured. Set OPENROUTER_API_KEY in the environment.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    jsonResponse(
+      res,
+      500,
+      { error: "AI service is not configured. Set OPENROUTER_API_KEY in the environment." },
+      corsHeaders,
     );
+    return;
   }
 
-  let body: ChatRequest;
-  try {
-    body = (await request.json()) as ChatRequest;
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+  const body = (
+    typeof req.body === "string" ? safeParse(req.body) : req.body
+  ) as ChatRequest | null;
+  if (!body) {
+    jsonResponse(res, 400, { error: "Invalid JSON body" }, corsHeaders);
+    return;
   }
 
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
-    return new Response(JSON.stringify({ error: "messages must be a non-empty array" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    jsonResponse(res, 400, { error: "messages must be a non-empty array" }, corsHeaders);
+    return;
   }
 
   const controller = new AbortController();
@@ -105,23 +121,20 @@ export default async function handler(request: Request): Promise<Response> {
       };
       const message = errBody.error?.message ?? "OpenRouter error";
       if (upstream.status === 401) {
-        return new Response(JSON.stringify({ error: "AI service authentication failed." }), {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        jsonResponse(res, 500, { error: "AI service authentication failed." }, corsHeaders);
+        return;
       }
       if (upstream.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "AI service has insufficient credits. Contact the administrator.",
-          }),
-          { status: 402, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        jsonResponse(
+          res,
+          402,
+          { error: "AI service has insufficient credits. Contact the administrator." },
+          corsHeaders,
         );
+        return;
       }
-      return new Response(JSON.stringify({ error: message }), {
-        status: upstream.status,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      jsonResponse(res, upstream.status, { error: message }, corsHeaders);
+      return;
     }
 
     const data = (await upstream.json()) as {
@@ -129,24 +142,27 @@ export default async function handler(request: Request): Promise<Response> {
     };
     const content = data.choices?.[0]?.message?.content ?? "";
 
-    return new Response(JSON.stringify({ content }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    jsonResponse(res, 200, { content }, corsHeaders);
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      return new Response(JSON.stringify({ error: "AI request timed out." }), {
-        status: 504,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      jsonResponse(res, 504, { error: "AI request timed out." }, corsHeaders);
+      return;
     }
-    return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "Network error",
-      }),
-      { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    jsonResponse(
+      res,
+      502,
+      { error: err instanceof Error ? err.message : "Network error" },
+      corsHeaders,
     );
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+function safeParse(raw: string): ChatRequest | null {
+  try {
+    return JSON.parse(raw) as ChatRequest;
+  } catch {
+    return null;
   }
 }
