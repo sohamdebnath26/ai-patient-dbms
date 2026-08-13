@@ -10,7 +10,7 @@ import type { ChatMessage } from "@application/ports/IAIModelProvider";
 import { ChatContext } from "./ChatContext";
 import type { ChatBubble } from "./ChatContext";
 
-const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY ?? import.meta.env.VITE_DEEPSEEK_API_KEY;
+const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 const provider = new DeepSeekProvider(apiKey);
 const chatService = new ChatService(provider);
 
