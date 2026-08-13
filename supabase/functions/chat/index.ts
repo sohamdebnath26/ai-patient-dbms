@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
-const DEEPSEEK_MODEL = "deepseek-chat";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "deepseek/deepseek-chat";
 const MAX_TOOL_ITERATIONS = 4;
 
 type ChatRole = "user" | "assistant" | "system" | "tool";
@@ -294,14 +294,16 @@ async function callDeepSeek(
   content: string;
   toolCalls: Array<{ id: string; name: string; arguments: string }>;
 }> {
-  const response = await fetch(DEEPSEEK_API_URL, {
+  const response = await fetch(OPENROUTER_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://clinicos.ai",
+      "X-Title": "ClinicOS AI",
     },
     body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
+      model: OPENROUTER_MODEL,
       messages,
       tools: TOOLS,
       tool_choice: toolChoice,
@@ -312,7 +314,7 @@ async function callDeepSeek(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`DeepSeek error ${response.status}: ${text.slice(0, 300)}`);
+    throw new Error(`OpenRouter/DeepSeek error ${response.status}: ${text.slice(0, 300)}`);
   }
 
   const payload = (await response.json()) as {
