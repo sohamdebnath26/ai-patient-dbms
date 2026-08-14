@@ -41,8 +41,6 @@ export type Appointment = z.infer<typeof AppointmentSchema>;
 export const CreateAppointmentSchema = z.object({
   patient_id: z.string().uuid("Select a patient"),
   assigned_to: z.string().uuid().optional(),
-  organization_id: z.string().uuid(),
-  clinic_id: z.string().uuid().nullable().optional(),
   appointment_date: z.string().min(1, "Date is required"),
   appointment_time: z.string().optional(),
   duration_minutes: z.coerce.number().min(5).max(240),

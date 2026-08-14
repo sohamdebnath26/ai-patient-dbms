@@ -176,6 +176,9 @@ export function ProfilePage() {
                 <Building2 className="h-3.5 w-3.5" />
                 {profile?.organizationId ?? "No organization assigned"}
               </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Organization is managed from the sidebar; switch any time.
+              </p>
             </div>
 
             {saveError && (

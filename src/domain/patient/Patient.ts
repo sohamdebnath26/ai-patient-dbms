@@ -41,10 +41,8 @@ export type CreatePatientFormInput = z.infer<typeof CreatePatientFormSchema>;
 
 export const AuthorizationContextSchema = z.object({
   userId: z.string().uuid(),
-  organizationId: z.string().uuid({
-    message: "Your account is not assigned to an organization. Please contact your administrator.",
-  }),
-  clinicId: z.string().uuid().nullable(),
+  selectedOrganizationId: z.string().uuid().nullable(),
+  selectedClinicId: z.string().uuid().nullable(),
 });
 
 export type AuthorizationContext = z.infer<typeof AuthorizationContextSchema>;

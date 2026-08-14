@@ -8,8 +8,8 @@ import type {
 } from "@domain/patient";
 
 export interface IPatientRepository {
-  search(params: PatientSearchParams): Promise<PatientListPage>;
-  getById(id: string): Promise<Patient | null>;
+  search(params: PatientSearchParams, auth: AuthorizationContext): Promise<PatientListPage>;
+  getById(id: string, auth: AuthorizationContext): Promise<Patient | null>;
   create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient>;
   update(id: string, input: UpdatePatientInput): Promise<Patient>;
   softDelete(id: string): Promise<void>;

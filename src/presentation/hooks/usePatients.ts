@@ -8,42 +8,52 @@ import {
   type UpdatePatientInput,
   type PatientSearchParams,
 } from "@domain/patient";
-import { useProfile } from "@presentation/hooks/useProfile";
+import { useAuth } from "@presentation/hooks/useAuth";
+import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 
 const repository = new SupabasePatientRepository();
 const service = new PatientService(repository);
 
+function useCurrentAuth(): AuthorizationContext {
+  const { user } = useAuth();
+  const { selectedOrganizationId, selectedClinicId } = useSelectedOrganizationStore();
+  return {
+    userId: user?.id ?? "",
+    selectedOrganizationId,
+    selectedClinicId,
+  };
+}
+
 export function usePatientList(params: PatientSearchParams) {
+  const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["patients", params],
-    queryFn: () => service.list(params),
+    queryKey: ["patients", params, auth.selectedOrganizationId],
+    queryFn: () => service.list(params, auth),
+    enabled: !!auth.selectedOrganizationId,
     placeholderData: (prev) => prev,
   });
 }
 
 export function usePatient(id: string) {
+  const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["patients", id],
-    queryFn: () => service.getById(id),
-    enabled: !!id,
+    queryKey: ["patients", id, auth.selectedOrganizationId],
+    queryFn: () => service.getById(id, auth),
+    enabled: !!id && !!auth.selectedOrganizationId,
   });
 }
 
 export function useCreatePatient() {
   const queryClient = useQueryClient();
-  const { profile } = useProfile();
+  const { user } = useAuth();
+  const auth = useCurrentAuth();
 
   return useMutation({
     mutationFn: async (input: CreatePatientFormInput) => {
-      if (!profile?.organizationId) {
+      if (!auth.selectedOrganizationId) {
         throw new MissingOrganizationError();
       }
-      const auth: AuthorizationContext = {
-        userId: profile.id,
-        organizationId: profile.organizationId,
-        clinicId: profile.clinicId ?? null,
-      };
-      return service.create(input, auth);
+      return service.create(input, { ...auth, userId: user?.id ?? "" });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });

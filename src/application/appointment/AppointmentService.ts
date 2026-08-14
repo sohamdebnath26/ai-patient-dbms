@@ -5,20 +5,34 @@ import type {
   AppointmentSearchParams,
   AppointmentListPage,
 } from "@domain/appointment";
+import type { AuthorizationContext } from "@domain/patient";
+import { MissingOrganizationError } from "@domain/patient";
 
 export class AppointmentService {
   constructor(private readonly repo: IAppointmentRepository) {}
 
-  async list(params: AppointmentSearchParams): Promise<AppointmentListPage> {
-    return this.repo.search(params);
+  async list(
+    params: AppointmentSearchParams,
+    auth: AuthorizationContext,
+  ): Promise<AppointmentListPage> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
+    return this.repo.search(params, auth);
   }
 
-  async getById(id: string): Promise<Appointment | null> {
-    return this.repo.getById(id);
+  async getById(id: string, auth: AuthorizationContext): Promise<Appointment | null> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
+    return this.repo.getById(id, auth);
   }
 
-  async book(input: CreateAppointmentInput, userId: string): Promise<Appointment> {
-    return this.repo.create(input, userId);
+  async book(input: CreateAppointmentInput, auth: AuthorizationContext): Promise<Appointment> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
+    return this.repo.create(input, auth);
   }
 
   async reschedule(id: string, date: string, time: string): Promise<Appointment> {

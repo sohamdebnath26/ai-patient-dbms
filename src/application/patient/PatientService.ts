@@ -13,17 +13,23 @@ import {
 export class PatientService {
   constructor(private readonly repository: IPatientRepository) {}
 
-  async list(params: PatientSearchParams): Promise<PatientListPage> {
-    return this.repository.search(params);
+  async list(params: PatientSearchParams, auth: AuthorizationContext): Promise<PatientListPage> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
+    return this.repository.search(params, auth);
   }
 
-  async getById(id: string): Promise<Patient | null> {
-    return this.repository.getById(id);
+  async getById(id: string, auth: AuthorizationContext): Promise<Patient | null> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
+    return this.repository.getById(id, auth);
   }
 
   async create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient> {
     const validated = AuthorizationContextSchema.safeParse(auth);
-    if (!validated.success) {
+    if (!validated.success || !validated.data.selectedOrganizationId) {
       throw new MissingOrganizationError();
     }
     return this.repository.create(input, validated.data);

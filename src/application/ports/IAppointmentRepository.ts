@@ -4,11 +4,12 @@ import type {
   AppointmentSearchParams,
   AppointmentListPage,
 } from "@domain/appointment";
+import type { AuthorizationContext } from "@domain/patient";
 
 export interface IAppointmentRepository {
-  search(params: AppointmentSearchParams): Promise<AppointmentListPage>;
-  getById(id: string): Promise<Appointment | null>;
-  create(input: CreateAppointmentInput, userId: string): Promise<Appointment>;
+  search(params: AppointmentSearchParams, auth: AuthorizationContext): Promise<AppointmentListPage>;
+  getById(id: string, auth: AuthorizationContext): Promise<Appointment | null>;
+  create(input: CreateAppointmentInput, auth: AuthorizationContext): Promise<Appointment>;
   updateStatus(id: string, status: string, userId: string): Promise<Appointment>;
   update(
     id: string,

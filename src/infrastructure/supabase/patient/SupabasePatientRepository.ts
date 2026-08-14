@@ -36,11 +36,17 @@ function mapToPatient(raw: PatientRow): Patient {
 }
 
 export class SupabasePatientRepository implements IPatientRepository {
-  async search(params: PatientSearchParams): Promise<PatientListPage> {
+  async search(params: PatientSearchParams, auth: AuthorizationContext): Promise<PatientListPage> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
     const client = getSupabaseClient();
     const offset = (params.page - 1) * params.limit;
 
-    let query = client.from("patients").select("*", { count: "exact" });
+    let query = client
+      .from("patients")
+      .select("*", { count: "exact" })
+      .eq("organization_id", auth.selectedOrganizationId);
 
     if (params.status) {
       query = query.eq("status", params.status);
@@ -78,13 +84,17 @@ export class SupabasePatientRepository implements IPatientRepository {
     };
   }
 
-  async getById(id: string): Promise<Patient | null> {
+  async getById(id: string, auth: AuthorizationContext): Promise<Patient | null> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
     const client = getSupabaseClient();
     const { data, error } = (await client
       .from("patients")
       .select("*")
       .eq("id", id)
-      .single()) as unknown as {
+      .eq("organization_id", auth.selectedOrganizationId)
+      .maybeSingle()) as unknown as {
       data: PatientRow | null;
       error: { code: string; message: string } | null;
     };
@@ -98,7 +108,7 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   async create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient> {
-    if (!auth.organizationId) {
+    if (!auth.selectedOrganizationId) {
       throw new MissingOrganizationError();
     }
     const client = getSupabaseClient();
@@ -116,8 +126,8 @@ export class SupabasePatientRepository implements IPatientRepository {
         phone: input.phone ?? null,
         address: input.address ?? null,
         mrn: input.mrn,
-        organization_id: auth.organizationId,
-        clinic_id: auth.clinicId ?? null,
+        organization_id: auth.selectedOrganizationId,
+        clinic_id: auth.selectedClinicId ?? null,
         created_by: auth.userId,
       })
       .select("*")

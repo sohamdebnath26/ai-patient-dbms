@@ -6,6 +6,8 @@ import type {
   AppointmentListPage,
 } from "@domain/appointment";
 import { AppointmentSchema } from "@domain/appointment";
+import type { AuthorizationContext } from "@domain/patient";
+import { MissingOrganizationError } from "@domain/patient";
 import { getSupabaseClient } from "../client";
 
 interface AppointmentRow {
@@ -38,13 +40,20 @@ function mapToAppointment(raw: AppointmentRow): Appointment {
 }
 
 export class SupabaseAppointmentRepository implements IAppointmentRepository {
-  async search(params: AppointmentSearchParams): Promise<AppointmentListPage> {
+  async search(
+    params: AppointmentSearchParams,
+    auth: AuthorizationContext,
+  ): Promise<AppointmentListPage> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
     const client = getSupabaseClient();
     const offset = (params.page - 1) * params.limit;
 
     let query = client
       .from("appointments")
-      .select("*, patient:patients(first_name,last_name,mrn)", { count: "exact" });
+      .select("*, patient:patients(first_name,last_name,mrn)", { count: "exact" })
+      .eq("organization_id", auth.selectedOrganizationId);
 
     if (params.status) query = query.eq("status", params.status);
     if (params.assigned_to) query = query.eq("assigned_to", params.assigned_to);
@@ -77,13 +86,17 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     };
   }
 
-  async getById(id: string): Promise<Appointment | null> {
+  async getById(id: string, auth: AuthorizationContext): Promise<Appointment | null> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
     const client = getSupabaseClient();
     const { data, error } = (await client
       .from("appointments")
       .select("*, patient:patients(first_name,last_name,mrn)")
       .eq("id", id)
-      .single()) as unknown as {
+      .eq("organization_id", auth.selectedOrganizationId)
+      .maybeSingle()) as unknown as {
       data: AppointmentRow | null;
       error: { code: string; message: string } | null;
     };
@@ -94,14 +107,17 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     return data ? mapToAppointment(data) : null;
   }
 
-  async create(input: CreateAppointmentInput, userId: string): Promise<Appointment> {
+  async create(input: CreateAppointmentInput, auth: AuthorizationContext): Promise<Appointment> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
     const client = getSupabaseClient();
     const { data, error } = (await client
       .from("appointments")
       .insert({
         patient_id: input.patient_id,
-        organization_id: input.organization_id,
-        clinic_id: input.clinic_id ?? null,
+        organization_id: auth.selectedOrganizationId,
+        clinic_id: auth.selectedClinicId ?? null,
         assigned_to: input.assigned_to ?? null,
         appointment_date: input.appointment_date,
         appointment_time: input.appointment_time ?? null,
@@ -109,7 +125,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         type: input.type,
         reason: input.reason ?? null,
         notes: input.notes ?? null,
-        created_by: userId,
+        created_by: auth.userId,
       })
       .select("*, patient:patients(first_name,last_name,mrn)")
       .single()) as unknown as {

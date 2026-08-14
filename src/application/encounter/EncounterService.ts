@@ -1,11 +1,16 @@
 import type { IEncounterRepository } from "@application/ports/IEncounterRepository";
 import type { Encounter, UpdateEncounterInput } from "@domain/encounter";
+import type { AuthorizationContext } from "@domain/patient";
+import { MissingOrganizationError } from "@domain/patient";
 
 export class EncounterService {
   constructor(private readonly repo: IEncounterRepository) {}
 
-  async getById(id: string): Promise<Encounter | null> {
-    return this.repo.getById(id);
+  async getById(id: string, auth: AuthorizationContext): Promise<Encounter | null> {
+    if (!auth.selectedOrganizationId) {
+      throw new MissingOrganizationError();
+    }
+    return this.repo.getById(id, auth);
   }
 
   async getByAppointmentId(appointmentId: string): Promise<Encounter | null> {

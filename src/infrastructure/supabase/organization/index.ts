@@ -1,0 +1,1 @@
+export { SupabaseOrganizationMembershipRepository } from "./SupabaseOrganizationMembershipRepository";

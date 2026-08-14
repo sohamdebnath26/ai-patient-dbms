@@ -5,7 +5,7 @@ import { CreateAppointmentSchema, type CreateAppointmentInput } from "@domain/ap
 import { useBookAppointment } from "@presentation/hooks/useAppointments";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { useAuth } from "@presentation/hooks/useAuth";
-import { useProfile } from "@presentation/hooks/useProfile";
+import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -13,7 +13,7 @@ import { useState } from "react";
 export function AppointmentCreatePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const selectedOrganizationId = useSelectedOrganizationStore((s) => s.selectedOrganizationId);
   const mutation = useBookAppointment();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: patients } = usePatientList({ page: 1, limit: 50, query: searchQuery });
@@ -26,14 +26,13 @@ export function AppointmentCreatePage() {
   } = useForm<CreateAppointmentInput>({
     resolver: zodResolver(CreateAppointmentSchema),
     defaultValues: {
-      organization_id: profile?.organizationId ?? "",
       duration_minutes: 30,
       type: "in_person",
     },
   });
 
   function onSubmit(data: CreateAppointmentInput) {
-    if (!user) return;
+    if (!user || !selectedOrganizationId) return;
     mutation.mutate(
       { input: data, userId: user.id },
       {
@@ -143,17 +142,6 @@ export function AppointmentCreatePage() {
                   {...register("reason")}
                   className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Organization *</label>
-                <input
-                  {...register("organization_id")}
-                  placeholder="UUID"
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.organization_id && (
-                  <p className="mt-1 text-xs text-red-600">{errors.organization_id.message}</p>
-                )}
               </div>
             </div>
           </div>

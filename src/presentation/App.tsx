@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { AuthProvider } from "@presentation/contexts/AuthProvider";
 import { ProtectedRoute } from "@presentation/components/ProtectedRoute";
+import { OrganizationGate } from "@presentation/pages/organization";
 import { HealthPage } from "@presentation/pages/system/HealthPage";
 import { LoginPage } from "@presentation/pages/auth/LoginPage";
 import { SignupPage } from "@presentation/pages/auth/SignupPage";
@@ -88,7 +89,9 @@ export function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardPage />
+                    <OrganizationGate>
+                      <DashboardPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -96,7 +99,9 @@ export function App() {
                 path="/profile"
                 element={
                   <ProtectedRoute>
-                    <ProfilePage />
+                    <OrganizationGate>
+                      <ProfilePage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -104,7 +109,9 @@ export function App() {
                 path="/patients"
                 element={
                   <ProtectedRoute>
-                    <PatientListPage />
+                    <OrganizationGate>
+                      <PatientListPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -112,7 +119,9 @@ export function App() {
                 path="/patients/new"
                 element={
                   <ProtectedRoute>
-                    <PatientCreatePage />
+                    <OrganizationGate>
+                      <PatientCreatePage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -120,7 +129,9 @@ export function App() {
                 path="/patients/:id"
                 element={
                   <ProtectedRoute>
-                    <PatientDetailPage />
+                    <OrganizationGate>
+                      <PatientDetailPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -128,7 +139,9 @@ export function App() {
                 path="/patients/:id/edit"
                 element={
                   <ProtectedRoute>
-                    <PatientEditPage />
+                    <OrganizationGate>
+                      <PatientEditPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -136,7 +149,9 @@ export function App() {
                 path="/appointments"
                 element={
                   <ProtectedRoute>
-                    <AppointmentListPage />
+                    <OrganizationGate>
+                      <AppointmentListPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -144,7 +159,9 @@ export function App() {
                 path="/appointments/new"
                 element={
                   <ProtectedRoute>
-                    <AppointmentCreatePage />
+                    <OrganizationGate>
+                      <AppointmentCreatePage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -152,7 +169,9 @@ export function App() {
                 path="/appointments/:id"
                 element={
                   <ProtectedRoute>
-                    <AppointmentDetailPage />
+                    <OrganizationGate>
+                      <AppointmentDetailPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />
@@ -160,7 +179,9 @@ export function App() {
                 path="/encounters/:id"
                 element={
                   <ProtectedRoute>
-                    <EncounterDetailPage />
+                    <OrganizationGate>
+                      <EncounterDetailPage />
+                    </OrganizationGate>
                   </ProtectedRoute>
                 }
               />

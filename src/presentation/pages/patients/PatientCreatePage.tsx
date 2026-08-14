@@ -8,17 +8,17 @@ import {
   type CreatePatientFormInput,
 } from "@domain/patient";
 import { useCreatePatient } from "@presentation/hooks/usePatients";
-import { useProfile } from "@presentation/hooks/useProfile";
+import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
-  const { profile, loading: profileLoading } = useProfile();
+  const selectedOrganizationId = useSelectedOrganizationStore((s) => s.selectedOrganizationId);
   const createMutation = useCreatePatient();
 
-  const missingOrg = !profile?.organizationId;
-  const canSubmit = !profileLoading && !missingOrg && !createMutation.isPending;
+  const missingOrg = !selectedOrganizationId;
+  const canSubmit = !missingOrg && !createMutation.isPending;
 
   const defaultMrn = useMemo(() => `MRN-${Date.now()}`, []);
 
@@ -59,14 +59,7 @@ export function PatientCreatePage() {
 
         <h1 className="text-2xl font-bold text-gray-900">Register Patient</h1>
 
-        {profileLoading && (
-          <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading your account information…
-          </div>
-        )}
-
-        {!profileLoading && missingOrg && (
+        {missingOrg && (
           <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
             <div>

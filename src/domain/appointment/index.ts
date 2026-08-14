@@ -9,3 +9,5 @@ export {
   type AppointmentSearchParams,
   type AppointmentListPage,
 } from "./Appointment";
+
+export { MissingOrganizationError } from "../patient";
