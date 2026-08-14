@@ -1,7 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PatientService } from "@application/patient/PatientService";
 import { SupabasePatientRepository } from "@infrastructure/supabase/patient/SupabasePatientRepository";
-import type { CreatePatientInput, UpdatePatientInput, PatientSearchParams } from "@domain/patient";
+import {
+  MissingOrganizationError,
+  type AuthorizationContext,
+  type CreatePatientFormInput,
+  type UpdatePatientInput,
+  type PatientSearchParams,
+} from "@domain/patient";
+import { useProfile } from "@presentation/hooks/useProfile";
 
 const repository = new SupabasePatientRepository();
 const service = new PatientService(repository);
@@ -24,10 +31,20 @@ export function usePatient(id: string) {
 
 export function useCreatePatient() {
   const queryClient = useQueryClient();
+  const { profile } = useProfile();
 
   return useMutation({
-    mutationFn: (input: CreatePatientInput & { userId: string }) =>
-      service.create(input, input.userId),
+    mutationFn: async (input: CreatePatientFormInput) => {
+      if (!profile?.organizationId) {
+        throw new MissingOrganizationError();
+      }
+      const auth: AuthorizationContext = {
+        userId: profile.id,
+        organizationId: profile.organizationId,
+        clinicId: profile.clinicId ?? null,
+      };
+      return service.create(input, auth);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
     },

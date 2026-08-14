@@ -1,12 +1,13 @@
 import type { IPatientRepository } from "@application/ports/IPatientRepository";
 import type {
   Patient,
-  CreatePatientInput,
+  CreatePatientFormInput,
   UpdatePatientInput,
   PatientSearchParams,
   PatientListPage,
+  AuthorizationContext,
 } from "@domain/patient";
-import { PatientSchema } from "@domain/patient";
+import { PatientSchema, MissingOrganizationError } from "@domain/patient";
 import { getSupabaseClient } from "../client";
 
 interface PatientRow {
@@ -96,7 +97,10 @@ export class SupabasePatientRepository implements IPatientRepository {
     return data ? mapToPatient(data) : null;
   }
 
-  async create(input: CreatePatientInput, userId: string): Promise<Patient> {
+  async create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient> {
+    if (!auth.organizationId) {
+      throw new MissingOrganizationError();
+    }
     const client = getSupabaseClient();
     const { data, error } = (await client
       .from("patients")
@@ -112,9 +116,9 @@ export class SupabasePatientRepository implements IPatientRepository {
         phone: input.phone ?? null,
         address: input.address ?? null,
         mrn: input.mrn,
-        organization_id: input.organization_id,
-        clinic_id: input.clinic_id ?? null,
-        created_by: userId,
+        organization_id: auth.organizationId,
+        clinic_id: auth.clinicId ?? null,
+        created_by: auth.userId,
       })
       .select("*")
       .single()) as unknown as {

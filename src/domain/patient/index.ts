@@ -1,11 +1,14 @@
 export {
   PatientSchema,
-  CreatePatientSchema,
+  CreatePatientFormSchema,
   UpdatePatientSchema,
   PatientSearchSchema,
+  AuthorizationContextSchema,
+  MissingOrganizationError,
   type Patient,
-  type CreatePatientInput,
+  type CreatePatientFormInput,
   type UpdatePatientInput,
   type PatientSearchParams,
   type PatientListPage,
+  type AuthorizationContext,
 } from "./Patient";

@@ -1,15 +1,16 @@
 import type {
   Patient,
-  CreatePatientInput,
+  CreatePatientFormInput,
   UpdatePatientInput,
   PatientSearchParams,
   PatientListPage,
+  AuthorizationContext,
 } from "@domain/patient";
 
 export interface IPatientRepository {
   search(params: PatientSearchParams): Promise<PatientListPage>;
   getById(id: string): Promise<Patient | null>;
-  create(input: CreatePatientInput, userId: string): Promise<Patient>;
+  create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient>;
   update(id: string, input: UpdatePatientInput): Promise<Patient>;
   softDelete(id: string): Promise<void>;
 }

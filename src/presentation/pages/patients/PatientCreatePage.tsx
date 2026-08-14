@@ -1,42 +1,50 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreatePatientSchema, type CreatePatientInput } from "@domain/patient";
+import {
+  CreatePatientFormSchema,
+  MissingOrganizationError,
+  type CreatePatientFormInput,
+} from "@domain/patient";
 import { useCreatePatient } from "@presentation/hooks/usePatients";
-import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const createMutation = useCreatePatient();
+
+  const missingOrg = !profile?.organizationId;
+  const canSubmit = !profileLoading && !missingOrg && !createMutation.isPending;
+
+  const defaultMrn = useMemo(() => `MRN-${Date.now()}`, []);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreatePatientInput>({
-    resolver: zodResolver(CreatePatientSchema),
+  } = useForm<CreatePatientFormInput>({
+    resolver: zodResolver(CreatePatientFormSchema),
     defaultValues: {
-      organization_id: profile?.organizationId ?? "",
-      mrn: `MRN-${Date.now()}`,
+      mrn: defaultMrn,
     },
   });
 
-  function onSubmit(data: CreatePatientInput) {
-    if (!user) return;
-    createMutation.mutate(
-      { ...data, userId: user.id },
-      {
-        onSuccess: (patient) => {
-          void navigate(`/patients/${patient.id}`);
-        },
+  function onSubmit(data: CreatePatientFormInput) {
+    createMutation.mutate(data, {
+      onSuccess: (patient) => {
+        void navigate(`/patients/${patient.id}`);
       },
-    );
+    });
   }
+
+  const mutationErrorMessage =
+    createMutation.error instanceof MissingOrganizationError
+      ? createMutation.error.message
+      : createMutation.error?.message;
 
   return (
     <AppShell>
@@ -50,6 +58,25 @@ export function PatientCreatePage() {
         </button>
 
         <h1 className="text-2xl font-bold text-gray-900">Register Patient</h1>
+
+        {profileLoading && (
+          <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading your account information…
+          </div>
+        )}
+
+        {!profileLoading && missingOrg && (
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+            <div>
+              <p className="font-medium">Cannot register a patient</p>
+              <p className="mt-1 text-amber-700">
+                Your account is not assigned to an organization. Please contact your administrator.
+              </p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-6">
           <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
@@ -169,31 +196,25 @@ export function PatientCreatePage() {
                 />
                 {errors.mrn && <p className="mt-1 text-xs text-red-600">{errors.mrn.message}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Organization *</label>
-                <input
-                  {...register("organization_id")}
-                  placeholder="UUID"
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.organization_id && (
-                  <p className="mt-1 text-xs text-red-600">{errors.organization_id.message}</p>
-                )}
-              </div>
             </div>
           </div>
 
           {createMutation.isError && (
             <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
-              {createMutation.error.message}
+              {mutationErrorMessage}
             </div>
           )}
 
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={createMutation.isPending}
-              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              disabled={!canSubmit}
+              title={
+                missingOrg
+                  ? "Your account is not assigned to an organization. Please contact your administrator."
+                  : undefined
+              }
+              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Register Patient

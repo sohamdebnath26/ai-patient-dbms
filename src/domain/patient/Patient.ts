@@ -23,7 +23,7 @@ export const PatientSchema = z.object({
 
 export type Patient = z.infer<typeof PatientSchema>;
 
-export const CreatePatientSchema = z.object({
+export const CreatePatientFormSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   dob: z.string().optional(),
@@ -35,11 +35,26 @@ export const CreatePatientSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   mrn: z.string().min(1, "MRN is required"),
-  organization_id: z.string().uuid(),
-  clinic_id: z.string().uuid().nullable().optional(),
 });
 
-export type CreatePatientInput = z.infer<typeof CreatePatientSchema>;
+export type CreatePatientFormInput = z.infer<typeof CreatePatientFormSchema>;
+
+export const AuthorizationContextSchema = z.object({
+  userId: z.string().uuid(),
+  organizationId: z.string().uuid({
+    message: "Your account is not assigned to an organization. Please contact your administrator.",
+  }),
+  clinicId: z.string().uuid().nullable(),
+});
+
+export type AuthorizationContext = z.infer<typeof AuthorizationContextSchema>;
+
+export class MissingOrganizationError extends Error {
+  constructor() {
+    super("Your account is not assigned to an organization. Please contact your administrator.");
+    this.name = "MissingOrganizationError";
+  }
+}
 
 export const UpdatePatientSchema = z.object({
   first_name: z.string().min(1).optional(),

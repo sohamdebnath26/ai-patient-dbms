@@ -1,10 +1,13 @@
 import type { IPatientRepository } from "@application/ports/IPatientRepository";
-import type {
-  Patient,
-  CreatePatientInput,
-  UpdatePatientInput,
-  PatientSearchParams,
-  PatientListPage,
+import {
+  type Patient,
+  type CreatePatientFormInput,
+  type UpdatePatientInput,
+  type PatientSearchParams,
+  type PatientListPage,
+  type AuthorizationContext,
+  AuthorizationContextSchema,
+  MissingOrganizationError,
 } from "@domain/patient";
 
 export class PatientService {
@@ -18,8 +21,12 @@ export class PatientService {
     return this.repository.getById(id);
   }
 
-  async create(input: CreatePatientInput, userId: string): Promise<Patient> {
-    return this.repository.create(input, userId);
+  async create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient> {
+    const validated = AuthorizationContextSchema.safeParse(auth);
+    if (!validated.success) {
+      throw new MissingOrganizationError();
+    }
+    return this.repository.create(input, validated.data);
   }
 
   async update(id: string, input: UpdatePatientInput): Promise<Patient> {
