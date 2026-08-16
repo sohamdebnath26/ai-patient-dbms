@@ -98,8 +98,21 @@ export class SupabaseProfileRepository implements IProfileRepository {
       .from("profiles")
       .select("*")
       .eq("organization_id", organizationId)) as unknown as ProfileListResult;
-
     if (error) throw new Error(error.message);
     return data.map(mapToProfile);
+  }
+
+  async ensureExists(input: CreateProfileInput): Promise<Profile> {
+    const existing = await this.getById(input.id);
+    if (existing) return existing;
+    try {
+      return await this.create(input);
+    } catch {
+      // Race: another caller inserted the profile between getById and
+      // create. Re-read and trust whichever row won.
+      const reread = await this.getById(input.id);
+      if (reread) return reread;
+      throw new Error("Profile could not be created and could not be found.");
+    }
   }
 }
