@@ -1,11 +1,11 @@
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 import type { Topic, MedicalContext, ResolvedEntity } from "@domain/ai/MedicalContext";
 import type { AuthorizationContext } from "@domain/patient";
-import { MissingOrganizationError } from "@domain/patient";
+import { resolveAuthScope } from "@domain/patient";
 
 interface PatientRow {
   id: string;
-  organization_id: string;
+  organization_id: string | null;
   mrn: string;
   first_name: string;
   last_name: string;
@@ -133,20 +133,18 @@ export class PatientContextResolver {
     entity: ResolvedEntity,
     auth: AuthorizationContext,
   ): Promise<ResolvedPatientHandle> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
-    const orgId = auth.selectedOrganizationId;
+    const scope = resolveAuthScope(auth);
+
+    const baseSelect =
+      "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status";
 
     if (entity.patient_id) {
       const { data, error } = (await client
         .from("patients")
-        .select(
-          "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status",
-        )
+        .select(baseSelect)
         .eq("id", entity.patient_id)
-        .eq("organization_id", orgId)
+        .eq(scope.column, scope.value)
         .maybeSingle()) as unknown as {
         data: PatientRow | null;
         error: { message?: string } | null;
@@ -158,11 +156,9 @@ export class PatientContextResolver {
     if (entity.patient_mrn) {
       const { data, error } = (await client
         .from("patients")
-        .select(
-          "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status",
-        )
+        .select(baseSelect)
         .eq("mrn", entity.patient_mrn.toUpperCase())
-        .eq("organization_id", orgId)
+        .eq(scope.column, scope.value)
         .maybeSingle()) as unknown as {
         data: PatientRow | null;
         error: { message?: string } | null;
@@ -175,10 +171,8 @@ export class PatientContextResolver {
       const first = entity.patient_first_name ?? "";
       const query = client
         .from("patients")
-        .select(
-          "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status",
-        )
-        .eq("organization_id", orgId)
+        .select(baseSelect)
+        .eq(scope.column, scope.value)
         .ilike("last_name", entity.patient_last_name);
       if (first) {
         const result = (await query.ilike("first_name", first).limit(2)) as unknown as {
@@ -203,14 +197,11 @@ export class PatientContextResolver {
     patient: PatientRow | null,
     auth: AuthorizationContext,
   ): Promise<MedicalContext> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
     const topics = new Set<Topic>(entity.topics);
-    const orgId = auth.selectedOrganizationId;
+    const scope = resolveAuthScope(auth);
 
-    if (!patient || patient.organization_id !== orgId) {
+    if (!patient) {
       return {
         patient: null,
         allergies: [],
@@ -238,7 +229,7 @@ export class PatientContextResolver {
           .from("allergies")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("recorded_date", { ascending: false })
           .limit(20)
           .then((r: unknown): QueryResult => ({
@@ -254,7 +245,7 @@ export class PatientContextResolver {
           .from("diagnoses")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("onset_date", { ascending: false })
           .limit(20)
           .then((r: unknown): QueryResult => ({
@@ -270,7 +261,7 @@ export class PatientContextResolver {
           .from("encounters")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("encounter_date", { ascending: false })
           .limit(10)
           .then((r: unknown): QueryResult => ({
@@ -286,7 +277,7 @@ export class PatientContextResolver {
           .from("consultations")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("consultation_date", { ascending: false })
           .limit(10)
           .then((r: unknown): QueryResult => ({
@@ -302,7 +293,7 @@ export class PatientContextResolver {
           .from("vitals")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("recorded_at", { ascending: false })
           .limit(10)
           .then((r: unknown): QueryResult => ({
@@ -318,7 +309,7 @@ export class PatientContextResolver {
           .from("prescriptions")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("created_at", { ascending: false })
           .limit(10)
           .then((r: unknown): QueryResult => ({
@@ -334,7 +325,7 @@ export class PatientContextResolver {
           .from("medical_history")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("diagnosis_date", { ascending: false })
           .limit(20)
           .then((r: unknown): QueryResult => ({
@@ -350,7 +341,7 @@ export class PatientContextResolver {
           .from("appointments")
           .select("*")
           .eq("patient_id", pid)
-          .eq("organization_id", orgId)
+          .eq(scope.column, scope.value)
           .order("appointment_date", { ascending: false })
           .limit(10)
           .then((r: unknown): QueryResult => ({

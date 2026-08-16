@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PatientService } from "@application/patient/PatientService";
 import { SupabasePatientRepository } from "@infrastructure/supabase/patient/SupabasePatientRepository";
 import {
-  MissingOrganizationError,
   type AuthorizationContext,
   type CreatePatientFormInput,
   type UpdatePatientInput,
@@ -27,9 +26,8 @@ function useCurrentAuth(): AuthorizationContext {
 export function usePatientList(params: PatientSearchParams) {
   const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["patients", params, auth.selectedOrganizationId],
+    queryKey: ["patients", params, auth.selectedOrganizationId ?? `user:${auth.userId}`],
     queryFn: () => service.list(params, auth),
-    enabled: !!auth.selectedOrganizationId,
     placeholderData: (prev) => prev,
   });
 }
@@ -37,24 +35,18 @@ export function usePatientList(params: PatientSearchParams) {
 export function usePatient(id: string) {
   const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["patients", id, auth.selectedOrganizationId],
+    queryKey: ["patients", id, auth.selectedOrganizationId ?? `user:${auth.userId}`],
     queryFn: () => service.getById(id, auth),
-    enabled: !!id && !!auth.selectedOrganizationId,
+    enabled: !!id,
   });
 }
 
 export function useCreatePatient() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   const auth = useCurrentAuth();
 
   return useMutation({
-    mutationFn: async (input: CreatePatientFormInput) => {
-      if (!auth.selectedOrganizationId) {
-        throw new MissingOrganizationError();
-      }
-      return service.create(input, { ...auth, userId: user?.id ?? "" });
-    },
+    mutationFn: (input: CreatePatientFormInput) => service.create(input, auth),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
     },

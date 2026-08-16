@@ -2,14 +2,14 @@ import type { IEncounterRepository } from "@application/ports/IEncounterReposito
 import type { Encounter, UpdateEncounterInput } from "@domain/encounter";
 import type { AuthorizationContext } from "@domain/patient";
 import { EncounterSchema } from "@domain/encounter";
-import { MissingOrganizationError } from "@domain/patient";
+import { resolveAuthScope } from "@domain/patient";
 import { getSupabaseClient } from "../client";
 
 interface EncounterRow {
   id: string;
   patient_id: string;
   appointment_id: string | null;
-  organization_id: string;
+  organization_id: string | null;
   clinic_id: string | null;
   assigned_to: string | null;
   encounter_date: string;
@@ -30,15 +30,13 @@ function mapToEncounter(raw: EncounterRow): Encounter {
 
 export class SupabaseEncounterRepository implements IEncounterRepository {
   async getById(id: string, auth: AuthorizationContext): Promise<Encounter | null> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("encounters")
       .select("*")
       .eq("id", id)
-      .eq("organization_id", auth.selectedOrganizationId)
+      .eq(scope.column, scope.value)
       .maybeSingle()) as unknown as {
       data: EncounterRow | null;
       error: { code: string; message: string } | null;
@@ -73,7 +71,7 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
       .single()) as unknown as {
       data: {
         patient_id: string;
-        organization_id: string;
+        organization_id: string | null;
         clinic_id: string | null;
         assigned_to: string | null;
       } | null;

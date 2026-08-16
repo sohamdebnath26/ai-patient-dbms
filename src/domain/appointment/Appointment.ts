@@ -14,7 +14,7 @@ export const AppointmentTypeEnum = z.enum(["in_person", "telehealth", "home_visi
 export const AppointmentSchema = z.object({
   id: z.string().uuid(),
   patient_id: z.string().uuid(),
-  organization_id: z.string().uuid(),
+  organization_id: z.string().uuid().nullable(),
   clinic_id: z.string().uuid().nullable(),
   assigned_to: z.string().uuid().nullable(),
   appointment_date: z.string(),

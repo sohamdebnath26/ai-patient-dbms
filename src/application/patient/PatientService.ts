@@ -6,33 +6,21 @@ import {
   type PatientSearchParams,
   type PatientListPage,
   type AuthorizationContext,
-  AuthorizationContextSchema,
-  MissingOrganizationError,
 } from "@domain/patient";
 
 export class PatientService {
   constructor(private readonly repository: IPatientRepository) {}
 
   async list(params: PatientSearchParams, auth: AuthorizationContext): Promise<PatientListPage> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     return this.repository.search(params, auth);
   }
 
   async getById(id: string, auth: AuthorizationContext): Promise<Patient | null> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     return this.repository.getById(id, auth);
   }
 
   async create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient> {
-    const validated = AuthorizationContextSchema.safeParse(auth);
-    if (!validated.success || !validated.data.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
-    return this.repository.create(input, validated.data);
+    return this.repository.create(input, auth);
   }
 
   async update(id: string, input: UpdatePatientInput): Promise<Patient> {

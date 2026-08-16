@@ -22,9 +22,8 @@ function useCurrentAuth(): AuthorizationContext {
 export function useAppointmentList(params: AppointmentSearchParams) {
   const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["appointments", params, auth.selectedOrganizationId],
+    queryKey: ["appointments", params, auth.selectedOrganizationId ?? `user:${auth.userId}`],
     queryFn: () => svc.list(params, auth),
-    enabled: !!auth.selectedOrganizationId,
     placeholderData: (prev) => prev,
   });
 }
@@ -32,9 +31,9 @@ export function useAppointmentList(params: AppointmentSearchParams) {
 export function useAppointment(id: string) {
   const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["appointments", id, auth.selectedOrganizationId],
+    queryKey: ["appointments", id, auth.selectedOrganizationId ?? `user:${auth.userId}`],
     queryFn: () => svc.getById(id, auth),
-    enabled: !!id && !!auth.selectedOrganizationId,
+    enabled: !!id,
   });
 }
 

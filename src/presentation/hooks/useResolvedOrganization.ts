@@ -2,23 +2,29 @@ import { useEffect } from "react";
 import { useOrganizationMemberships } from "@presentation/hooks/useOrganizationMemberships";
 import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 
-export type OrgResolutionPhase = "loading" | "needs-selection" | "no-memberships" | "ready";
+export type OrgResolutionPhase = "loading" | "needs-selection" | "ready";
 
 export interface OrganizationResolution {
   phase: OrgResolutionPhase;
   activeMemberships: ReturnType<typeof useOrganizationMemberships>["activeMemberships"];
   selectedOrganizationId: string | null;
   selectedClinicId: string | null;
+  hasOrganization: boolean;
 }
 
 /**
- * Resolves the user's currently selected organization.
+ * Resolves the user's currently selected organization. Organizations are
+ * OPTIONAL — a doctor can use the application with zero memberships,
+ * which is the new "personal mode" that scopes data by created_by.
+ *
  * - If exactly one active membership exists and nothing is selected yet,
  *   auto-select it.
  * - If a previously-persisted selected org is no longer in the membership
  *   list, clear it.
  * - If multiple memberships exist, leave selection to the user via the
- *   OrganizationSelectorPage.
+ *   OrganizationSelectorPage; the app still works in personal mode.
+ * - If the user has zero memberships, the app still works: queries scope
+ *   by created_by = auth.uid().
  */
 export function useResolvedOrganization(): OrganizationResolution {
   const { activeMemberships, loading } = useOrganizationMemberships();
@@ -63,18 +69,31 @@ export function useResolvedOrganization(): OrganizationResolution {
     }
   }, [loading, activeMemberships, selectedOrganizationId, selectedClinicId, setSelected, clear]);
 
+  const hasOrganization = selectedOrganizationId !== null;
+
   if (loading)
-    return { phase: "loading", activeMemberships, selectedOrganizationId, selectedClinicId };
-  if (activeMemberships.length === 0)
-    return { phase: "no-memberships", activeMemberships, selectedOrganizationId, selectedClinicId };
-  if (!selectedOrganizationId)
+    return {
+      phase: "loading",
+      activeMemberships,
+      selectedOrganizationId,
+      selectedClinicId,
+      hasOrganization: false,
+    };
+  if (activeMemberships.length > 1 && !selectedOrganizationId)
     return {
       phase: "needs-selection",
       activeMemberships,
       selectedOrganizationId,
       selectedClinicId,
+      hasOrganization: false,
     };
-  return { phase: "ready", activeMemberships, selectedOrganizationId, selectedClinicId };
+  return {
+    phase: "ready",
+    activeMemberships,
+    selectedOrganizationId,
+    selectedClinicId,
+    hasOrganization,
+  };
 }
 
 export function useAuthorizationContext(): {
@@ -83,11 +102,8 @@ export function useAuthorizationContext(): {
   selectedClinicId: string | null;
 } {
   const { selectedOrganizationId, selectedClinicId } = useSelectedOrganizationStore();
-  // userId comes from the auth hook, but to avoid a circular import we
-  // expect the caller to provide it. Returning a function for callers
-  // who already have useAuth:
   return {
-    userId: "", // overridden by callers via spread
+    userId: "",
     selectedOrganizationId,
     selectedClinicId,
   };

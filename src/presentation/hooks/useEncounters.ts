@@ -22,9 +22,9 @@ function useCurrentAuth(): AuthorizationContext {
 export function useEncounter(id: string) {
   const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["encounters", id, auth.selectedOrganizationId],
+    queryKey: ["encounters", id, auth.selectedOrganizationId ?? `user:${auth.userId}`],
     queryFn: () => svc.getById(id, auth),
-    enabled: !!id && !!auth.selectedOrganizationId,
+    enabled: !!id,
   });
 }
 

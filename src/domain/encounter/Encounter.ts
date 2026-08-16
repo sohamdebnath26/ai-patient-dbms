@@ -6,7 +6,7 @@ export const EncounterSchema = z.object({
   id: z.string().uuid(),
   patient_id: z.string().uuid(),
   appointment_id: z.string().uuid().nullable(),
-  organization_id: z.string().uuid(),
+  organization_id: z.string().uuid().nullable(),
   clinic_id: z.string().uuid().nullable(),
   assigned_to: z.string().uuid().nullable(),
   encounter_date: z.string(),

@@ -5,5 +5,3 @@ export {
   type Encounter,
   type UpdateEncounterInput,
 } from "./Encounter";
-
-export { MissingOrganizationError } from "../patient";

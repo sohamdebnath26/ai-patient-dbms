@@ -9,7 +9,7 @@ import type {
 } from "@domain/patient";
 import {
   PatientSchema,
-  MissingOrganizationError,
+  resolveAuthScope,
   AccessDeniedError,
   ForeignKeyError,
 } from "@domain/patient";
@@ -17,7 +17,7 @@ import { getSupabaseClient } from "../client";
 
 interface PatientRow {
   id: string;
-  organization_id: string;
+  organization_id: string | null;
   clinic_id: string | null;
   first_name: string;
   last_name: string;
@@ -49,8 +49,7 @@ function explainInsertError(err: SupabaseError): Error {
   const message = err.message ?? "";
   if (code === "42501") {
     return new AccessDeniedError(
-      "Your account is not allowed to insert patients (role missing from organization_members). " +
-        "Run supabase/bootstrap-doctor.sql in the Supabase SQL Editor and sign back in.",
+      "Your account is not allowed to insert patients. Sign out and sign back in, or ask an administrator to grant you a doctor or receptionist role.",
     );
   }
   if (code === "23505") {
@@ -64,7 +63,7 @@ function explainInsertError(err: SupabaseError): Error {
   if (code === "23503") {
     if (detail.includes("organization_id") || detail.includes("organizations")) {
       return new ForeignKeyError(
-        "The selected organization does not exist in the database. Sign out and pick another org.",
+        "The selected organization does not exist in the database. Clear it and retry.",
       );
     }
     if (detail.includes("clinic_id") || detail.includes("clinics")) {
@@ -89,16 +88,14 @@ function mapToPatient(raw: PatientRow): Patient {
 
 export class SupabasePatientRepository implements IPatientRepository {
   async search(params: PatientSearchParams, auth: AuthorizationContext): Promise<PatientListPage> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
     const offset = (params.page - 1) * params.limit;
+    const scope = resolveAuthScope(auth);
 
     let query = client
       .from("patients")
       .select("*", { count: "exact" })
-      .eq("organization_id", auth.selectedOrganizationId);
+      .eq(scope.column, scope.value);
 
     if (params.status) {
       query = query.eq("status", params.status);
@@ -137,15 +134,13 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   async getById(id: string, auth: AuthorizationContext): Promise<Patient | null> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("patients")
       .select("*")
       .eq("id", id)
-      .eq("organization_id", auth.selectedOrganizationId)
+      .eq(scope.column, scope.value)
       .maybeSingle()) as unknown as {
       data: PatientRow | null;
       error: { code: string; message: string } | null;
@@ -160,9 +155,6 @@ export class SupabasePatientRepository implements IPatientRepository {
   }
 
   async create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
     const { data, error } = (await client
       .from("patients")

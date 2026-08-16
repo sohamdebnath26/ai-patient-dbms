@@ -1,11 +1,24 @@
--- Bootstrap Doctor
--- One-shot script that promotes a user so they can:
---   1. Read diagnoses + medical_history (CLINICAL RLS gate that requires
---      role IN ('doctor','admin')).
---   2. Insert patients (patients_insert policy requires
---      role IN ('doctor','receptionist')).
---   3. Pass the OrganizationGate, which sources the active org from
---      organization_members (the new authoritative model).
+-- Bootstrap Doctor (OPTIONAL since migration 00008)
+--
+-- Organizations are now optional. A freshly signed-up doctor can
+-- register patients, manage appointments, and use the AI assistant
+-- in personal mode without ever running this script. The application
+-- scopes reads by created_by = auth.uid() when no organization is
+-- selected, so insertion/lookup works against the freshly created
+-- profile.
+--
+-- This script is still useful if you want to:
+--   1. Have a doctor role on the profile so the patient_insert +
+--      diagnoses + medical_history RLS policies evaluate to true
+--      (otherwise the new profile defaults to role = 'patient' from
+--      the handle_new_user trigger, and the insert will be rejected
+--      with 42501).
+--   2. Attach the user to the canonical test org ('aaaaaaaa-...')
+--      so they can see the 100 seeded dermatology patients.
+--
+-- Optional: a doctor can promote themselves to personal mode by
+-- running supabase/auto-promote-doctor.sql which only updates
+-- profile.role and leaves organization_id untouched.
 --
 -- The SQL Editor runs as `postgres`, so auth.uid() returns NULL there.
 -- Edit both WHERE clauses below to the email you actually want to

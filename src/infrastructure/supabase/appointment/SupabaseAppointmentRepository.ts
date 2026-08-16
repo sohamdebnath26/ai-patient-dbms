@@ -7,13 +7,13 @@ import type {
 } from "@domain/appointment";
 import { AppointmentSchema } from "@domain/appointment";
 import type { AuthorizationContext } from "@domain/patient";
-import { MissingOrganizationError } from "@domain/patient";
+import { resolveAuthScope } from "@domain/patient";
 import { getSupabaseClient } from "../client";
 
 interface AppointmentRow {
   id: string;
   patient_id: string;
-  organization_id: string;
+  organization_id: string | null;
   clinic_id: string | null;
   assigned_to: string | null;
   appointment_date: string;
@@ -44,16 +44,14 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     params: AppointmentSearchParams,
     auth: AuthorizationContext,
   ): Promise<AppointmentListPage> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
     const offset = (params.page - 1) * params.limit;
+    const scope = resolveAuthScope(auth);
 
     let query = client
       .from("appointments")
       .select("*, patient:patients(first_name,last_name,mrn)", { count: "exact" })
-      .eq("organization_id", auth.selectedOrganizationId);
+      .eq(scope.column, scope.value);
 
     if (params.status) query = query.eq("status", params.status);
     if (params.assigned_to) query = query.eq("assigned_to", params.assigned_to);
@@ -87,15 +85,13 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   async getById(id: string, auth: AuthorizationContext): Promise<Appointment | null> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("appointments")
       .select("*, patient:patients(first_name,last_name,mrn)")
       .eq("id", id)
-      .eq("organization_id", auth.selectedOrganizationId)
+      .eq(scope.column, scope.value)
       .maybeSingle()) as unknown as {
       data: AppointmentRow | null;
       error: { code: string; message: string } | null;
@@ -108,9 +104,6 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
   }
 
   async create(input: CreateAppointmentInput, auth: AuthorizationContext): Promise<Appointment> {
-    if (!auth.selectedOrganizationId) {
-      throw new MissingOrganizationError();
-    }
     const client = getSupabaseClient();
     const { data, error } = (await client
       .from("appointments")

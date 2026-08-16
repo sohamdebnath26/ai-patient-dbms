@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const PatientSchema = z.object({
   id: z.string().uuid(),
-  organization_id: z.string().uuid(),
+  organization_id: z.string().uuid().nullable(),
   clinic_id: z.string().uuid().nullable(),
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
@@ -47,13 +47,6 @@ export const AuthorizationContextSchema = z.object({
 
 export type AuthorizationContext = z.infer<typeof AuthorizationContextSchema>;
 
-export class MissingOrganizationError extends Error {
-  constructor() {
-    super("Your account is not assigned to an organization. Please contact your administrator.");
-    this.name = "MissingOrganizationError";
-  }
-}
-
 export class AccessDeniedError extends Error {
   constructor(message = "You do not have permission to perform this action.") {
     super(message);
@@ -66,6 +59,31 @@ export class ForeignKeyError extends Error {
     super(message);
     this.name = "ForeignKeyError";
   }
+}
+
+/**
+ * True when the current auth context is org-scoped (i.e. the user has
+ * selected an organization). Repositories branch on this to either
+ * filter by organization_id OR by created_by = auth.uid().
+ */
+export function isOrgScoped(auth: AuthorizationContext): boolean {
+  return auth.selectedOrganizationId !== null;
+}
+
+/**
+ * Returns the WHERE-clause pair a repository should use to scope a read
+ * to data the current user is allowed to see.
+ * - With an org: rows WHERE organization_id = the org.
+ * - Without an org: rows WHERE created_by = the user.
+ */
+export function resolveAuthScope(auth: AuthorizationContext): {
+  column: "organization_id" | "created_by";
+  value: string;
+} {
+  if (auth.selectedOrganizationId) {
+    return { column: "organization_id", value: auth.selectedOrganizationId };
+  }
+  return { column: "created_by", value: auth.userId };
 }
 
 export const UpdatePatientSchema = z.object({

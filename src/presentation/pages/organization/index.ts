@@ -1,1 +1,6 @@
-export { OrganizationSelectorPage, OrganizationGate } from "./OrganizationSelectorPage";
+export {
+  OrganizationSelectorPage,
+  OrganizationSelectorLauncher,
+  OrganizationLoadingFallback,
+  OrganizationNeedsSelection,
+} from "./OrganizationSelectorPage";
