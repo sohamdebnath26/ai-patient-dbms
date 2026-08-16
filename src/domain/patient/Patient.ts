@@ -54,6 +54,20 @@ export class MissingOrganizationError extends Error {
   }
 }
 
+export class AccessDeniedError extends Error {
+  constructor(message = "You do not have permission to perform this action.") {
+    super(message);
+    this.name = "AccessDeniedError";
+  }
+}
+
+export class ForeignKeyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ForeignKeyError";
+  }
+}
+
 export const UpdatePatientSchema = z.object({
   first_name: z.string().min(1).optional(),
   last_name: z.string().min(1).optional(),

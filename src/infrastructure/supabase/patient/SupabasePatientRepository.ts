@@ -7,7 +7,12 @@ import type {
   PatientListPage,
   AuthorizationContext,
 } from "@domain/patient";
-import { PatientSchema, MissingOrganizationError } from "@domain/patient";
+import {
+  PatientSchema,
+  MissingOrganizationError,
+  AccessDeniedError,
+  ForeignKeyError,
+} from "@domain/patient";
 import { getSupabaseClient } from "../client";
 
 interface PatientRow {
@@ -29,6 +34,53 @@ interface PatientRow {
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+interface SupabaseError {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+}
+
+function explainInsertError(err: SupabaseError): Error {
+  const code = err.code ?? "";
+  const detail = err.details ?? "";
+  const message = err.message ?? "";
+  if (code === "42501") {
+    return new AccessDeniedError(
+      "Your account is not allowed to insert patients (role missing from organization_members). " +
+        "Run supabase/bootstrap-doctor.sql in the Supabase SQL Editor and sign back in.",
+    );
+  }
+  if (code === "23505") {
+    if (detail.includes("patients_mrn_key") || message.includes("mrn")) {
+      return new Error(
+        "A patient with this MRN already exists. MRNs must be unique across the system.",
+      );
+    }
+    return new Error(`Duplicate value violates a uniqueness constraint: ${detail || message}`);
+  }
+  if (code === "23503") {
+    if (detail.includes("organization_id") || detail.includes("organizations")) {
+      return new ForeignKeyError(
+        "The selected organization does not exist in the database. Sign out and pick another org.",
+      );
+    }
+    if (detail.includes("clinic_id") || detail.includes("clinics")) {
+      return new ForeignKeyError(
+        "The selected clinic is no longer attached to this organization. Clear it and retry.",
+      );
+    }
+    if (detail.includes("created_by") || detail.includes("auth.users")) {
+      return new ForeignKeyError("Your auth session is invalid. Sign out and sign back in.");
+    }
+    return new ForeignKeyError(`Foreign key violation: ${detail || message}`);
+  }
+  if (code === "22P02") {
+    return new Error("One of the values is not in the expected format (e.g. a UUID is malformed).");
+  }
+  return new Error(message || "Could not insert the patient.");
 }
 
 function mapToPatient(raw: PatientRow): Patient {
@@ -132,11 +184,12 @@ export class SupabasePatientRepository implements IPatientRepository {
       })
       .select("*")
       .single()) as unknown as {
-      data: PatientRow;
-      error: { code: string; message: string } | null;
+      data: PatientRow | null;
+      error: SupabaseError | null;
     };
 
-    if (error) throw new Error(error.message);
+    if (error) throw explainInsertError(error);
+    if (!data) throw new Error("Supabase returned no data and no error.");
     return mapToPatient(data);
   }
 
@@ -148,11 +201,17 @@ export class SupabasePatientRepository implements IPatientRepository {
       .eq("id", id)
       .select("*")
       .single()) as unknown as {
-      data: PatientRow;
-      error: { code: string; message: string } | null;
+      data: PatientRow | null;
+      error: SupabaseError | null;
     };
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.code === "42501") {
+        throw new AccessDeniedError("You do not have permission to update this patient.");
+      }
+      throw new Error(error.message ?? "Could not update the patient.");
+    }
+    if (!data) throw new Error("Patient not found.");
     return mapToPatient(data);
   }
 

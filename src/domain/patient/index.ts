@@ -5,6 +5,8 @@ export {
   PatientSearchSchema,
   AuthorizationContextSchema,
   MissingOrganizationError,
+  AccessDeniedError,
+  ForeignKeyError,
   type Patient,
   type CreatePatientFormInput,
   type UpdatePatientInput,
