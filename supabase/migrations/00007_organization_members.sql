@@ -5,7 +5,17 @@
 -- belong to many organizations with per-org roles. The application
 -- resolves the "currently selected organization" client-side and passes
 -- it down through AuthorizationContext.
+--
+-- This migration is fully idempotent: it can be re-run on a clean
+-- database and on a partially-migrated one. Every CREATE is guarded
+-- by a corresponding DROP IF EXISTS, CREATE TABLE/INDEX IF NOT EXISTS,
+-- or CREATE OR REPLACE so re-running never errors.
 
+BEGIN;
+
+------------------------------------------------------------
+-- 1. Table
+------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.organization_members (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -20,6 +30,9 @@ CREATE TABLE IF NOT EXISTS public.organization_members (
   UNIQUE (user_id, organization_id)
 );
 
+------------------------------------------------------------
+-- 2. Indexes
+------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_organization_members_user
   ON public.organization_members(user_id);
 
@@ -29,20 +42,34 @@ CREATE INDEX IF NOT EXISTS idx_organization_members_org
 CREATE INDEX IF NOT EXISTS idx_organization_members_status
   ON public.organization_members(user_id, status);
 
-DROP TRIGGER IF EXISTS set_organization_members_updated_at ON public.organization_members;
+------------------------------------------------------------
+-- 3. updated_at trigger (idempotent: drop then create)
+------------------------------------------------------------
+DROP TRIGGER IF EXISTS set_organization_members_updated_at
+  ON public.organization_members;
+
 CREATE TRIGGER set_organization_members_updated_at
   BEFORE UPDATE ON public.organization_members
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+------------------------------------------------------------
+-- 4. RLS
+------------------------------------------------------------
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 
 -- A user can read their own memberships; admins can read all memberships
 -- in their organization.
-CREATE POLICY organization_members_select_self ON public.organization_members
+DROP POLICY IF EXISTS organization_members_select_self
+  ON public.organization_members;
+CREATE POLICY organization_members_select_self
+  ON public.organization_members
   FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY organization_members_select_admin ON public.organization_members
+DROP POLICY IF EXISTS organization_members_select_admin
+  ON public.organization_members;
+CREATE POLICY organization_members_select_admin
+  ON public.organization_members
   FOR SELECT
   USING (
     EXISTS (
@@ -56,7 +83,10 @@ CREATE POLICY organization_members_select_admin ON public.organization_members
 
 -- Writes are admin-only (the user's own role on their memberships cannot
 -- be self-promoted). The SQL Editor / service-role path bypasses RLS.
-CREATE POLICY organization_members_admin_write ON public.organization_members
+DROP POLICY IF EXISTS organization_members_admin_write
+  ON public.organization_members;
+CREATE POLICY organization_members_admin_write
+  ON public.organization_members
   FOR ALL
   USING (
     EXISTS (
@@ -69,15 +99,16 @@ CREATE POLICY organization_members_admin_write ON public.organization_members
   )
   WITH CHECK (false);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.organization_members TO authenticated;
+------------------------------------------------------------
+-- 5. Privileges (GRANT is idempotent in Postgres without REVOKE)
+------------------------------------------------------------
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON public.organization_members TO authenticated;
 
 ------------------------------------------------------------
--- Backfill from profiles.organization_id so existing rows keep working
--- after the deploy. Existing profile rows with an organization_id become
--- a single 'active' membership at the same role as the profile row.
--- profiles.organization_id and profiles.clinic_id are intentionally
--- preserved so the legacy single-org read paths keep functioning
--- until the application layer migrates fully to memberships.
+-- 6. Backfill from profiles.organization_id
+--    Idempotent: rows already in organization_members are skipped via
+--    the NOT EXISTS subquery, so this is safe to re-run.
 ------------------------------------------------------------
 INSERT INTO public.organization_members (user_id, organization_id, clinic_id, role, status)
 SELECT p.id,
@@ -96,8 +127,7 @@ WHERE  p.organization_id IS NOT NULL
   );
 
 ------------------------------------------------------------
--- Helper: is the current auth user an active member of the given org?
--- Used by future RLS policies that need to scope by selected org.
+-- 7. is_org_member() helper (CREATE OR REPLACE is idempotent)
 ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.is_org_member(uid uuid, oid uuid)
 RETURNS boolean
@@ -114,3 +144,5 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION public.is_org_member(uuid, uuid) TO authenticated;
+
+COMMIT;
