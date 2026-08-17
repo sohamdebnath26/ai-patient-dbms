@@ -148,6 +148,11 @@ export function AIChatbot() {
               {m.role === "assistant" && !m.isError && (
                 <div className="text-brand-600 mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase">
                   <Sparkles className="h-3 w-3" /> Assistant
+                  {m.resolvedPatientName && (
+                    <span className="font-normal text-gray-500 normal-case">
+                      · {m.resolvedPatientName}
+                    </span>
+                  )}
                 </div>
               )}
               <p className="whitespace-pre-wrap">{m.content}</p>

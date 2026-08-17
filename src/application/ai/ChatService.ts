@@ -32,13 +32,16 @@ export class ChatService {
 
   async chat(
     userMessage: string,
-    context: { patientData?: string; history?: ChatMessage[] },
+    context: {
+      systemPrompt?: string;
+      history?: ChatMessage[];
+    },
   ): Promise<ChatResponse> {
     const navigation = this.detectNavigation(userMessage);
     const messages: ChatMessage[] = [
       {
         role: "system",
-        content: this.buildSystemPrompt(context.patientData),
+        content: context.systemPrompt ?? this.defaultSystemPrompt(),
       },
       ...(context.history ?? []),
       { role: "user", content: userMessage },
@@ -55,24 +58,18 @@ export class ChatService {
     };
   }
 
-  private buildSystemPrompt(patientData?: string): string {
-    let prompt = `You are ClinicOS AI, a clinical assistant embedded in a healthcare platform for doctors.
+  private defaultSystemPrompt(): string {
+    return `You are ClinicOS AI, a clinical assistant embedded in a healthcare platform for doctors.
 
 Your capabilities:
-1. Answer clinical questions and assist doctors.
+1. Answer clinical questions and assist doctors with navigation.
 2. When provided patient data, generate structured diagnostic reports.
-3. Be concise, professional, and evidence-aware. Never fabricate patient information.
+3. Be concise, professional, and evidence-aware.
 
 Rules:
 - Only reference data explicitly provided to you.
 - Format diagnostic reports with clear sections (Summary, Findings, Assessment, Recommendations).
 - If you do not have enough information, say so clearly.
 - You are an assistant, not a replacement for clinical judgment.`;
-
-    if (patientData) {
-      prompt += `\n\nCurrent patient data available for reference:\n${patientData}`;
-    }
-
-    return prompt;
   }
 }

@@ -5,6 +5,7 @@ export interface ChatBubble {
   role: "user" | "assistant";
   content: string;
   isError?: boolean;
+  resolvedPatientName?: string;
 }
 
 export interface ChatContextValue {
