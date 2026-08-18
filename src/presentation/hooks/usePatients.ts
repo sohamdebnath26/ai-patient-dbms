@@ -76,3 +76,14 @@ export function useArchivePatient() {
     },
   });
 }
+
+export function useDeregisterPatient() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => service.deregister(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["patients"] });
+    },
+  });
+}

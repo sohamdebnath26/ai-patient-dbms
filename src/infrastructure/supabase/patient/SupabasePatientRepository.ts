@@ -99,6 +99,8 @@ export class SupabasePatientRepository implements IPatientRepository {
 
     if (params.status) {
       query = query.eq("status", params.status);
+    } else {
+      query = query.neq("status", "deregistered");
     }
 
     if (params.query) {
@@ -208,6 +210,13 @@ export class SupabasePatientRepository implements IPatientRepository {
   async softDelete(id: string): Promise<void> {
     const client = getSupabaseClient();
     const { error } = await client.from("patients").update({ status: "archived" }).eq("id", id);
+
+    if (error) throw new Error(error.message);
+  }
+
+  async deregister(id: string): Promise<void> {
+    const client = getSupabaseClient();
+    const { error } = await client.from("patients").update({ status: "deregistered" }).eq("id", id);
 
     if (error) throw new Error(error.message);
   }

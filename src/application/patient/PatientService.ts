@@ -30,4 +30,8 @@ export class PatientService {
   async archive(id: string): Promise<void> {
     return this.repository.softDelete(id);
   }
+
+  async deregister(id: string): Promise<void> {
+    return this.repository.deregister(id);
+  }
 }

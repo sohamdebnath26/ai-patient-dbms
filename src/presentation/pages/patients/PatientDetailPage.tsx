@@ -1,11 +1,18 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { usePatient, useArchivePatient } from "@presentation/hooks/usePatients";
+import {
+  usePatient,
+  useArchivePatient,
+  useDeregisterPatient,
+} from "@presentation/hooks/usePatients";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
+import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import {
   ArrowLeft,
   Pencil,
   Archive,
+  UserRoundX,
   Loader2,
   User,
   Calendar,
@@ -22,6 +29,8 @@ export function PatientDetailPage() {
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
   const archiveMutation = useArchivePatient();
+  const deregisterMutation = useDeregisterPatient();
+  const [deregisterOpen, setDeregisterOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -64,20 +73,33 @@ export function PatientDetailPage() {
                 Edit
               </button>
             )}
-            {patient.status !== "archived" && profile?.role === "doctor" && (
-              <button
-                onClick={() => {
-                  if (confirm("Archive this patient?")) {
-                    archiveMutation.mutate(patient.id);
-                    void navigate("/patients");
-                  }
-                }}
-                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
-              >
-                <Archive className="h-4 w-4" />
-                Archive
-              </button>
-            )}
+            {patient.status !== "archived" &&
+              patient.status !== "deregistered" &&
+              profile?.role === "doctor" && (
+                <>
+                  <button
+                    onClick={() => {
+                      setDeregisterOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-orange-200 px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50"
+                  >
+                    <UserRoundX className="h-4 w-4" />
+                    Deregister
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm("Archive this patient?")) {
+                        archiveMutation.mutate(patient.id);
+                        void navigate("/patients");
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <Archive className="h-4 w-4" />
+                    Archive
+                  </button>
+                </>
+              )}
           </div>
         </div>
 
@@ -98,7 +120,9 @@ export function PatientDetailPage() {
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                     patient.status === "active"
                       ? "bg-green-50 text-green-700"
-                      : "bg-red-50 text-red-600"
+                      : patient.status === "deregistered"
+                        ? "bg-gray-100 text-gray-500"
+                        : "bg-red-50 text-red-600"
                   }`}
                 >
                   {patient.status}
@@ -186,6 +210,26 @@ export function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deregisterOpen}
+        title="Deregister Patient"
+        message="Are you sure you want to deregister this patient?"
+        confirmLabel="Deregister"
+        confirmationText="DEREGISTER"
+        loading={deregisterMutation.isPending}
+        onCancel={() => {
+          setDeregisterOpen(false);
+        }}
+        onConfirm={() => {
+          deregisterMutation.mutate(patient.id, {
+            onSuccess: () => {
+              setDeregisterOpen(false);
+              void navigate("/patients");
+            },
+          });
+        }}
+      />
     </AppShell>
   );
 }

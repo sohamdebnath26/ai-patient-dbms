@@ -26,6 +26,10 @@ export function useAuth() {
     await service.logout();
   }, [service]);
 
+  const deleteAccount = useCallback(async () => {
+    await service.deleteAccount(state.user?.id ?? "");
+  }, [service, state.user?.id]);
+
   const requestPasswordReset = useCallback(
     async (email: string): Promise<{ error: AuthError | null }> => {
       const { error } = await service.requestPasswordReset(email);
@@ -50,6 +54,7 @@ export function useAuth() {
     login,
     signup,
     logout,
+    deleteAccount,
     requestPasswordReset,
     resetPassword,
   };

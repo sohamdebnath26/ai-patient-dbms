@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const PatientStatusSchema = z.enum([
+  "active",
+  "inactive",
+  "deceased",
+  "archived",
+  "deregistered",
+]);
+
+export type PatientStatus = z.infer<typeof PatientStatusSchema>;
+
 export const PatientSchema = z.object({
   id: z.string().uuid(),
   organization_id: z.string().uuid().nullable(),
@@ -15,7 +25,7 @@ export const PatientSchema = z.object({
   phone: z.string().nullable(),
   address: z.string().nullable(),
   mrn: z.string().min(1, "MRN is required"),
-  status: z.enum(["active", "inactive", "deceased", "archived"]),
+  status: PatientStatusSchema,
   created_by: z.string().uuid(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -96,14 +106,14 @@ export const UpdatePatientSchema = z.object({
   phone: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   mrn: z.string().min(1).optional(),
-  status: z.enum(["active", "inactive", "deceased", "archived"]).optional(),
+  status: PatientStatusSchema.optional(),
 });
 
 export type UpdatePatientInput = z.infer<typeof UpdatePatientSchema>;
 
 export const PatientSearchSchema = z.object({
   query: z.string().optional(),
-  status: z.enum(["active", "inactive", "deceased", "archived"]).optional(),
+  status: PatientStatusSchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

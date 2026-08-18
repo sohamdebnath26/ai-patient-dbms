@@ -16,6 +16,7 @@ export interface IAuthRepository {
     credentials: Credentials,
   ): Promise<{ session: AuthSession | null; error: AuthError | null }>;
   logout(): Promise<void>;
+  deleteAccount(userId: string): Promise<void>;
   requestPasswordReset(email: string): Promise<{ error: AuthError | null }>;
   resetPassword(accessToken: string, newPassword: string): Promise<{ error: AuthError | null }>;
   getSession(): Promise<{ session: AuthSession | null; error: AuthError | null }>;

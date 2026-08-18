@@ -10,8 +10,8 @@ export function PatientListPage() {
   const page = parseInt(searchParams.get("page") ?? "1", 10);
   const query = searchParams.get("query") ?? "";
   const status =
-    (searchParams.get("status") as "active" | "inactive" | "deceased" | "archived" | undefined) ??
-    undefined;
+    (searchParams.get("status") as
+      "active" | "inactive" | "deceased" | "archived" | "deregistered" | undefined) ?? undefined;
 
   const { data, isLoading } = usePatientList({
     page,
@@ -74,6 +74,7 @@ export function PatientListPage() {
             <option value="inactive">Inactive</option>
             <option value="deceased">Deceased</option>
             <option value="archived">Archived</option>
+            <option value="deregistered">Deregistered</option>
           </select>
         </div>
 
@@ -139,7 +140,9 @@ export function PatientListPage() {
                                 ? "bg-yellow-50 text-yellow-700"
                                 : p.status === "deceased"
                                   ? "bg-gray-100 text-gray-600"
-                                  : "bg-red-50 text-red-600"
+                                  : p.status === "deregistered"
+                                    ? "bg-orange-50 text-orange-600"
+                                    : "bg-red-50 text-red-600"
                           }`}
                         >
                           {p.status}

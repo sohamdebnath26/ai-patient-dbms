@@ -61,6 +61,41 @@ export class SupabaseAuthRepository implements IAuthRepository {
     await client.auth.signOut();
   }
 
+  async deleteAccount(userId: string): Promise<void> {
+    const client = getSupabaseClient();
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    if (sessionError) throw new Error(`Auth error: ${sessionError.message}`);
+
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error("You must be signed in to delete your account.");
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) throw new Error("Supabase URL is not configured.");
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+      let detail = response.statusText;
+      try {
+        const body = (await response.json()) as { error?: string };
+        if (body.error) detail = body.error;
+      } catch {
+        // non-json error body, keep statusText
+      }
+      throw new Error(`Account deletion failed (${response.status}): ${detail}`);
+    }
+
+    await client.auth.signOut();
+  }
+
   async requestPasswordReset(email: string): Promise<{ error: AuthError | null }> {
     const client = getSupabaseClient();
     const { error } = await client.auth.resetPasswordForEmail(email, {

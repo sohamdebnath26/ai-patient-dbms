@@ -1,5 +1,6 @@
 export {
   PatientSchema,
+  PatientStatusSchema,
   CreatePatientFormSchema,
   UpdatePatientSchema,
   PatientSearchSchema,
@@ -9,6 +10,7 @@ export {
   isOrgScoped,
   resolveAuthScope,
   type Patient,
+  type PatientStatus,
   type CreatePatientFormInput,
   type UpdatePatientInput,
   type PatientSearchParams,

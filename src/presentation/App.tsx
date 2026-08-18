@@ -9,6 +9,7 @@ import { ForgotPasswordPage } from "@presentation/pages/auth/ForgotPasswordPage"
 import { ResetPasswordPage } from "@presentation/pages/auth/ResetPasswordPage";
 import { DashboardPage } from "@presentation/pages/DashboardPage";
 import { ProfilePage } from "@presentation/pages/profile/ProfilePage";
+import { SettingsPage } from "@presentation/pages/settings/SettingsPage";
 import { PatientListPage } from "@presentation/pages/patients/PatientListPage";
 import { PatientCreatePage } from "@presentation/pages/patients/PatientCreatePage";
 import { PatientDetailPage } from "@presentation/pages/patients/PatientDetailPage";
@@ -97,6 +98,14 @@ export function App() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
                   </ProtectedRoute>
                 }
               />

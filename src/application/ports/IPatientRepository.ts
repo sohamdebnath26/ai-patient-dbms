@@ -13,4 +13,5 @@ export interface IPatientRepository {
   create(input: CreatePatientFormInput, auth: AuthorizationContext): Promise<Patient>;
   update(id: string, input: UpdatePatientInput): Promise<Patient>;
   softDelete(id: string): Promise<void>;
+  deregister(id: string): Promise<void>;
 }

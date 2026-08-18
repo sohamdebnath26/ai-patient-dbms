@@ -20,6 +20,10 @@ export class AuthService {
     await this.authRepository.logout();
   }
 
+  async deleteAccount(userId: string): Promise<void> {
+    await this.authRepository.deleteAccount(userId);
+  }
+
   async requestPasswordReset(
     email: string,
   ): Promise<{ success: boolean; error: AuthError | null }> {

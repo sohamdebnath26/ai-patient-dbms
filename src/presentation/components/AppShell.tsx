@@ -18,6 +18,7 @@ import {
   Search,
   ChevronRight,
   Bell,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -29,6 +30,7 @@ const navItems = [
   { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: false, addAction: null },
   { to: "/reports", label: "Reports", icon: FileText, disabled: true, addAction: null },
   { to: "/profile", label: "Profile", icon: User, addAction: null },
+  { to: "/settings", label: "Settings", icon: Settings, addAction: null },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
