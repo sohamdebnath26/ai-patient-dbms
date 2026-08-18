@@ -10,6 +10,8 @@ import type {
   LabReport,
   MedicalAlert,
   AppointmentSummary,
+  Diagnosis,
+  DiagnosisInput,
   AuthorizationContext,
 } from "@domain/patient";
 import { getSupabaseClient } from "../client";
@@ -73,6 +75,16 @@ interface ClinicalNoteRow {
   created_at: string;
 }
 
+interface DiagnosisRow {
+  id: string;
+  encounter_id: string | null;
+  icd10_code: string | null;
+  description: string;
+  diagnosis_type: string;
+  status: string;
+  severity: string | null;
+}
+
 type SupabaseResult<T> = { data: T; error: { message: string } | null };
 
 export class SupabaseClinicalRepository implements IClinicalRepository {
@@ -108,16 +120,50 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
     return medications;
   }
 
+  async listMedicationsByEncounter(encounterId: string): Promise<Medication[]> {
+    const client = getSupabaseClient();
+    const { data, error } = (await client
+      .from("prescriptions")
+      .select("id, prescription_items(*)")
+      .eq("encounter_id", encounterId)
+      .order("created_at", { ascending: false })) as unknown as SupabaseResult<
+      PrescriptionRow[] | null
+    >;
+
+    if (error) throw new Error(error.message);
+
+    const medications: Medication[] = [];
+    for (const prescription of data ?? []) {
+      for (const item of prescription.prescription_items ?? []) {
+        medications.push({
+          id: item.id,
+          prescription_id: prescription.id,
+          medication_name: item.medication_name,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          prescribing_doctor: item.prescribing_doctor,
+          instructions: item.instructions,
+        });
+      }
+    }
+    return medications;
+  }
+
   async addMedication(
     patientId: string,
     input: MedicationInput,
     auth: AuthorizationContext,
+    encounterId?: string,
   ): Promise<void> {
     const client = getSupabaseClient();
     const { data: prescription, error: rxError } = (await client
       .from("prescriptions")
       .insert({
         patient_id: patientId,
+        encounter_id: encounterId ?? null,
         organization_id: auth.selectedOrganizationId,
         clinic_id: auth.selectedClinicId ?? null,
         created_by: auth.userId,
@@ -270,14 +316,29 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
     return data ?? [];
   }
 
+  async listLabReportsByEncounter(encounterId: string): Promise<LabReport[]> {
+    const client = getSupabaseClient();
+    const { data, error } = (await client
+      .from("lab_reports")
+      .select("id, test_name, status, report_date, result_summary, lab_name")
+      .eq("encounter_id", encounterId)
+      .order("report_date", { ascending: false })
+      .limit(20)) as unknown as SupabaseResult<LabReportRow[] | null>;
+
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
   async addLabReport(
     patientId: string,
     input: LabReportInput,
     auth: AuthorizationContext,
+    encounterId?: string,
   ): Promise<void> {
     const client = getSupabaseClient();
     const { error } = await client.from("lab_reports").insert({
       patient_id: patientId,
+      encounter_id: encounterId ?? null,
       organization_id: auth.selectedOrganizationId,
       clinic_id: auth.selectedClinicId ?? null,
       created_by: auth.userId,
@@ -302,14 +363,29 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
     return data ?? [];
   }
 
+  async listClinicalNotesByEncounter(encounterId: string): Promise<ClinicalNote[]> {
+    const client = getSupabaseClient();
+    const { data, error } = (await client
+      .from("clinical_notes")
+      .select("id, note_type, subjective, objective, assessment, plan, created_by, created_at")
+      .eq("encounter_id", encounterId)
+      .order("created_at", { ascending: false })
+      .limit(30)) as unknown as SupabaseResult<ClinicalNoteRow[] | null>;
+
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
   async addClinicalNote(
     patientId: string,
     input: ClinicalNoteInput,
     auth: AuthorizationContext,
+    encounterId?: string,
   ): Promise<void> {
     const client = getSupabaseClient();
     const { error } = await client.from("clinical_notes").insert({
       patient_id: patientId,
+      encounter_id: encounterId ?? null,
       organization_id: auth.selectedOrganizationId,
       clinic_id: auth.selectedClinicId ?? null,
       created_by: auth.userId,
@@ -320,6 +396,49 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
       plan: input.plan ?? null,
     });
 
+    if (error) throw new Error(error.message);
+  }
+
+  async listDiagnosesByEncounter(encounterId: string): Promise<Diagnosis[]> {
+    const client = getSupabaseClient();
+    const { data, error } = (await client
+      .from("diagnoses")
+      .select("id, encounter_id, icd10_code, description, diagnosis_type, status, severity")
+      .eq("encounter_id", encounterId)
+      .order("created_at", { ascending: false })) as unknown as SupabaseResult<
+      DiagnosisRow[] | null
+    >;
+
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  async addDiagnosis(
+    encounterId: string,
+    patientId: string,
+    input: DiagnosisInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    const client = getSupabaseClient();
+    const { error } = await client.from("diagnoses").insert({
+      encounter_id: encounterId,
+      patient_id: patientId,
+      organization_id: auth.selectedOrganizationId,
+      clinic_id: auth.selectedClinicId ?? null,
+      created_by: auth.userId,
+      description: input.description,
+      icd10_code: input.icd10_code ?? null,
+      diagnosis_type: input.diagnosis_type ?? "primary",
+      severity: input.severity ?? null,
+      status: "active",
+    });
+
+    if (error) throw new Error(error.message);
+  }
+
+  async removeDiagnosis(id: string): Promise<void> {
+    const client = getSupabaseClient();
+    const { error } = await client.from("diagnoses").delete().eq("id", id);
     if (error) throw new Error(error.message);
   }
 }

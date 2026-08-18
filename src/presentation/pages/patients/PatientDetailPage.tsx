@@ -5,9 +5,12 @@ import {
   useArchivePatient,
   useDeregisterPatient,
 } from "@presentation/hooks/usePatients";
+import { useCreateEncounter, usePatientEncounters } from "@presentation/hooks/useEncounters";
+import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
+import { formatDate, computeAge } from "@presentation/components/patient/utils";
 import {
   ArrowLeft,
   Pencil,
@@ -18,8 +21,10 @@ import {
   Calendar,
   Phone,
   Mail,
-  MapPin,
   Heart,
+  Stethoscope,
+  Pill,
+  AlertTriangle,
   Clock,
 } from "lucide-react";
 
@@ -30,6 +35,9 @@ export function PatientDetailPage() {
   const { profile } = useProfile();
   const archiveMutation = useArchivePatient();
   const deregisterMutation = useDeregisterPatient();
+  const createEncounter = useCreateEncounter();
+  const { data: encounters } = usePatientEncounters(id ?? "");
+  const { data: clinical } = usePatientClinicalData(id ?? "");
   const [deregisterOpen, setDeregisterOpen] = useState(false);
 
   if (isLoading) {
@@ -51,6 +59,17 @@ export function PatientDetailPage() {
   }
 
   const canEdit = profile?.role === "doctor" || profile?.role === "receptionist";
+  const age = computeAge(patient.dob);
+
+  const latestEncounter =
+    (encounters ?? []).find((e) => e.status === "completed") ?? (encounters ?? [])[0] ?? null;
+  const nextFollowUp = latestEncounter?.follow_up_date ?? null;
+
+  const handleNewEncounter = () => {
+    createEncounter.mutate(patient.id, {
+      onSuccess: (encounter) => void navigate(`/encounters/${encounter.id}`),
+    });
+  };
 
   return (
     <AppShell>
@@ -64,6 +83,22 @@ export function PatientDetailPage() {
             Back to Patients
           </button>
           <div className="flex gap-2">
+            {profile?.role === "doctor" &&
+              patient.status !== "archived" &&
+              patient.status !== "deregistered" && (
+                <button
+                  onClick={handleNewEncounter}
+                  disabled={createEncounter.isPending}
+                  className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {createEncounter.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Stethoscope className="h-4 w-4" />
+                  )}
+                  New Encounter
+                </button>
+              )}
             {canEdit && (
               <button
                 onClick={() => void navigate(`/patients/${patient.id}/edit`)}
@@ -136,7 +171,7 @@ export function PatientDetailPage() {
                 {patient.dob && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="h-4 w-4 text-gray-400" />
-                    DOB: {patient.dob} {patient.gender ? `· ${patient.gender}` : ""}
+                    DOB: {patient.dob} {age !== null ? `· ${age} yrs` : ""} · {patient.gender ?? ""}
                   </div>
                 )}
                 {patient.phone && (
@@ -157,56 +192,95 @@ export function PatientDetailPage() {
                     Blood: {patient.blood_group}
                   </div>
                 )}
-                {patient.marital_status && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <User className="h-4 w-4 text-gray-400" />
-                    {patient.marital_status}
-                  </div>
-                )}
               </div>
-              {patient.address && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 text-gray-400" />
-                  {patient.address}
-                </div>
-              )}
             </div>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900">Demographics</h2>
+            <h2 className="flex items-center gap-2 font-semibold text-gray-900">
+              <Stethoscope className="h-4 w-4 text-gray-400" />
+              Latest Clinical Summary
+            </h2>
             <dl className="mt-3 space-y-2 text-sm">
-              {patient.occupation && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Occupation</dt>
-                  <dd className="text-gray-900">{patient.occupation}</dd>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Created</dt>
-                <dd className="text-gray-900">
-                  {new Date(patient.created_at).toLocaleDateString()}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Last Updated</dt>
-                <dd className="text-gray-900">
-                  {new Date(patient.updated_at).toLocaleDateString()}
-                </dd>
-              </div>
+              <SummaryRow label="Latest Diagnosis" value={patient.primary_diagnosis ?? "—"} />
+              <SummaryRow label="Latest Treatment" value={patient.current_treatment ?? "—"} />
+              <SummaryRow
+                label="Last Visit"
+                value={formatDate(latestEncounter?.encounter_date ?? null)}
+              />
+              <SummaryRow label="Next Follow-up" value={formatDate(nextFollowUp)} />
+              <SummaryRow label="Total Encounters" value={String(encounters?.length ?? 0)} />
             </dl>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="flex items-center gap-2 font-semibold text-gray-900">
               <Clock className="h-4 w-4 text-gray-400" />
-              Timeline
+              Encounter History
             </h2>
-            <p className="mt-3 text-sm text-gray-400">
-              Appointments, consultations, and clinical notes will appear here.
-            </p>
+            {encounters && encounters.length > 0 ? (
+              <ul className="mt-3 space-y-2">
+                {encounters.slice(0, 5).map((e) => (
+                  <li key={e.id}>
+                    <button
+                      onClick={() => void navigate(`/encounters/${e.id}`)}
+                      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-gray-50"
+                    >
+                      <span className="text-gray-700">
+                        {e.encounter_number ?? "Encounter"} · {formatDate(e.encounter_date)}
+                      </span>
+                      <span className="text-xs text-gray-400 capitalize">
+                        {e.status.replace("_", " ")}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-gray-400">No encounters recorded yet.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="flex items-center gap-2 font-semibold text-gray-900">
+              <AlertTriangle className="h-4 w-4 text-gray-400" />
+              Medical Alerts
+            </h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(clinical?.alerts ?? []).map((a) => (
+                <span
+                  key={a.id}
+                  className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700"
+                >
+                  {a.label}
+                </span>
+              ))}
+              {(clinical?.alerts ?? []).length === 0 && (
+                <p className="text-sm text-gray-400">No known alerts.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="flex items-center gap-2 font-semibold text-gray-900">
+              <Pill className="h-4 w-4 text-gray-400" />
+              Current Medications
+            </h2>
+            <ul className="mt-3 space-y-1 text-sm">
+              {(clinical?.medications ?? []).map((m) => (
+                <li key={m.id} className="text-gray-700">
+                  {m.medication_name} {m.dosage ? `— ${m.dosage}` : ""}
+                  {m.frequency ? `, ${m.frequency}` : ""}
+                </li>
+              ))}
+              {(clinical?.medications ?? []).length === 0 && (
+                <li className="text-gray-400">No active medications.</li>
+              )}
+            </ul>
           </div>
         </div>
       </div>
@@ -231,5 +305,14 @@ export function PatientDetailPage() {
         }}
       />
     </AppShell>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="max-w-[60%] text-right text-gray-900">{value}</dd>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EncounterService } from "@application/encounter/EncounterService";
 import { SupabaseEncounterRepository } from "@infrastructure/supabase/encounter/SupabaseEncounterRepository";
-import type { UpdateEncounterInput } from "@domain/encounter";
+import type { UpdateEncounterInput, ProcedureInput } from "@domain/encounter";
 import type { AuthorizationContext } from "@domain/patient";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
@@ -36,6 +36,15 @@ export function useEncounterByAppointment(appointmentId: string) {
   });
 }
 
+export function usePatientEncounters(patientId: string) {
+  const auth = useCurrentAuth();
+  return useQuery({
+    queryKey: ["encounters", "patient", patientId],
+    queryFn: () => svc.listByPatient(patientId, auth),
+    enabled: !!patientId,
+  });
+}
+
 export function useStartEncounter() {
   const qc = useQueryClient();
   return useMutation({
@@ -44,6 +53,17 @@ export function useStartEncounter() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+export function useCreateEncounter() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: (patientId: string) => svc.createForPatient(patientId, auth),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["encounters"] });
     },
   });
 }
@@ -66,6 +86,36 @@ export function useCompleteEncounter() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+export function useEncounterProcedures(encounterId: string) {
+  return useQuery({
+    queryKey: ["encounters", encounterId, "procedures"],
+    queryFn: () => svc.listProcedures(encounterId),
+    enabled: !!encounterId,
+  });
+}
+
+export function useAddProcedure(encounterId: string) {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: ({ patientId, input }: { patientId: string; input: ProcedureInput }) =>
+      svc.addProcedure(encounterId, patientId, input, auth),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["encounters", encounterId, "procedures"] });
+    },
+  });
+}
+
+export function useRemoveProcedure(encounterId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => svc.removeProcedure(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["encounters", encounterId, "procedures"] });
     },
   });
 }

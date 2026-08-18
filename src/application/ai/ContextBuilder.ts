@@ -209,6 +209,30 @@ export class ContextBuilder {
       }
     }
 
+    if (context.clinical_notes.length > 0) {
+      sections.push("\nCLINICAL NOTES (most recent first):");
+      for (const item of context.clinical_notes) {
+        const row = item as Row;
+        sections.push(
+          `- ${safeString(row["note_type"], "note")} (${safeString(row["created_at"])})`,
+        );
+        if (row["subjective"]) sections.push(`  S: ${safeString(row["subjective"])}`);
+        if (row["objective"]) sections.push(`  O: ${safeString(row["objective"])}`);
+        if (row["assessment"]) sections.push(`  A: ${safeString(row["assessment"])}`);
+        if (row["plan"]) sections.push(`  P: ${safeString(row["plan"])}`);
+      }
+    }
+
+    if (context.lab_reports.length > 0) {
+      sections.push("\nLAB REPORTS:");
+      for (const item of context.lab_reports) {
+        const row = item as Row;
+        sections.push(
+          `- ${safeString(row["test_name"])} (${safeString(row["status"])}, ${safeString(row["report_date"])})${row["result_summary"] ? ` — ${safeString(row["result_summary"])}` : ""}`,
+        );
+      }
+    }
+
     if (context.appointments.length > 0) {
       fetchedTopics.push("appointment");
       sections.push("\nAPPOINTMENTS (most recent first):");

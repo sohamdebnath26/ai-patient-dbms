@@ -101,3 +101,24 @@ export const AppointmentSummarySchema = z.object({
 });
 
 export type AppointmentSummary = z.infer<typeof AppointmentSummarySchema>;
+
+export const DiagnosisSchema = z.object({
+  id: z.string().uuid(),
+  encounter_id: z.string().uuid().nullable(),
+  icd10_code: z.string().nullable(),
+  description: z.string(),
+  diagnosis_type: z.string(),
+  status: z.string(),
+  severity: z.string().nullable(),
+});
+
+export type Diagnosis = z.infer<typeof DiagnosisSchema>;
+
+export const DiagnosisInputSchema = z.object({
+  description: z.string().min(1, "Diagnosis is required"),
+  icd10_code: z.string().optional(),
+  diagnosis_type: z.string().optional(),
+  severity: z.string().optional(),
+});
+
+export type DiagnosisInput = z.infer<typeof DiagnosisInputSchema>;

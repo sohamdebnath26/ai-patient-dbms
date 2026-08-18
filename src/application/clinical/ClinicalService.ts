@@ -10,6 +10,8 @@ import type {
   LabReport,
   MedicalAlert,
   AppointmentSummary,
+  Diagnosis,
+  DiagnosisInput,
   AuthorizationContext,
 } from "@domain/patient";
 
@@ -20,12 +22,17 @@ export class ClinicalService {
     return this.repository.listMedications(patientId);
   }
 
+  async listMedicationsByEncounter(encounterId: string): Promise<Medication[]> {
+    return this.repository.listMedicationsByEncounter(encounterId);
+  }
+
   async addMedication(
     patientId: string,
     input: MedicationInput,
     auth: AuthorizationContext,
+    encounterId?: string,
   ): Promise<void> {
-    return this.repository.addMedication(patientId, input, auth);
+    return this.repository.addMedication(patientId, input, auth, encounterId);
   }
 
   async removeMedication(itemId: string): Promise<void> {
@@ -60,23 +67,50 @@ export class ClinicalService {
     return this.repository.listLabReports(patientId);
   }
 
+  async listLabReportsByEncounter(encounterId: string): Promise<LabReport[]> {
+    return this.repository.listLabReportsByEncounter(encounterId);
+  }
+
   async addLabReport(
     patientId: string,
     input: LabReportInput,
     auth: AuthorizationContext,
+    encounterId?: string,
   ): Promise<void> {
-    return this.repository.addLabReport(patientId, input, auth);
+    return this.repository.addLabReport(patientId, input, auth, encounterId);
   }
 
   async listClinicalNotes(patientId: string): Promise<ClinicalNote[]> {
     return this.repository.listClinicalNotes(patientId);
   }
 
+  async listClinicalNotesByEncounter(encounterId: string): Promise<ClinicalNote[]> {
+    return this.repository.listClinicalNotesByEncounter(encounterId);
+  }
+
   async addClinicalNote(
     patientId: string,
     input: ClinicalNoteInput,
     auth: AuthorizationContext,
+    encounterId?: string,
   ): Promise<void> {
-    return this.repository.addClinicalNote(patientId, input, auth);
+    return this.repository.addClinicalNote(patientId, input, auth, encounterId);
+  }
+
+  async listDiagnosesByEncounter(encounterId: string): Promise<Diagnosis[]> {
+    return this.repository.listDiagnosesByEncounter(encounterId);
+  }
+
+  async addDiagnosis(
+    encounterId: string,
+    patientId: string,
+    input: DiagnosisInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    return this.repository.addDiagnosis(encounterId, patientId, input, auth);
+  }
+
+  async removeDiagnosis(id: string): Promise<void> {
+    return this.repository.removeDiagnosis(id);
   }
 }

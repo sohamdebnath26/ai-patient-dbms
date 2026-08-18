@@ -149,6 +149,25 @@ interface AppointmentRow {
   notes: string | null;
 }
 
+interface ClinicalNoteRow {
+  id: string;
+  note_type: string;
+  subjective: string | null;
+  objective: string | null;
+  assessment: string | null;
+  plan: string | null;
+  created_at: string;
+}
+
+interface LabReportRow {
+  id: string;
+  test_name: string;
+  status: string;
+  report_date: string | null;
+  result_summary: string | null;
+  lab_name: string | null;
+}
+
 export interface ResolvedPatientHandle {
   patient: PatientRow | null;
   matched: "id" | "mrn" | "name" | "selected" | "none";
@@ -248,6 +267,8 @@ export class PatientContextResolver {
         prescriptions: [],
         prescription_items: [],
         medical_history: [],
+        clinical_notes: [],
+        lab_reports: [],
         appointments: [],
         topics: Array.from(topics),
         resolved_entity: entity,
@@ -387,6 +408,34 @@ export class PatientContextResolver {
       );
     }
 
+    queries.push(
+      client
+        .from("clinical_notes")
+        .select("id, note_type, subjective, objective, assessment, plan, created_at")
+        .eq("patient_id", pid)
+        .eq(scope.column, scope.value)
+        .order("created_at", { ascending: false })
+        .limit(20)
+        .then((r: unknown): QueryResult => ({
+          table: "clinical_notes",
+          rows: safeCastArray<ClinicalNoteRow>(r),
+        })),
+    );
+
+    queries.push(
+      client
+        .from("lab_reports")
+        .select("id, test_name, status, report_date, result_summary, lab_name")
+        .eq("patient_id", pid)
+        .eq(scope.column, scope.value)
+        .order("report_date", { ascending: false })
+        .limit(20)
+        .then((r: unknown): QueryResult => ({
+          table: "lab_reports",
+          rows: safeCastArray<LabReportRow>(r),
+        })),
+    );
+
     const results = await Promise.all(queries);
 
     const allergies: AllergyRow[] = [];
@@ -397,6 +446,8 @@ export class PatientContextResolver {
     const prescriptions: PrescriptionRow[] = [];
     const medicalHistory: HistoryRow[] = [];
     const appointments: AppointmentRow[] = [];
+    const clinicalNotes: ClinicalNoteRow[] = [];
+    const labReports: LabReportRow[] = [];
 
     for (const r of results) {
       switch (r.table) {
@@ -424,6 +475,12 @@ export class PatientContextResolver {
         case "appointments":
           appointments.push(...(r.rows as AppointmentRow[]));
           break;
+        case "clinical_notes":
+          clinicalNotes.push(...(r.rows as ClinicalNoteRow[]));
+          break;
+        case "lab_reports":
+          labReports.push(...(r.rows as LabReportRow[]));
+          break;
       }
     }
 
@@ -448,6 +505,8 @@ export class PatientContextResolver {
       prescriptions: prescriptions as unknown as MedicalContext["prescriptions"],
       prescription_items: prescriptionItems as unknown as MedicalContext["prescription_items"],
       medical_history: medicalHistory as unknown as MedicalContext["medical_history"],
+      clinical_notes: clinicalNotes as unknown as MedicalContext["clinical_notes"],
+      lab_reports: labReports as unknown as MedicalContext["lab_reports"],
       appointments: appointments as unknown as MedicalContext["appointments"],
       topics: Array.from(topics),
       resolved_entity: entity,

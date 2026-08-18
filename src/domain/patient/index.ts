@@ -33,6 +33,8 @@ export {
   LabReportSchema,
   MedicalAlertSchema,
   AppointmentSummarySchema,
+  DiagnosisSchema,
+  DiagnosisInputSchema,
   type Medication,
   type MedicationInput,
   type AllergyInput,
@@ -43,6 +45,8 @@ export {
   type LabReport,
   type MedicalAlert,
   type AppointmentSummary,
+  type Diagnosis,
+  type DiagnosisInput,
 } from "./Clinical";
 
 export {
