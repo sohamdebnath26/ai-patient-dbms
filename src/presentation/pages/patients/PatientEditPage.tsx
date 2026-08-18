@@ -24,18 +24,19 @@ import { CollapsibleSection } from "@presentation/components/CollapsibleSection"
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
 import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
+import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
+import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
+import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
+import { CurrentTreatmentSection } from "@presentation/components/patient/CurrentTreatmentSection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
 import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
+import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
 import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import {
-  AppointmentStat,
-  AiSummaryBlock,
-  SummaryItem,
-} from "@presentation/components/patient/helpers";
+import { AiSummaryBlock, SummaryItem } from "@presentation/components/patient/helpers";
 import {
   computeAge,
   formatDate,
@@ -76,9 +77,15 @@ export function PatientEditPage() {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
+    defaultValues: {
+      gender: "",
+      symptoms: "",
+      primary_diagnosis: "",
+    },
   });
 
   const dobValue = watch("dob");
@@ -112,15 +119,37 @@ export function PatientEditPage() {
         disease_severity: patient.disease_severity ?? "",
         duration: patient.duration ?? "",
         current_flare: patient.current_flare ?? false,
-        family_history: patient.family_history ?? "",
         previous_skin_cancer: patient.previous_skin_cancer ?? false,
         current_treatment: patient.current_treatment ?? "",
         medical_notes: patient.medical_notes ?? "",
+        chief_complaint: patient.chief_complaint ?? "",
+        present_illness: patient.present_illness ?? "",
+        previous_skin_diseases: patient.previous_skin_diseases ?? "",
+        previous_surgeries: patient.previous_surgeries ?? "",
+        other_medical_conditions: patient.other_medical_conditions ?? "",
+        family_history_skin: patient.family_history_skin ?? "",
+        family_history_cancer: patient.family_history_cancer ?? "",
+        smoking_status: patient.smoking_status ?? "",
+        alcohol_consumption: patient.alcohol_consumption ?? "",
+        pregnancy_status: patient.pregnancy_status ?? "",
+        date_of_onset: patient.date_of_onset ?? "",
+        symptoms: patient.symptoms ?? "",
+        sun_exposure_history: patient.sun_exposure_history ?? "",
+        cosmetic_product_usage: patient.cosmetic_product_usage ?? "",
+        occupational_exposure: patient.occupational_exposure ?? "",
       });
     }
   }, [patient, reset]);
 
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
+
+  const symptomsValue = watch("symptoms");
+  const genderValue = watch("gender");
+  const diagnosisValue = watch("primary_diagnosis");
+
+  const prescriptionAvailable = (clinical?.medications.length ?? 0) > 0;
+  const reportGenerated = (clinical?.labReports.length ?? 0) > 0;
+  const assignedDoctor = profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—";
 
   const appointments = useMemo(() => clinical?.appointments ?? [], [clinical?.appointments]);
   const lastVisit = useMemo(() => {
@@ -134,11 +163,6 @@ export function PatientEditPage() {
   const upcomingAppointment = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return appointments.find((a) => a.appointment_date >= today) ?? null;
-  }, [appointments]);
-
-  const previousAppointment = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return appointments.find((a) => a.appointment_date < today) ?? null;
   }, [appointments]);
 
   const totalVisits = appointments.filter((a) => a.status === "completed").length;
@@ -317,15 +341,28 @@ export function PatientEditPage() {
 
           <PatientContactSection register={register} errors={errors} />
 
-          <MedicalAlertsSection
+          <MedicalHistorySection register={register} errors={errors} />
+
+          <FamilyHistorySection register={register} />
+
+          <LifestyleSection register={register} gender={genderValue} />
+
+          <DermatologySection
             register={register}
             errors={errors}
-            alerts={clinical?.alerts ?? []}
-            pendingAlerts={[]}
-            chronicConditions={patient.chronic_conditions ?? ""}
+            symptoms={symptomsValue}
+            onSymptomsChange={(value) => {
+              setValue("symptoms", value, { shouldValidate: true });
+            }}
           />
 
-          <DermatologySection register={register} />
+          <CurrentTreatmentSection
+            register={register}
+            errors={errors}
+            currentDiagnosis={diagnosisValue}
+            prescriptionAvailable={prescriptionAvailable}
+            reportGenerated={reportGenerated}
+          />
 
           <MedicationSection
             medications={clinical?.medications ?? []}
@@ -338,46 +375,13 @@ export function PatientEditPage() {
             }}
           />
 
-          {/* Section 7 — Appointment Summary */}
-          <CollapsibleSection
-            title="Appointment Summary"
-            icon={<CalendarDays className="h-4 w-4" />}
-          >
-            <div className="grid gap-4 sm:grid-cols-4">
-              <AppointmentStat
-                label="Upcoming Appointment"
-                value={
-                  upcomingAppointment ? formatDate(upcomingAppointment.appointment_date) : "None"
-                }
-              />
-              <AppointmentStat
-                label="Previous Appointment"
-                value={
-                  previousAppointment ? formatDate(previousAppointment.appointment_date) : "None"
-                }
-              />
-              <AppointmentStat
-                label="Last Consultation"
-                value={formatDate(lastVisit?.appointment_date)}
-              />
-              <AppointmentStat label="Total Visits" value={String(totalVisits)} />
-            </div>
-            {appointments.length > 0 && (
-              <ul className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-                {appointments.slice(0, 5).map((a) => (
-                  <li key={a.id} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700">
-                      {formatDate(a.appointment_date)}
-                      {a.appointment_time ? ` · ${a.appointment_time}` : ""}
-                    </span>
-                    <span className="text-gray-500 capitalize">
-                      {a.type} · {a.status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CollapsibleSection>
+          <MedicalAlertsSection
+            register={register}
+            errors={errors}
+            alerts={clinical?.alerts ?? []}
+            pendingAlerts={[]}
+            chronicConditions={patient.chronic_conditions ?? ""}
+          />
 
           <ClinicalImagesSection
             images={images}
@@ -399,7 +403,17 @@ export function PatientEditPage() {
             }}
           />
 
-          {/* Section 11 — AI Summary */}
+          {/* Section 13 — Visit Summary */}
+          <CollapsibleSection title="Visit Summary" icon={<CalendarDays className="h-4 w-4" />}>
+            <VisitSummarySection
+              lastVisitDate={lastVisit?.appointment_date ?? null}
+              nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
+              totalVisits={totalVisits}
+              assignedDoctor={assignedDoctor}
+            />
+          </CollapsibleSection>
+
+          {/* Section 14 — AI Summary */}
           <CollapsibleSection title="AI Summary" icon={<Sparkles className="h-4 w-4" />}>
             <div id="ai-summary" className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
               <div className="mb-2 flex items-center justify-between">

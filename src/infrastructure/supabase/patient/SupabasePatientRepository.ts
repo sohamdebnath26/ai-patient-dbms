@@ -55,6 +55,21 @@ interface PatientRow {
   previous_skin_cancer: boolean | null;
   current_treatment: string | null;
   medical_notes: string | null;
+  chief_complaint: string | null;
+  present_illness: string | null;
+  previous_skin_diseases: string | null;
+  previous_surgeries: string | null;
+  other_medical_conditions: string | null;
+  family_history_skin: string | null;
+  family_history_cancer: string | null;
+  smoking_status: string | null;
+  alcohol_consumption: string | null;
+  pregnancy_status: string | null;
+  date_of_onset: string | null;
+  symptoms: string | null;
+  sun_exposure_history: string | null;
+  cosmetic_product_usage: string | null;
+  occupational_exposure: string | null;
 }
 
 interface SupabaseError {
@@ -211,10 +226,24 @@ export class SupabasePatientRepository implements IPatientRepository {
         disease_severity: input.disease_severity ?? null,
         duration: input.duration ?? null,
         current_flare: input.current_flare ?? null,
-        family_history: input.family_history ?? null,
         previous_skin_cancer: input.previous_skin_cancer ?? null,
         current_treatment: input.current_treatment ?? null,
         medical_notes: input.medical_notes ?? null,
+        chief_complaint: input.chief_complaint ?? null,
+        present_illness: input.present_illness ?? null,
+        previous_skin_diseases: input.previous_skin_diseases ?? null,
+        previous_surgeries: input.previous_surgeries ?? null,
+        other_medical_conditions: input.other_medical_conditions ?? null,
+        family_history_skin: input.family_history_skin ?? null,
+        family_history_cancer: input.family_history_cancer ?? null,
+        smoking_status: input.smoking_status ?? null,
+        alcohol_consumption: input.alcohol_consumption ?? null,
+        pregnancy_status: input.pregnancy_status ?? null,
+        date_of_onset: input.date_of_onset ?? null,
+        symptoms: input.symptoms ?? null,
+        sun_exposure_history: input.sun_exposure_history ?? null,
+        cosmetic_product_usage: input.cosmetic_product_usage ?? null,
+        occupational_exposure: input.occupational_exposure ?? null,
       })
       .select("*")
       .single()) as unknown as {

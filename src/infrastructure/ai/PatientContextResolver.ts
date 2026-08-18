@@ -39,6 +39,21 @@ interface PatientRow {
   previous_skin_cancer: boolean | null;
   current_treatment: string | null;
   medical_notes: string | null;
+  chief_complaint: string | null;
+  present_illness: string | null;
+  previous_skin_diseases: string | null;
+  previous_surgeries: string | null;
+  other_medical_conditions: string | null;
+  family_history_skin: string | null;
+  family_history_cancer: string | null;
+  smoking_status: string | null;
+  alcohol_consumption: string | null;
+  pregnancy_status: string | null;
+  date_of_onset: string | null;
+  symptoms: string | null;
+  sun_exposure_history: string | null;
+  cosmetic_product_usage: string | null;
+  occupational_exposure: string | null;
 }
 
 interface AllergyRow {
@@ -158,7 +173,7 @@ export class PatientContextResolver {
     const scope = resolveAuthScope(auth);
 
     const baseSelect =
-      "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status, address_line1, address_line2, city, state, country, postal_code, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, chronic_conditions, primary_diagnosis, secondary_diagnosis, skin_type, affected_body_areas, disease_severity, duration, current_flare, family_history, previous_skin_cancer, current_treatment, medical_notes";
+      "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status, address_line1, address_line2, city, state, country, postal_code, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, chronic_conditions, primary_diagnosis, secondary_diagnosis, skin_type, affected_body_areas, disease_severity, duration, current_flare, family_history, previous_skin_cancer, current_treatment, medical_notes, chief_complaint, present_illness, previous_skin_diseases, previous_surgeries, other_medical_conditions, family_history_skin, family_history_cancer, smoking_status, alcohol_consumption, pregnancy_status, date_of_onset, symptoms, sun_exposure_history, cosmetic_product_usage, occupational_exposure";
 
     if (entity.patient_id) {
       const { data, error } = (await client

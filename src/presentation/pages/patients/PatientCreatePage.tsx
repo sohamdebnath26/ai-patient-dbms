@@ -22,14 +22,19 @@ import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
 import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
+import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
+import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
+import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
+import { CurrentTreatmentSection } from "@presentation/components/patient/CurrentTreatmentSection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
 import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
+import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
 import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import { AppointmentStat, SummaryItem } from "@presentation/components/patient/helpers";
+import { SummaryItem } from "@presentation/components/patient/helpers";
 import {
   computeAge,
   formatDate,
@@ -58,6 +63,7 @@ export function PatientCreatePage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<PatientFormInput>({
     resolver: zodResolver(PatientFormSchema),
@@ -70,6 +76,8 @@ export function PatientCreatePage() {
       gender: "",
       blood_group: "",
       chronic_conditions: "",
+      symptoms: "",
+      primary_diagnosis: "",
     },
   });
 
@@ -79,6 +87,8 @@ export function PatientCreatePage() {
   const gender = watch("gender");
   const bloodGroup = watch("blood_group");
   const mrn = watch("mrn");
+  const symptomsValue = watch("symptoms");
+  const diagnosisValue = watch("primary_diagnosis");
 
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
@@ -233,21 +243,28 @@ export function PatientCreatePage() {
 
           <PatientContactSection register={register} errors={errors} />
 
-          <MedicalAlertsSection
+          <MedicalHistorySection register={register} errors={errors} />
+
+          <FamilyHistorySection register={register} />
+
+          <LifestyleSection register={register} gender={gender} />
+
+          <DermatologySection
             register={register}
             errors={errors}
-            alerts={[]}
-            pendingAlerts={alerts}
-            chronicConditions={watch("chronic_conditions") ?? ""}
-            onAddAlert={(alert) => {
-              setAlerts((prev) => [...prev, alert]);
-            }}
-            onRemoveAlert={(id) => {
-              setAlerts((prev) => prev.filter((a) => a.id !== id));
+            symptoms={symptomsValue}
+            onSymptomsChange={(value) => {
+              setValue("symptoms", value, { shouldValidate: true });
             }}
           />
 
-          <DermatologySection register={register} />
+          <CurrentTreatmentSection
+            register={register}
+            errors={errors}
+            currentDiagnosis={diagnosisValue}
+            prescriptionAvailable={medications.length > 0}
+            reportGenerated={reports.length > 0}
+          />
 
           <MedicationSection
             medications={medications}
@@ -274,19 +291,19 @@ export function PatientCreatePage() {
             }}
           />
 
-          {/* Section 7 — Appointment Summary (placeholders) */}
-          <CollapsibleSection
-            title="Appointment Summary"
-            icon={<CalendarDays className="h-4 w-4" />}
-          >
-            <div className="grid gap-4 sm:grid-cols-4">
-              <AppointmentStat label="Upcoming Appointment" value="No appointments yet." />
-              <AppointmentStat label="Previous Appointment" value="No previous consultation." />
-              <AppointmentStat label="Last Consultation" value="—" />
-              <AppointmentStat label="Total Visits" value="0" />
-            </div>
-            <p className="mt-4 text-sm text-gray-400">No encounters yet.</p>
-          </CollapsibleSection>
+          <MedicalAlertsSection
+            register={register}
+            errors={errors}
+            alerts={[]}
+            pendingAlerts={alerts}
+            chronicConditions={watch("chronic_conditions") ?? ""}
+            onAddAlert={(alert) => {
+              setAlerts((prev) => [...prev, alert]);
+            }}
+            onRemoveAlert={(id) => {
+              setAlerts((prev) => prev.filter((a) => a.id !== id));
+            }}
+          />
 
           <ClinicalImagesSection
             images={images}
@@ -337,6 +354,16 @@ export function PatientCreatePage() {
               ]);
             }}
           />
+
+          {/* Section 13 — Visit Summary (placeholders) */}
+          <CollapsibleSection title="Visit Summary" icon={<CalendarDays className="h-4 w-4" />}>
+            <VisitSummarySection
+              lastVisitDate={null}
+              nextFollowUpDate={null}
+              totalVisits={0}
+              assignedDoctor={doctorName}
+            />
+          </CollapsibleSection>
 
           {/* Section 11 — AI Summary */}
           <CollapsibleSection title="AI Summary" icon={<Sparkles className="h-4 w-4" />}>

@@ -65,6 +65,31 @@ export class ContextBuilder {
       sections.push(`Chronic Conditions: ${patient.chronic_conditions}`);
     if (patient.medical_notes) sections.push(`Medical Notes: ${patient.medical_notes}`);
 
+    if (patient.chief_complaint) sections.push(`Chief Complaint: ${patient.chief_complaint}`);
+    if (patient.present_illness) sections.push(`Present Illness: ${patient.present_illness}`);
+    if (patient.previous_skin_diseases)
+      sections.push(`Previous Skin Diseases: ${patient.previous_skin_diseases}`);
+    if (patient.previous_surgeries)
+      sections.push(`Previous Surgeries: ${patient.previous_surgeries}`);
+    if (patient.other_medical_conditions)
+      sections.push(`Other Medical Conditions: ${patient.other_medical_conditions}`);
+    if (patient.family_history_skin)
+      sections.push(`Family History of Skin Diseases: ${patient.family_history_skin}`);
+    if (patient.family_history_cancer)
+      sections.push(`Family History of Cancer: ${patient.family_history_cancer}`);
+    if (patient.smoking_status) sections.push(`Smoking Status: ${patient.smoking_status}`);
+    if (patient.alcohol_consumption)
+      sections.push(`Alcohol Consumption: ${patient.alcohol_consumption}`);
+    if (patient.pregnancy_status) sections.push(`Pregnancy Status: ${patient.pregnancy_status}`);
+    if (patient.date_of_onset) sections.push(`Date of Onset: ${patient.date_of_onset}`);
+    if (patient.symptoms) sections.push(`Symptoms: ${patient.symptoms}`);
+    if (patient.sun_exposure_history)
+      sections.push(`Sun Exposure History: ${patient.sun_exposure_history}`);
+    if (patient.cosmetic_product_usage)
+      sections.push(`Cosmetic Product Usage: ${patient.cosmetic_product_usage}`);
+    if (patient.occupational_exposure)
+      sections.push(`Occupational Exposure: ${patient.occupational_exposure}`);
+
     if (context.allergies.length > 0) {
       fetchedTopics.push("allergy");
       sections.push("\nALLERGIES:");
