@@ -1,44 +1,146 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreatePatientFormSchema, type CreatePatientFormInput } from "@domain/patient";
-import { useCreatePatient } from "@presentation/hooks/usePatients";
+import {
+  PatientFormSchema,
+  type PatientFormInput,
+  type Medication,
+  type MedicationInput,
+  type ClinicalNote,
+  type ClinicalNoteInput,
+  type MedicalAlert,
+  type AllergyInput,
+  type MedicalHistoryInput,
+  type LabReport,
+  type LabReportInput,
+} from "@domain/patient";
+import { useCreateFullPatient } from "@presentation/hooks/usePatients";
+import { useProfile } from "@presentation/hooks/useProfile";
 import { useResolvedOrganization } from "@presentation/hooks/useResolvedOrganization";
 import { AppShell } from "@presentation/components/AppShell";
-import { ArrowLeft, Loader2, UserRound, Building2 } from "lucide-react";
+import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
+import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
+import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
+import { DermatologySection } from "@presentation/components/patient/DermatologySection";
+import { MedicationSection } from "@presentation/components/patient/MedicationSection";
+import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
+import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
+import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
+import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
+import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
+import { AppointmentStat, SummaryItem } from "@presentation/components/patient/helpers";
+import {
+  computeAge,
+  formatDate,
+  initials,
+  statusBadgeClass,
+  type ClinicalImage,
+} from "@presentation/components/patient/utils";
+import { ArrowLeft, Loader2, CalendarDays, Sparkles, UserRound, Building2 } from "lucide-react";
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
   const { phase, hasOrganization, selectedOrganizationId } = useResolvedOrganization();
-  const createMutation = useCreatePatient();
+  const { profile } = useProfile();
+  const createMutation = useCreateFullPatient();
 
   const canSubmit = phase === "ready" && !createMutation.isPending;
-
   const defaultMrn = useMemo(() => `MRN-${Date.now()}`, []);
+
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [notes, setNotes] = useState<ClinicalNote[]>([]);
+  const [alerts, setAlerts] = useState<MedicalAlert[]>([]);
+  const [reports, setReports] = useState<LabReport[]>([]);
+  const [images, setImages] = useState<ClinicalImage[]>([]);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<CreatePatientFormInput>({
-    resolver: zodResolver(CreatePatientFormSchema),
+  } = useForm<PatientFormInput>({
+    resolver: zodResolver(PatientFormSchema),
     defaultValues: {
       mrn: defaultMrn,
+      status: "active",
+      first_name: "",
+      last_name: "",
+      dob: "",
+      gender: "",
+      blood_group: "",
+      chronic_conditions: "",
     },
   });
 
-  function onSubmit(data: CreatePatientFormInput) {
-    createMutation.mutate(data, {
-      onSuccess: (patient) => {
-        void navigate(`/patients/${patient.id}`);
+  const firstName = watch("first_name");
+  const lastName = watch("last_name");
+  const dobValue = watch("dob");
+  const gender = watch("gender");
+  const bloodGroup = watch("blood_group");
+  const mrn = watch("mrn");
+
+  const age = useMemo(() => computeAge(dobValue), [dobValue]);
+  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+
+  function onSubmit(data: PatientFormInput) {
+    const medicationInputs: MedicationInput[] = medications.map((m) => ({
+      medication_name: m.medication_name,
+      dosage: m.dosage || undefined,
+      frequency: m.frequency || undefined,
+      duration: m.duration ?? undefined,
+      start_date: m.start_date ?? undefined,
+      end_date: m.end_date ?? undefined,
+      prescribing_doctor: m.prescribing_doctor ?? undefined,
+    }));
+
+    const noteInputs: ClinicalNoteInput[] = notes.map((n) => ({
+      note_type: n.note_type,
+      subjective: n.subjective ?? undefined,
+      objective: n.objective ?? undefined,
+      assessment: n.assessment ?? undefined,
+      plan: n.plan ?? undefined,
+    }));
+
+    const allergyInputs: AllergyInput[] = [];
+    const historyInputs: MedicalHistoryInput[] = [];
+    for (const alert of alerts) {
+      if (alert.category === "allergy") {
+        allergyInputs.push({ allergen: alert.label, severity: alert.severity });
+      } else {
+        historyInputs.push({
+          condition: alert.label,
+          status: alert.severity === "chronic" ? "chronic" : "active",
+        });
+      }
+    }
+
+    const reportInputs: LabReportInput[] = reports.map((r) => ({ test_name: r.test_name }));
+
+    createMutation.mutate(
+      {
+        input: data,
+        medications: medicationInputs,
+        notes: noteInputs,
+        allergies: allergyInputs,
+        medicalHistory: historyInputs,
+        labReports: reportInputs,
       },
-    });
+      {
+        onSuccess: (patient) => {
+          void navigate(`/patients/${patient.id}`);
+        },
+      },
+    );
   }
+
+  const doctorName = profile?.firstName
+    ? `Dr. ${profile.firstName} ${profile.lastName}`
+    : (profile?.email ?? "Current user");
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-4">
         <button
           onClick={() => void navigate("/patients")}
           className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
@@ -47,113 +149,72 @@ export function PatientCreatePage() {
           Back to Patients
         </button>
 
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl font-bold text-gray-900">Register Patient</h1>
-          <ScopeBadge hasOrganization={hasOrganization} orgId={selectedOrganizationId} />
-        </div>
-
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-6">
-          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900">Personal Information</h2>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">First Name *</label>
-                <input
-                  {...register("first_name")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.first_name && (
-                  <p className="mt-1 text-xs text-red-600">{errors.first_name.message}</p>
-                )}
+        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
+          {/* Section 1 — Patient Summary */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-start gap-4 p-6">
+              <div className="bg-brand-50 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full">
+                <span className="text-brand-600 text-2xl font-semibold">
+                  {fullName ? initials(firstName, lastName) : "NP"}
+                </span>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Last Name *</label>
-                <input
-                  {...register("last_name")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.last_name && (
-                  <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
-                <input
-                  type="date"
-                  {...register("dob")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.dob && <p className="mt-1 text-xs text-red-600">{errors.dob.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Gender *</label>
-                <select
-                  {...register("gender")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                >
-                  <option value="">Select</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.gender && (
-                  <p className="mt-1 text-xs text-red-600">{errors.gender.message}</p>
-                )}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-bold text-gray-900">{fullName || "New Patient"}</h1>
+                  <span className="text-xs font-medium text-gray-500">
+                    New Patient Registration
+                  </span>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass("active")}`}
+                  >
+                    active
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  <SummaryItem label="MRN" value={mrn} mono />
+                  <SummaryItem label="Age" value={age !== null ? `${age} yrs` : "—"} />
+                  <SummaryItem label="Gender" value={gender || "—"} />
+                  <SummaryItem label="Blood Group" value={bloodGroup || "—"} />
+                  <SummaryItem label="Status" value="Active" />
+                  <SummaryItem
+                    label="Patient ID"
+                    value="Will be generated after registration"
+                    truncate
+                  />
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900">Contact & Medical Record</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  {...register("email")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.email && (
-                  <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+            <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {createMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
                 )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <input
-                  {...register("phone")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Address</label>
-                <input
-                  {...register("address")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Blood Group</label>
-                <select
-                  {...register("blood_group")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                >
-                  <option value="">Select</option>
-                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                    <option key={bg} value={bg}>
-                      {bg}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">MRN *</label>
-                <input
-                  {...register("mrn")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
-                {errors.mrn && <p className="mt-1 text-xs text-red-600">{errors.mrn.message}</p>}
-              </div>
+                Register Patient
+              </button>
+              <button
+                type="button"
+                onClick={() => void navigate("/patients")}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("ai-summary")?.scrollIntoView({ behavior: "smooth" })
+                }
+                className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Summary
+              </button>
+              <ScopeBadge hasOrganization={hasOrganization} orgId={selectedOrganizationId} />
             </div>
           </div>
 
@@ -163,23 +224,140 @@ export function PatientCreatePage() {
             </div>
           )}
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Register Patient
-            </button>
-            <button
-              type="button"
-              onClick={() => void navigate("/patients")}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          </div>
+          <PatientPersonalSection
+            register={register}
+            errors={errors}
+            age={age}
+            showStatus={false}
+          />
+
+          <PatientContactSection register={register} errors={errors} />
+
+          <MedicalAlertsSection
+            register={register}
+            errors={errors}
+            alerts={[]}
+            pendingAlerts={alerts}
+            chronicConditions={watch("chronic_conditions") ?? ""}
+            onAddAlert={(alert) => {
+              setAlerts((prev) => [...prev, alert]);
+            }}
+            onRemoveAlert={(id) => {
+              setAlerts((prev) => prev.filter((a) => a.id !== id));
+            }}
+          />
+
+          <DermatologySection register={register} />
+
+          <MedicationSection
+            medications={medications}
+            adding={false}
+            onAdd={(input) => {
+              setMedications((prev) => [
+                ...prev,
+                {
+                  id: crypto.randomUUID(),
+                  prescription_id: crypto.randomUUID(),
+                  medication_name: input.medication_name,
+                  dosage: input.dosage ?? "",
+                  frequency: input.frequency ?? "",
+                  duration: input.duration ?? null,
+                  start_date: input.start_date ?? null,
+                  end_date: input.end_date ?? null,
+                  prescribing_doctor: input.prescribing_doctor ?? null,
+                  instructions: null,
+                },
+              ]);
+            }}
+            onRemove={(id) => {
+              setMedications((prev) => prev.filter((m) => m.id !== id));
+            }}
+          />
+
+          {/* Section 7 — Appointment Summary (placeholders) */}
+          <CollapsibleSection
+            title="Appointment Summary"
+            icon={<CalendarDays className="h-4 w-4" />}
+          >
+            <div className="grid gap-4 sm:grid-cols-4">
+              <AppointmentStat label="Upcoming Appointment" value="No appointments yet." />
+              <AppointmentStat label="Previous Appointment" value="No previous consultation." />
+              <AppointmentStat label="Last Consultation" value="—" />
+              <AppointmentStat label="Total Visits" value="0" />
+            </div>
+            <p className="mt-4 text-sm text-gray-400">No encounters yet.</p>
+          </CollapsibleSection>
+
+          <ClinicalImagesSection
+            images={images}
+            onAdd={(img) => {
+              setImages((prev) => [...prev, img]);
+            }}
+            onRemove={(id) => {
+              setImages((prev) => prev.filter((x) => x.id !== id));
+            }}
+          />
+
+          <LabReportsSection
+            reports={reports}
+            onAdd={(input) => {
+              setReports((prev) => [
+                ...prev,
+                {
+                  id: crypto.randomUUID(),
+                  test_name: input.test_name,
+                  status: "ordered",
+                  report_date: null,
+                  result_summary: null,
+                  lab_name: null,
+                },
+              ]);
+            }}
+            onRemove={(id) => {
+              setReports((prev) => prev.filter((r) => r.id !== id));
+            }}
+          />
+
+          <ClinicalNotesSection
+            notes={notes}
+            adding={false}
+            onAdd={(input) => {
+              setNotes((prev) => [
+                ...prev,
+                {
+                  id: crypto.randomUUID(),
+                  note_type: input.note_type ?? "soap",
+                  subjective: input.subjective ?? null,
+                  objective: input.objective ?? null,
+                  assessment: input.assessment ?? null,
+                  plan: input.plan ?? null,
+                  created_by: "",
+                  created_at: new Date().toISOString(),
+                },
+              ]);
+            }}
+          />
+
+          {/* Section 11 — AI Summary */}
+          <CollapsibleSection title="AI Summary" icon={<Sparkles className="h-4 w-4" />}>
+            <div id="ai-summary" className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
+              <p className="mt-2 text-sm text-gray-600">No clinical data available yet.</p>
+              <p className="mt-1 text-xs text-gray-400">
+                After patient creation, future visits will populate this section automatically.
+              </p>
+            </div>
+          </CollapsibleSection>
+
+          <PatientAuditSection
+            createdBy={doctorName}
+            createdAt={formatDate(new Date().toISOString())}
+            updatedAt={formatDate(new Date().toISOString())}
+            updatedBy="—"
+            organization={
+              hasOrganization ? (selectedOrganizationId ?? "Organization") : "Personal record"
+            }
+          />
         </form>
       </div>
     </AppShell>

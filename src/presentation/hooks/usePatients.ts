@@ -1,17 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PatientService } from "@application/patient/PatientService";
 import { SupabasePatientRepository } from "@infrastructure/supabase/patient/SupabasePatientRepository";
+import { SupabaseClinicalRepository } from "@infrastructure/supabase/clinical/SupabaseClinicalRepository";
 import {
   type AuthorizationContext,
   type CreatePatientFormInput,
   type UpdatePatientInput,
   type PatientSearchParams,
+  type MedicationInput,
+  type ClinicalNoteInput,
+  type AllergyInput,
+  type MedicalHistoryInput,
+  type LabReportInput,
 } from "@domain/patient";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 
 const repository = new SupabasePatientRepository();
-const service = new PatientService(repository);
+const clinicalRepository = new SupabaseClinicalRepository();
+const service = new PatientService(repository, clinicalRepository);
 
 function useCurrentAuth(): AuthorizationContext {
   const { user } = useAuth();
@@ -41,12 +48,27 @@ export function usePatient(id: string) {
   });
 }
 
-export function useCreatePatient() {
+export function useCreateFullPatient() {
   const queryClient = useQueryClient();
   const auth = useCurrentAuth();
 
   return useMutation({
-    mutationFn: (input: CreatePatientFormInput) => service.create(input, auth),
+    mutationFn: ({
+      input,
+      medications,
+      notes,
+      allergies,
+      medicalHistory,
+      labReports,
+    }: {
+      input: CreatePatientFormInput;
+      medications: MedicationInput[];
+      notes: ClinicalNoteInput[];
+      allergies: AllergyInput[];
+      medicalHistory: MedicalHistoryInput[];
+      labReports: LabReportInput[];
+    }) =>
+      service.createFull(input, medications, notes, allergies, medicalHistory, labReports, auth),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
     },

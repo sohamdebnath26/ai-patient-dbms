@@ -1,6 +1,9 @@
 import type {
   Medication,
   MedicationInput,
+  AllergyInput,
+  MedicalHistoryInput,
+  LabReportInput,
   ClinicalNote,
   ClinicalNoteInput,
   LabReport,
@@ -18,8 +21,15 @@ export interface IClinicalRepository {
   ): Promise<void>;
   removeMedication(itemId: string): Promise<void>;
   listAlerts(patientId: string): Promise<MedicalAlert[]>;
+  addAllergy(patientId: string, input: AllergyInput, auth: AuthorizationContext): Promise<void>;
+  addMedicalHistory(
+    patientId: string,
+    input: MedicalHistoryInput,
+    auth: AuthorizationContext,
+  ): Promise<void>;
   listAppointments(patientId: string): Promise<AppointmentSummary[]>;
   listLabReports(patientId: string): Promise<LabReport[]>;
+  addLabReport(patientId: string, input: LabReportInput, auth: AuthorizationContext): Promise<void>;
   listClinicalNotes(patientId: string): Promise<ClinicalNote[]>;
   addClinicalNote(
     patientId: string,

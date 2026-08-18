@@ -64,6 +64,27 @@ export const CreatePatientFormSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   mrn: z.string().min(1, "MRN is required"),
+  address_line1: z.string().optional(),
+  address_line2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  postal_code: z.string().optional(),
+  emergency_contact_name: z.string().optional(),
+  emergency_contact_phone: z.string().optional(),
+  emergency_contact_relationship: z.string().optional(),
+  chronic_conditions: z.string().optional(),
+  primary_diagnosis: z.string().optional(),
+  secondary_diagnosis: z.string().optional(),
+  skin_type: z.string().optional(),
+  affected_body_areas: z.string().optional(),
+  disease_severity: z.string().optional(),
+  duration: z.string().optional(),
+  current_flare: z.boolean().optional(),
+  family_history: z.string().optional(),
+  previous_skin_cancer: z.boolean().optional(),
+  current_treatment: z.string().optional(),
+  medical_notes: z.string().optional(),
 });
 
 export type CreatePatientFormInput = z.infer<typeof CreatePatientFormSchema>;
@@ -153,7 +174,12 @@ export type UpdatePatientInput = z.infer<typeof UpdatePatientSchema>;
 
 const todayStr = new Date().toISOString().slice(0, 10);
 
-export const EditPatientFormSchema = z.object({
+/**
+ * Shared form schema used by both the Register Patient and Edit Patient
+ * pages. The single source of truth for patient form validation so the
+ * two pages can never drift apart.
+ */
+export const PatientFormSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   dob: z
@@ -191,6 +217,10 @@ export const EditPatientFormSchema = z.object({
   current_treatment: z.string().optional(),
   medical_notes: z.string().optional(),
 });
+
+export type PatientFormInput = z.infer<typeof PatientFormSchema>;
+
+export const EditPatientFormSchema = PatientFormSchema;
 
 export type EditPatientFormInput = z.infer<typeof EditPatientFormSchema>;
 

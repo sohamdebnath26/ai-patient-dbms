@@ -27,6 +27,28 @@ export const MedicationInputSchema = z.object({
 
 export type MedicationInput = z.infer<typeof MedicationInputSchema>;
 
+export const AllergyInputSchema = z.object({
+  allergen: z.string().min(1, "Allergen is required"),
+  reaction: z.string().optional(),
+  severity: z.string().optional(),
+});
+
+export type AllergyInput = z.infer<typeof AllergyInputSchema>;
+
+export const MedicalHistoryInputSchema = z.object({
+  condition: z.string().min(1, "Condition is required"),
+  status: z.string().optional(),
+});
+
+export type MedicalHistoryInput = z.infer<typeof MedicalHistoryInputSchema>;
+
+export const LabReportInputSchema = z.object({
+  test_name: z.string().min(1, "Report name is required"),
+  result_summary: z.string().optional(),
+});
+
+export type LabReportInput = z.infer<typeof LabReportInputSchema>;
+
 export const ClinicalNoteSchema = z.object({
   id: z.string().uuid(),
   note_type: z.string(),

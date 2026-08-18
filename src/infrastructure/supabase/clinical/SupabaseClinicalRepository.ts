@@ -2,6 +2,9 @@ import type { IClinicalRepository } from "@application/ports/IClinicalRepository
 import type {
   Medication,
   MedicationInput,
+  AllergyInput,
+  MedicalHistoryInput,
+  LabReportInput,
   ClinicalNote,
   ClinicalNoteInput,
   LabReport,
@@ -203,6 +206,44 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
     return alerts;
   }
 
+  async addAllergy(
+    patientId: string,
+    input: AllergyInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    const client = getSupabaseClient();
+    const { error } = await client.from("allergies").insert({
+      patient_id: patientId,
+      organization_id: auth.selectedOrganizationId,
+      clinic_id: auth.selectedClinicId ?? null,
+      created_by: auth.userId,
+      allergen: input.allergen,
+      reaction: input.reaction ?? "",
+      severity: input.severity ?? "moderate",
+      status: "active",
+    });
+
+    if (error) throw new Error(error.message);
+  }
+
+  async addMedicalHistory(
+    patientId: string,
+    input: MedicalHistoryInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    const client = getSupabaseClient();
+    const { error } = await client.from("medical_history").insert({
+      patient_id: patientId,
+      organization_id: auth.selectedOrganizationId,
+      clinic_id: auth.selectedClinicId ?? null,
+      created_by: auth.userId,
+      condition: input.condition,
+      status: input.status ?? "active",
+    });
+
+    if (error) throw new Error(error.message);
+  }
+
   async listAppointments(patientId: string): Promise<AppointmentSummary[]> {
     const client = getSupabaseClient();
     const { data, error } = (await client
@@ -227,6 +268,25 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
 
     if (error) throw new Error(error.message);
     return data ?? [];
+  }
+
+  async addLabReport(
+    patientId: string,
+    input: LabReportInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    const client = getSupabaseClient();
+    const { error } = await client.from("lab_reports").insert({
+      patient_id: patientId,
+      organization_id: auth.selectedOrganizationId,
+      clinic_id: auth.selectedClinicId ?? null,
+      created_by: auth.userId,
+      test_name: input.test_name,
+      result_summary: input.result_summary ?? null,
+      status: "ordered",
+    });
+
+    if (error) throw new Error(error.message);
   }
 
   async listClinicalNotes(patientId: string): Promise<ClinicalNote[]> {

@@ -2,6 +2,9 @@ import type { IClinicalRepository } from "@application/ports/IClinicalRepository
 import type {
   Medication,
   MedicationInput,
+  AllergyInput,
+  MedicalHistoryInput,
+  LabReportInput,
   ClinicalNote,
   ClinicalNoteInput,
   LabReport,
@@ -33,12 +36,36 @@ export class ClinicalService {
     return this.repository.listAlerts(patientId);
   }
 
+  async addAllergy(
+    patientId: string,
+    input: AllergyInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    return this.repository.addAllergy(patientId, input, auth);
+  }
+
+  async addMedicalHistory(
+    patientId: string,
+    input: MedicalHistoryInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    return this.repository.addMedicalHistory(patientId, input, auth);
+  }
+
   async listAppointments(patientId: string): Promise<AppointmentSummary[]> {
     return this.repository.listAppointments(patientId);
   }
 
   async listLabReports(patientId: string): Promise<LabReport[]> {
     return this.repository.listLabReports(patientId);
+  }
+
+  async addLabReport(
+    patientId: string,
+    input: LabReportInput,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    return this.repository.addLabReport(patientId, input, auth);
   }
 
   async listClinicalNotes(patientId: string): Promise<ClinicalNote[]> {
