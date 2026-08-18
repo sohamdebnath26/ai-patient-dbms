@@ -2,6 +2,7 @@ export {
   PatientSchema,
   PatientStatusSchema,
   CreatePatientFormSchema,
+  EditPatientFormSchema,
   UpdatePatientSchema,
   PatientSearchSchema,
   AuthorizationContextSchema,
@@ -12,11 +13,29 @@ export {
   type Patient,
   type PatientStatus,
   type CreatePatientFormInput,
+  type EditPatientFormInput,
   type UpdatePatientInput,
   type PatientSearchParams,
   type PatientListPage,
   type AuthorizationContext,
 } from "./Patient";
+
+export {
+  MedicationSchema,
+  MedicationInputSchema,
+  ClinicalNoteSchema,
+  ClinicalNoteInputSchema,
+  LabReportSchema,
+  MedicalAlertSchema,
+  AppointmentSummarySchema,
+  type Medication,
+  type MedicationInput,
+  type ClinicalNote,
+  type ClinicalNoteInput,
+  type LabReport,
+  type MedicalAlert,
+  type AppointmentSummary,
+} from "./Clinical";
 
 export {
   OrganizationSchema,

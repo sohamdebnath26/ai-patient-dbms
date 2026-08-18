@@ -18,6 +18,27 @@ interface PatientRow {
   phone: string | null;
   address: string | null;
   status: string;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  postal_code: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relationship: string | null;
+  chronic_conditions: string | null;
+  primary_diagnosis: string | null;
+  secondary_diagnosis: string | null;
+  skin_type: string | null;
+  affected_body_areas: string | null;
+  disease_severity: string | null;
+  duration: string | null;
+  current_flare: boolean | null;
+  family_history: string | null;
+  previous_skin_cancer: boolean | null;
+  current_treatment: string | null;
+  medical_notes: string | null;
 }
 
 interface AllergyRow {
@@ -137,7 +158,7 @@ export class PatientContextResolver {
     const scope = resolveAuthScope(auth);
 
     const baseSelect =
-      "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status";
+      "id, organization_id, mrn, first_name, last_name, dob, gender, blood_group, marital_status, occupation, email, phone, address, status, address_line1, address_line2, city, state, country, postal_code, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, chronic_conditions, primary_diagnosis, secondary_diagnosis, skin_type, affected_body_areas, disease_severity, duration, current_flare, family_history, previous_skin_cancer, current_treatment, medical_notes";
 
     if (entity.patient_id) {
       const { data, error } = (await client

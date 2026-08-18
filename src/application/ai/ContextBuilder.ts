@@ -47,6 +47,24 @@ export class ContextBuilder {
     if (patient.email) sections.push(`Email: ${patient.email}`);
     sections.push(`Status: ${patient.status}`);
 
+    if (patient.primary_diagnosis) sections.push(`Primary Diagnosis: ${patient.primary_diagnosis}`);
+    if (patient.secondary_diagnosis)
+      sections.push(`Secondary Diagnosis: ${patient.secondary_diagnosis}`);
+    if (patient.skin_type) sections.push(`Skin Type (Fitzpatrick): ${patient.skin_type}`);
+    if (patient.affected_body_areas)
+      sections.push(`Affected Body Areas: ${patient.affected_body_areas}`);
+    if (patient.disease_severity) sections.push(`Disease Severity: ${patient.disease_severity}`);
+    if (patient.duration) sections.push(`Duration: ${patient.duration}`);
+    if (patient.current_flare !== null)
+      sections.push(`Current Flare: ${patient.current_flare ? "Yes" : "No"}`);
+    if (patient.family_history) sections.push(`Family History: ${patient.family_history}`);
+    if (patient.previous_skin_cancer !== null)
+      sections.push(`Previous Skin Cancer: ${patient.previous_skin_cancer ? "Yes" : "No"}`);
+    if (patient.current_treatment) sections.push(`Current Treatment: ${patient.current_treatment}`);
+    if (patient.chronic_conditions)
+      sections.push(`Chronic Conditions: ${patient.chronic_conditions}`);
+    if (patient.medical_notes) sections.push(`Medical Notes: ${patient.medical_notes}`);
+
     if (context.allergies.length > 0) {
       fetchedTopics.push("allergy");
       sections.push("\nALLERGIES:");

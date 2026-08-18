@@ -34,6 +34,27 @@ interface PatientRow {
   created_by: string;
   created_at: string;
   updated_at: string;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  postal_code: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relationship: string | null;
+  chronic_conditions: string | null;
+  primary_diagnosis: string | null;
+  secondary_diagnosis: string | null;
+  skin_type: string | null;
+  affected_body_areas: string | null;
+  disease_severity: string | null;
+  duration: string | null;
+  current_flare: boolean | null;
+  family_history: string | null;
+  previous_skin_cancer: boolean | null;
+  current_treatment: string | null;
+  medical_notes: string | null;
 }
 
 interface SupabaseError {
