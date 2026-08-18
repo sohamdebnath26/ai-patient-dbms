@@ -78,15 +78,16 @@ export function PatientCreatePage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
                 <input
                   type="date"
                   {...register("dob")}
                   className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                 />
+                {errors.dob && <p className="mt-1 text-xs text-red-600">{errors.dob.message}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Gender</label>
+                <label className="block text-sm font-medium text-gray-700">Gender *</label>
                 <select
                   {...register("gender")}
                   className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
@@ -96,40 +97,9 @@ export function PatientCreatePage() {
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Blood Group</label>
-                <select
-                  {...register("blood_group")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                >
-                  <option value="">Select</option>
-                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                    <option key={bg} value={bg}>
-                      {bg}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Marital Status</label>
-                <select
-                  {...register("marital_status")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                >
-                  <option value="">Select</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Divorced">Divorced</option>
-                  <option value="Widowed">Widowed</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Occupation</label>
-                <input
-                  {...register("occupation")}
-                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                />
+                {errors.gender && (
+                  <p className="mt-1 text-xs text-red-600">{errors.gender.message}</p>
+                )}
               </div>
             </div>
           </div>
@@ -161,6 +131,20 @@ export function PatientCreatePage() {
                   {...register("address")}
                   className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Blood Group</label>
+                <select
+                  {...register("blood_group")}
+                  className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                >
+                  <option value="">Select</option>
+                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                    <option key={bg} value={bg}>
+                      {bg}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">MRN *</label>

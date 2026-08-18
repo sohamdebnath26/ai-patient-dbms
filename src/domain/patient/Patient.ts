@@ -26,11 +26,9 @@ export type Patient = z.infer<typeof PatientSchema>;
 export const CreatePatientFormSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
-  dob: z.string().optional(),
-  gender: z.string().optional(),
+  dob: z.string().min(1, "Date of birth is required"),
+  gender: z.string().min(1, "Gender is required"),
   blood_group: z.string().optional(),
-  marital_status: z.string().optional(),
-  occupation: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),

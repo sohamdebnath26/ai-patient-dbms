@@ -161,11 +161,9 @@ export class SupabasePatientRepository implements IPatientRepository {
       .insert({
         first_name: input.first_name,
         last_name: input.last_name,
-        dob: input.dob ?? null,
-        gender: input.gender ?? null,
+        dob: input.dob,
+        gender: input.gender,
         blood_group: input.blood_group ?? null,
-        marital_status: input.marital_status ?? null,
-        occupation: input.occupation ?? null,
         email: input.email ?? null,
         phone: input.phone ?? null,
         address: input.address ?? null,
