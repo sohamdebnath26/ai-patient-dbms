@@ -542,7 +542,7 @@ def generate() -> str:
             first_allergen = rng.choice(ALLERGY_POOL)[0]
         # Pick second allergy not equal to first
         other_pool = [a for a in ALLERGY_POOL if a[0] != first_allergen]
-        second_allergen = other_pool[rng.randint(0, len(other_pool) - 1)]
+        second_allergen = other_pool[rng.randint(0, len(other_pool) - 1)][0]
         for allergen, reaction, severity in [
             (first_allergen, "Documented hypersensitivity", severity_lookup(first_allergen)),
             (second_allergen, "Documented hypersensitivity", severity_lookup(second_allergen)),
