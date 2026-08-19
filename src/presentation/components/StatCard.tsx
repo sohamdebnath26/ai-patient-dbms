@@ -21,11 +21,11 @@ export function StatCard({
   error,
 }: StatCardProps) {
   return (
-    <div className="group border-surface-200 hover:border-surface-300 rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md">
+    <div className="group border-surface-200 rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">{label}</p>
-          <div className="mt-3 min-h-[44px]">
+          <p className="text-sm font-bold tracking-normal text-gray-900 uppercase">{label}</p>
+          <div className="mt-4 min-h-[44px]">
             {loading ? (
               <Loader2 className="h-7 w-7 animate-spin text-gray-300" />
             ) : error ? (

@@ -186,7 +186,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Total Patients"
             value={s?.totalPatients}
@@ -195,7 +195,7 @@ export function DashboardPage() {
             loading={summary.isLoading}
           />
           <StatCard
-            label="Today's Appts"
+            label="Today's Appointments"
             value={s?.todayAppointments}
             secondary={s?.todayAppointments ? `${s.completedToday} completed` : undefined}
             icon={Calendar}
@@ -221,8 +221,8 @@ export function DashboardPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">Today&apos;s Schedule</h2>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Today&apos;s Schedule</h2>
                 <button
                   onClick={() => {
                     void navigate("/appointments");
@@ -259,7 +259,7 @@ export function DashboardPage() {
                     onClick={() => {
                       void navigate("/appointments/new");
                     }}
-                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors"
                   >
                     Book first appointment
                   </button>
@@ -272,7 +272,7 @@ export function DashboardPage() {
                       onClick={() => {
                         void navigate(`/appointments/${a.id}`);
                       }}
-                      className="hover:bg-surface-50 flex cursor-pointer items-center gap-4 rounded-lg px-3 py-3 transition-colors"
+                      className="flex cursor-pointer items-center gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-gray-50"
                     >
                       <div className="bg-surface-50 flex h-12 w-16 flex-shrink-0 flex-col items-center justify-center rounded-lg">
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
@@ -296,8 +296,8 @@ export function DashboardPage() {
             </div>
 
             <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">Recent Encounters</h2>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Recent Encounters</h2>
                 <button
                   onClick={() => {
                     void navigate("/encounters");
@@ -331,14 +331,14 @@ export function DashboardPage() {
                   <p className="mt-4 text-sm font-bold text-gray-900">No encounters yet</p>
                 </div>
               ) : (
-                <div className="divide-surface-100 divide-y">
+                <div className="divide-y divide-gray-200">
                   {encounters.data?.map((e) => (
                     <div
                       key={e.id}
                       onClick={() => {
                         void navigate(`/encounters/${e.id}`);
                       }}
-                      className="hover:bg-surface-50 flex cursor-pointer items-center gap-4 py-3.5 transition-colors first:pt-0 last:pb-0"
+                      className="flex cursor-pointer items-center gap-4 py-5 transition-colors first:pt-0 last:pb-0 hover:bg-gray-50"
                     >
                       <div
                         className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full ${
@@ -359,7 +359,7 @@ export function DashboardPage() {
                         </p>
                       </div>
                       <span
-                        className={`inline-flex flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        className={`inline-flex flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
                           e.status === "in_progress"
                             ? "bg-purple-50 text-purple-700"
                             : "bg-surface-100 text-gray-600"
@@ -379,8 +379,8 @@ export function DashboardPage() {
 
           <div className="space-y-6">
             <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-bold text-gray-900">Quick Actions</h2>
-              <div className="divide-surface-100 divide-y">
+              <h2 className="mb-6 text-xl font-bold text-gray-900">Quick Actions</h2>
+              <div>
                 {[
                   {
                     label: "Register Patient",
@@ -416,26 +416,26 @@ export function DashboardPage() {
                     onClick={() => {
                       void navigate(to);
                     }}
-                    className="group hover:bg-surface-50 -mx-2 flex w-full items-center gap-4 rounded-lg px-2 py-5 text-left transition-colors"
+                    className="group flex w-full cursor-pointer items-center gap-4 rounded-xl border-b border-gray-200 px-2 py-5 text-left transition last:border-b-0 hover:bg-gray-50"
                   >
                     <div
-                      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full ${color}`}
+                      className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${color}`}
                     >
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900">{label}</p>
-                      <p className="mt-0.5 text-xs font-medium text-gray-500">{desc}</p>
+                      <p className="text-base font-bold text-gray-900">{label}</p>
+                      <p className="mt-0.5 text-sm font-medium text-gray-500">{desc}</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-600" />
+                    <ChevronRight className="h-5 w-5 flex-shrink-0 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-gray-600" />
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">Recent Patients</h2>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Recent Patients</h2>
                 <button
                   onClick={() => {
                     void navigate("/patients");
@@ -471,20 +471,20 @@ export function DashboardPage() {
                     onClick={() => {
                       void navigate("/patients/new");
                     }}
-                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors"
                   >
                     Register first patient
                   </button>
                 </div>
               ) : (
-                <div className="divide-surface-100 divide-y">
+                <div className="divide-y divide-gray-200">
                   {recentPatients.data?.map((p) => (
                     <div
                       key={p.id}
                       onClick={() => {
                         void navigate(`/patients/${p.id}`);
                       }}
-                      className="hover:bg-surface-50 flex cursor-pointer items-center gap-3 py-3 transition-colors first:pt-0 last:pb-0"
+                      className="flex cursor-pointer items-center gap-3 py-5 transition-colors first:pt-0 last:pb-0 hover:bg-gray-50"
                     >
                       <div className="bg-brand-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
                         <span className="text-brand-600 text-sm font-bold">
