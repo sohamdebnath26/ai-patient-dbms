@@ -356,7 +356,11 @@ export function PatientCreatePage() {
           />
 
           {/* Section 13 — Visit Summary (placeholders) */}
-          <CollapsibleSection title="Visit Summary" icon={<CalendarDays className="h-4 w-4" />}>
+          <CollapsibleSection
+            title="Visit Summary"
+            icon={<CalendarDays className="h-4 w-4" />}
+            collapsible={false}
+          >
             <VisitSummarySection
               lastVisitDate={null}
               nextFollowUpDate={null}
@@ -366,7 +370,11 @@ export function PatientCreatePage() {
           </CollapsibleSection>
 
           {/* Section 11 — AI Summary */}
-          <CollapsibleSection title="AI Summary" icon={<Sparkles className="h-4 w-4" />}>
+          <CollapsibleSection
+            title="AI Summary"
+            icon={<Sparkles className="h-4 w-4" />}
+            collapsible={false}
+          >
             <div id="ai-summary" className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
               <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
               <p className="mt-2 text-sm text-gray-600">No clinical data available yet.</p>

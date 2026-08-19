@@ -18,7 +18,11 @@ export function PatientAuditSection({
   organization,
 }: PatientAuditSectionProps) {
   return (
-    <CollapsibleSection title="Audit Information" icon={<History className="h-4 w-4" />}>
+    <CollapsibleSection
+      title="Audit Information"
+      icon={<History className="h-4 w-4" />}
+      collapsible={false}
+    >
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         {organization && <AuditItem label="Organization" value={organization} mono />}
         <AuditItem label="Created By" value={createdBy} mono />

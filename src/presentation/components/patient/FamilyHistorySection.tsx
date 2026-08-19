@@ -10,7 +10,11 @@ export function FamilyHistorySection({
   register: UseFormRegister<PatientFormInput>;
 }) {
   return (
-    <CollapsibleSection title="Family History" icon={<Users className="h-4 w-4" />}>
+    <CollapsibleSection
+      title="Family History"
+      icon={<Users className="h-4 w-4" />}
+      collapsible={false}
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Family History of Skin Diseases</label>

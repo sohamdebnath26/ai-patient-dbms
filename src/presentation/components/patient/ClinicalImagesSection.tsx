@@ -33,6 +33,7 @@ export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImage
     <CollapsibleSection
       title="Clinical Images"
       icon={<ImageIcon className="h-4 w-4" />}
+      collapsible={false}
       badge={
         images.length > 0 ? (
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

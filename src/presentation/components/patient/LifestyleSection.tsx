@@ -13,7 +13,11 @@ export function LifestyleSection({ register, gender }: LifestyleSectionProps) {
   const isFemale = gender.toLowerCase() === "female";
 
   return (
-    <CollapsibleSection title="Lifestyle" icon={<Activity className="h-4 w-4" />}>
+    <CollapsibleSection
+      title="Lifestyle"
+      icon={<Activity className="h-4 w-4" />}
+      collapsible={false}
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Smoking Status</label>

@@ -6,7 +6,11 @@ import type { PatientFormSectionProps } from "./types";
 
 export function PatientContactSection({ register, errors }: PatientFormSectionProps) {
   return (
-    <CollapsibleSection title="Contact Information" icon={<MapPin className="h-4 w-4" />}>
+    <CollapsibleSection
+      title="Contact Information"
+      icon={<MapPin className="h-4 w-4" />}
+      collapsible={false}
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Phone *</label>

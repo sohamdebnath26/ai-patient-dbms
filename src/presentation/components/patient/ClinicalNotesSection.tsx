@@ -38,6 +38,7 @@ export function ClinicalNotesSection({ notes, adding, onAdd }: ClinicalNotesSect
     <CollapsibleSection
       title="Clinical Notes"
       icon={<FileText className="h-4 w-4" />}
+      collapsible={false}
       badge={
         notes.length > 0 ? (
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

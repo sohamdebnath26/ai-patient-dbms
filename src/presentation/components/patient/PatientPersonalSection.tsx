@@ -21,7 +21,7 @@ export function PatientPersonalSection({
     <CollapsibleSection
       title="Personal Information"
       icon={<User className="h-4 w-4" />}
-      defaultOpen
+      collapsible={false}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

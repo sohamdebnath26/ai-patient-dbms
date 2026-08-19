@@ -54,6 +54,7 @@ export function MedicalAlertsSection({
     <CollapsibleSection
       title="Medical Alerts"
       icon={<AlertTriangle className="h-4 w-4" />}
+      collapsible={false}
       badge={
         total > 0 ? (
           <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">

@@ -23,6 +23,7 @@ export function LabReportsSection({ reports, onAdd, onRemove }: LabReportsSectio
     <CollapsibleSection
       title="Laboratory Reports"
       icon={<FlaskConical className="h-4 w-4" />}
+      collapsible={false}
       badge={
         reports.length > 0 ? (
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

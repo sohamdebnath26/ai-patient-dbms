@@ -34,7 +34,11 @@ export function CurrentTreatmentSection({
   reportGenerated,
 }: CurrentTreatmentSectionProps) {
   return (
-    <CollapsibleSection title="Current Treatment" icon={<ClipboardList className="h-4 w-4" />}>
+    <CollapsibleSection
+      title="Current Treatment"
+      icon={<ClipboardList className="h-4 w-4" />}
+      collapsible={false}
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Current Diagnosis</label>
