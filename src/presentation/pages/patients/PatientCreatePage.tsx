@@ -34,7 +34,7 @@ import { LabReportsSection } from "@presentation/components/patient/LabReportsSe
 import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
 import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
 import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import { SummaryItem } from "@presentation/components/patient/helpers";
+import { SectionHeading, SummaryItem } from "@presentation/components/patient/helpers";
 import {
   computeAge,
   formatDate,
@@ -42,7 +42,18 @@ import {
   statusBadgeClass,
   type ClinicalImage,
 } from "@presentation/components/patient/utils";
-import { ArrowLeft, Loader2, CalendarDays, Sparkles, UserRound, Building2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Sparkles,
+  UserRound,
+  Building2,
+  User,
+  HeartPulse,
+  Stethoscope,
+  FileText,
+  Clock,
+} from "lucide-react";
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
@@ -234,165 +245,166 @@ export function PatientCreatePage() {
             </div>
           )}
 
-          <PatientPersonalSection
-            register={register}
-            errors={errors}
-            age={age}
-            showStatus={false}
-          />
-
-          <PatientContactSection register={register} errors={errors} />
-
-          <MedicalHistorySection register={register} errors={errors} />
-
-          <FamilyHistorySection register={register} />
-
-          <LifestyleSection register={register} gender={gender} />
-
-          <DermatologySection
-            register={register}
-            errors={errors}
-            symptoms={symptomsValue}
-            onSymptomsChange={(value) => {
-              setValue("symptoms", value, { shouldValidate: true });
-            }}
-          />
-
-          <CurrentTreatmentSection
-            register={register}
-            errors={errors}
-            currentDiagnosis={diagnosisValue}
-            prescriptionAvailable={medications.length > 0}
-            reportGenerated={reports.length > 0}
-          />
-
-          <MedicationSection
-            medications={medications}
-            adding={false}
-            onAdd={(input) => {
-              setMedications((prev) => [
-                ...prev,
-                {
-                  id: crypto.randomUUID(),
-                  prescription_id: crypto.randomUUID(),
-                  medication_name: input.medication_name,
-                  dosage: input.dosage ?? "",
-                  frequency: input.frequency ?? "",
-                  duration: input.duration ?? null,
-                  start_date: input.start_date ?? null,
-                  end_date: input.end_date ?? null,
-                  prescribing_doctor: input.prescribing_doctor ?? null,
-                  instructions: null,
-                },
-              ]);
-            }}
-            onRemove={(id) => {
-              setMedications((prev) => prev.filter((m) => m.id !== id));
-            }}
-          />
-
-          <MedicalAlertsSection
-            register={register}
-            errors={errors}
-            alerts={[]}
-            pendingAlerts={alerts}
-            chronicConditions={watch("chronic_conditions") ?? ""}
-            onAddAlert={(alert) => {
-              setAlerts((prev) => [...prev, alert]);
-            }}
-            onRemoveAlert={(id) => {
-              setAlerts((prev) => prev.filter((a) => a.id !== id));
-            }}
-          />
-
-          <ClinicalImagesSection
-            images={images}
-            onAdd={(img) => {
-              setImages((prev) => [...prev, img]);
-            }}
-            onRemove={(id) => {
-              setImages((prev) => prev.filter((x) => x.id !== id));
-            }}
-          />
-
-          <LabReportsSection
-            reports={reports}
-            onAdd={(input) => {
-              setReports((prev) => [
-                ...prev,
-                {
-                  id: crypto.randomUUID(),
-                  test_name: input.test_name,
-                  status: "ordered",
-                  report_date: null,
-                  result_summary: null,
-                  lab_name: null,
-                },
-              ]);
-            }}
-            onRemove={(id) => {
-              setReports((prev) => prev.filter((r) => r.id !== id));
-            }}
-          />
-
-          <ClinicalNotesSection
-            notes={notes}
-            adding={false}
-            onAdd={(input) => {
-              setNotes((prev) => [
-                ...prev,
-                {
-                  id: crypto.randomUUID(),
-                  note_type: input.note_type ?? "soap",
-                  subjective: input.subjective ?? null,
-                  objective: input.objective ?? null,
-                  assessment: input.assessment ?? null,
-                  plan: input.plan ?? null,
-                  created_by: "",
-                  created_at: new Date().toISOString(),
-                },
-              ]);
-            }}
-          />
-
-          {/* Section 13 — Visit Summary (placeholders) */}
-          <CollapsibleSection
-            title="Visit Summary"
-            icon={<CalendarDays className="h-4 w-4" />}
-            collapsible={false}
-          >
-            <VisitSummarySection
-              lastVisitDate={null}
-              nextFollowUpDate={null}
-              totalVisits={0}
-              assignedDoctor={doctorName}
-            />
-          </CollapsibleSection>
-
-          {/* Section 11 — AI Summary */}
-          <CollapsibleSection
-            title="AI Summary"
-            icon={<Sparkles className="h-4 w-4" />}
-            collapsible={false}
-          >
-            <div id="ai-summary" className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
-              <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
-              <p className="mt-2 text-sm text-gray-600">No clinical data available yet.</p>
-              <p className="mt-1 text-xs text-gray-400">
-                After patient creation, future visits will populate this section automatically.
-              </p>
+          <CollapsibleSection title="Demographics" icon={<User className="h-4 w-4" />} defaultOpen>
+            <div className="space-y-8">
+              <PatientPersonalSection
+                register={register}
+                errors={errors}
+                age={age}
+                showStatus={false}
+              />
+              <PatientContactSection register={register} errors={errors} />
             </div>
           </CollapsibleSection>
 
-          <PatientAuditSection
-            createdBy={doctorName}
-            createdAt={formatDate(new Date().toISOString())}
-            updatedAt={formatDate(new Date().toISOString())}
-            updatedBy="—"
-            organization={
-              hasOrganization ? (selectedOrganizationId ?? "Organization") : "Personal record"
-            }
-          />
+          <CollapsibleSection title="Medical History" icon={<HeartPulse className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <MedicalHistorySection register={register} errors={errors} />
+              <FamilyHistorySection register={register} />
+              <LifestyleSection register={register} gender={gender} />
+              <MedicalAlertsSection
+                register={register}
+                errors={errors}
+                alerts={[]}
+                pendingAlerts={alerts}
+                chronicConditions={watch("chronic_conditions") ?? ""}
+                onAddAlert={(alert) => {
+                  setAlerts((prev) => [...prev, alert]);
+                }}
+                onRemoveAlert={(id) => {
+                  setAlerts((prev) => prev.filter((a) => a.id !== id));
+                }}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Dermatology" icon={<Stethoscope className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <DermatologySection
+                register={register}
+                errors={errors}
+                symptoms={symptomsValue}
+                onSymptomsChange={(value) => {
+                  setValue("symptoms", value, { shouldValidate: true });
+                }}
+              />
+              <CurrentTreatmentSection
+                register={register}
+                errors={errors}
+                currentDiagnosis={diagnosisValue}
+                prescriptionAvailable={medications.length > 0}
+                reportGenerated={reports.length > 0}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Clinical Records" icon={<FileText className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <MedicationSection
+                medications={medications}
+                adding={false}
+                onAdd={(input) => {
+                  setMedications((prev) => [
+                    ...prev,
+                    {
+                      id: crypto.randomUUID(),
+                      prescription_id: crypto.randomUUID(),
+                      medication_name: input.medication_name,
+                      dosage: input.dosage ?? "",
+                      frequency: input.frequency ?? "",
+                      duration: input.duration ?? null,
+                      start_date: input.start_date ?? null,
+                      end_date: input.end_date ?? null,
+                      prescribing_doctor: input.prescribing_doctor ?? null,
+                      instructions: null,
+                    },
+                  ]);
+                }}
+                onRemove={(id) => {
+                  setMedications((prev) => prev.filter((m) => m.id !== id));
+                }}
+              />
+              <LabReportsSection
+                reports={reports}
+                onAdd={(input) => {
+                  setReports((prev) => [
+                    ...prev,
+                    {
+                      id: crypto.randomUUID(),
+                      test_name: input.test_name,
+                      status: "ordered",
+                      report_date: null,
+                      result_summary: null,
+                      lab_name: null,
+                    },
+                  ]);
+                }}
+                onRemove={(id) => {
+                  setReports((prev) => prev.filter((r) => r.id !== id));
+                }}
+              />
+              <ClinicalNotesSection
+                notes={notes}
+                adding={false}
+                onAdd={(input) => {
+                  setNotes((prev) => [
+                    ...prev,
+                    {
+                      id: crypto.randomUUID(),
+                      note_type: input.note_type ?? "soap",
+                      subjective: input.subjective ?? null,
+                      objective: input.objective ?? null,
+                      assessment: input.assessment ?? null,
+                      plan: input.plan ?? null,
+                      created_by: "",
+                      created_at: new Date().toISOString(),
+                    },
+                  ]);
+                }}
+              />
+              <ClinicalImagesSection
+                images={images}
+                onAdd={(img) => {
+                  setImages((prev) => [...prev, img]);
+                }}
+                onRemove={(id) => {
+                  setImages((prev) => prev.filter((x) => x.id !== id));
+                }}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Summary" icon={<Clock className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <VisitSummarySection
+                lastVisitDate={null}
+                nextFollowUpDate={null}
+                totalVisits={0}
+                assignedDoctor={doctorName}
+              />
+
+              <div id="ai-summary" className="space-y-3">
+                <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI Summary" />
+                <div className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
+                  <p className="mt-2 text-sm text-gray-600">No clinical data available yet.</p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    After patient creation, future visits will populate this section automatically.
+                  </p>
+                </div>
+              </div>
+
+              <PatientAuditSection
+                createdBy={doctorName}
+                createdAt={formatDate(new Date().toISOString())}
+                updatedAt={formatDate(new Date().toISOString())}
+                updatedBy="—"
+                organization={
+                  hasOrganization ? (selectedOrganizationId ?? "Organization") : "Personal record"
+                }
+              />
+            </div>
+          </CollapsibleSection>
         </form>
       </div>
     </AppShell>

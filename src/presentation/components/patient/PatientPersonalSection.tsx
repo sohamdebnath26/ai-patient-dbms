@@ -1,6 +1,5 @@
-import { CollapsibleSection } from "../CollapsibleSection";
 import { User } from "lucide-react";
-import { FieldError } from "./helpers";
+import { FieldError, SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import type { PatientFormSectionProps } from "./types";
 
@@ -18,11 +17,8 @@ export function PatientPersonalSection({
   statusDisabled = false,
 }: PatientPersonalSectionProps) {
   return (
-    <CollapsibleSection
-      title="Personal Information"
-      icon={<User className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<User className="h-4 w-4" />} title="Personal Information" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>First Name *</label>
@@ -78,6 +74,6 @@ export function PatientPersonalSection({
           <FieldError message={errors.mrn?.message} />
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

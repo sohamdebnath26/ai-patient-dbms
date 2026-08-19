@@ -1,6 +1,5 @@
-import { CollapsibleSection } from "../CollapsibleSection";
 import { History } from "lucide-react";
-import { AuditItem } from "./helpers";
+import { AuditItem, SectionHeading } from "./helpers";
 
 interface PatientAuditSectionProps {
   createdBy: string;
@@ -18,11 +17,8 @@ export function PatientAuditSection({
   organization,
 }: PatientAuditSectionProps) {
   return (
-    <CollapsibleSection
-      title="Audit Information"
-      icon={<History className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<History className="h-4 w-4" />} title="Audit Information" />
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         {organization && <AuditItem label="Organization" value={organization} mono />}
         <AuditItem label="Created By" value={createdBy} mono />
@@ -30,6 +26,6 @@ export function PatientAuditSection({
         <AuditItem label="Last Updated" value={updatedAt} />
         <AuditItem label="Updated By" value={updatedBy} />
       </dl>
-    </CollapsibleSection>
+    </div>
   );
 }

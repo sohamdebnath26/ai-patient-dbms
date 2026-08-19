@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { Image as ImageIcon, Plus, Trash2, GitCompareArrows } from "lucide-react";
+import { SectionHeading } from "./helpers";
 import { formatDate, type ClinicalImage } from "./utils";
 
 interface ClinicalImagesSectionProps {
@@ -30,19 +30,19 @@ export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImage
   }
 
   return (
-    <CollapsibleSection
-      title="Clinical Images"
-      icon={<ImageIcon className="h-4 w-4" />}
-      collapsible={false}
-      badge={
-        images.length > 0 ? (
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            {images.length}
-          </span>
-        ) : undefined
-      }
-    >
-      <div className="mb-4 flex flex-wrap gap-2">
+    <div className="space-y-3">
+      <SectionHeading
+        icon={<ImageIcon className="h-4 w-4" />}
+        title="Clinical Images"
+        badge={
+          images.length > 0 ? (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              {images.length}
+            </span>
+          ) : undefined
+        }
+      />
+      <div className="flex flex-wrap gap-2">
         <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
           <Plus className="h-4 w-4" />
           Upload Image
@@ -69,7 +69,7 @@ export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImage
       </div>
 
       {compareOpen && images.length >= 2 && (
-        <div className="mb-4 grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {images.slice(0, 2).map((img) => (
             <div key={img.id} className="overflow-hidden rounded-lg border border-gray-200">
               <img src={img.url} alt={img.name} className="h-48 w-full object-cover" />
@@ -106,6 +106,6 @@ export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImage
           ))}
         </div>
       )}
-    </CollapsibleSection>
+    </div>
   );
 }

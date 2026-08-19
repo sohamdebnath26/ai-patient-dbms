@@ -1,7 +1,7 @@
 import type { UseFormRegister } from "react-hook-form";
 import type { PatientFormInput } from "@domain/patient";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { Users } from "lucide-react";
+import { SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 
 export function FamilyHistorySection({
@@ -10,11 +10,8 @@ export function FamilyHistorySection({
   register: UseFormRegister<PatientFormInput>;
 }) {
   return (
-    <CollapsibleSection
-      title="Family History"
-      icon={<Users className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<Users className="h-4 w-4" />} title="Family History" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Family History of Skin Diseases</label>
@@ -35,6 +32,6 @@ export function FamilyHistorySection({
           />
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

@@ -1,4 +1,23 @@
+import { type ReactNode } from "react";
 import { inputClass } from "./utils";
+
+export function SectionHeading({
+  icon,
+  title,
+  badge,
+}: {
+  icon?: ReactNode;
+  title: string;
+  badge?: ReactNode;
+}) {
+  return (
+    <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+      {icon && <span className="text-brand-600">{icon}</span>}
+      {title}
+      {badge}
+    </h3>
+  );
+}
 
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;

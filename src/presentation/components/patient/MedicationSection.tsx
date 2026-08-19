@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { Medication, MedicationInput } from "@domain/patient";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { Pill, Loader2, Plus, Trash2 } from "lucide-react";
-import { MedicationField } from "./helpers";
+import { MedicationField, SectionHeading } from "./helpers";
 import { formatDate } from "./utils";
 
 interface MedicationSectionProps {
@@ -45,18 +44,18 @@ export function MedicationSection({
   }
 
   return (
-    <CollapsibleSection
-      title="Medications"
-      icon={<Pill className="h-4 w-4" />}
-      collapsible={false}
-      badge={
-        medications.length > 0 ? (
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            {medications.length}
-          </span>
-        ) : undefined
-      }
-    >
+    <div className="space-y-3">
+      <SectionHeading
+        icon={<Pill className="h-4 w-4" />}
+        title="Medications"
+        badge={
+          medications.length > 0 ? (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              {medications.length}
+            </span>
+          ) : undefined
+        }
+      />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -172,6 +171,6 @@ export function MedicationSection({
           </button>
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

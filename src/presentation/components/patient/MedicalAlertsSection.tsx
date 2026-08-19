@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { MedicalAlert } from "@domain/patient";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { AlertTriangle, Plus, X } from "lucide-react";
+import { SectionHeading } from "./helpers";
 import { inputClass, labelClass, severityBadgeClass } from "./utils";
 import type { PatientFormSectionProps } from "./types";
 
@@ -51,18 +51,18 @@ export function MedicalAlertsSection({
   const total = alerts.length + pendingAlerts.length + chronicTokens.length;
 
   return (
-    <CollapsibleSection
-      title="Medical Alerts"
-      icon={<AlertTriangle className="h-4 w-4" />}
-      collapsible={false}
-      badge={
-        total > 0 ? (
-          <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
-            {total}
-          </span>
-        ) : undefined
-      }
-    >
+    <div className="space-y-3">
+      <SectionHeading
+        icon={<AlertTriangle className="h-4 w-4" />}
+        title="Medical Alerts"
+        badge={
+          total > 0 ? (
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+              {total}
+            </span>
+          ) : undefined
+        }
+      />
       <div className="flex flex-wrap gap-2">
         {alerts.map((alert) => (
           <span
@@ -104,65 +104,63 @@ export function MedicalAlertsSection({
       </div>
 
       {onAddAlert && (
-        <div className="mt-4 flex">
-          <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <label className={labelClass}>Type</label>
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+              }}
+              className={inputClass}
+            >
+              {CATEGORY_OPTIONS.map((opt) => (
+                <option key={opt.label} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-w-[160px] flex-1">
+            <label className={labelClass}>Alert</label>
+            <input
+              value={label}
+              onChange={(e) => {
+                setLabel(e.target.value);
+              }}
+              placeholder="e.g. Penicillin, Peanuts, Diabetes"
+              className={inputClass}
+            />
+          </div>
+          {category === "allergy" && (
             <div>
-              <label className={labelClass}>Type</label>
+              <label className={labelClass}>Severity</label>
               <select
-                value={category}
+                value={severity}
                 onChange={(e) => {
-                  setCategory(e.target.value);
+                  setSeverity(e.target.value);
                 }}
                 className={inputClass}
               >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.label} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option value="mild">Mild</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
               </select>
             </div>
-            <div className="min-w-[160px] flex-1">
-              <label className={labelClass}>Alert</label>
-              <input
-                value={label}
-                onChange={(e) => {
-                  setLabel(e.target.value);
-                }}
-                placeholder="e.g. Penicillin, Peanuts, Diabetes"
-                className={inputClass}
-              />
-            </div>
-            {category === "allergy" && (
-              <div>
-                <label className={labelClass}>Severity</label>
-                <select
-                  value={severity}
-                  onChange={(e) => {
-                    setSeverity(e.target.value);
-                  }}
-                  className={inputClass}
-                >
-                  <option value="mild">Mild</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="severe">Severe</option>
-                </select>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={!label.trim()}
-              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              Add Alert
-            </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!label.trim()}
+            className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" />
+            Add Alert
+          </button>
         </div>
       )}
 
-      <div className="mt-4">
+      <div>
         <label className={labelClass}>Chronic Conditions</label>
         <input
           {...register("chronic_conditions")}
@@ -171,6 +169,6 @@ export function MedicalAlertsSection({
         />
         <p className="mt-1 text-xs text-gray-400">Separate multiple conditions with commas.</p>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

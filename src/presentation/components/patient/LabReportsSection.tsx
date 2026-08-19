@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { LabReport, LabReportInput } from "@domain/patient";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { FlaskConical, Plus, Trash2 } from "lucide-react";
+import { SectionHeading } from "./helpers";
 import { inputClass, labelClass, formatDate } from "./utils";
 
 interface LabReportsSectionProps {
@@ -20,18 +20,18 @@ export function LabReportsSection({ reports, onAdd, onRemove }: LabReportsSectio
   }
 
   return (
-    <CollapsibleSection
-      title="Laboratory Reports"
-      icon={<FlaskConical className="h-4 w-4" />}
-      collapsible={false}
-      badge={
-        reports.length > 0 ? (
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            {reports.length}
-          </span>
-        ) : undefined
-      }
-    >
+    <div className="space-y-3">
+      <SectionHeading
+        icon={<FlaskConical className="h-4 w-4" />}
+        title="Laboratory Reports"
+        badge={
+          reports.length > 0 ? (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              {reports.length}
+            </span>
+          ) : undefined
+        }
+      />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -110,6 +110,6 @@ export function LabReportsSection({ reports, onAdd, onRemove }: LabReportsSectio
           </button>
         </div>
       )}
-    </CollapsibleSection>
+    </div>
   );
 }

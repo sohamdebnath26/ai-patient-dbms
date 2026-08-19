@@ -1,8 +1,7 @@
 import type { UseFormRegister, FieldErrors } from "react-hook-form";
 import type { PatientFormInput } from "@domain/patient";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { Stethoscope } from "lucide-react";
-import { FieldError } from "./helpers";
+import { FieldError, SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 
 const SYMPTOM_OPTIONS = [
@@ -43,11 +42,8 @@ export function DermatologySection({
   }
 
   return (
-    <CollapsibleSection
-      title="Dermatology Assessment"
-      icon={<Stethoscope className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<Stethoscope className="h-4 w-4" />} title="Dermatology Assessment" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Primary Diagnosis *</label>
@@ -171,6 +167,6 @@ export function DermatologySection({
           <textarea {...register("medical_notes")} rows={3} className={inputClass} />
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

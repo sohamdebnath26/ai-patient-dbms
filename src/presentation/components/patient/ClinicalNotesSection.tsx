@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { ClinicalNote, ClinicalNoteInput } from "@domain/patient";
-import { CollapsibleSection } from "../CollapsibleSection";
 import { FileText, Loader2, Plus } from "lucide-react";
-import { NoteField, NoteBlock } from "./helpers";
+import { NoteField, NoteBlock, SectionHeading } from "./helpers";
 import { formatDate } from "./utils";
 
 interface ClinicalNotesSectionProps {
@@ -35,18 +34,18 @@ export function ClinicalNotesSection({ notes, adding, onAdd }: ClinicalNotesSect
   }
 
   return (
-    <CollapsibleSection
-      title="Clinical Notes"
-      icon={<FileText className="h-4 w-4" />}
-      collapsible={false}
-      badge={
-        notes.length > 0 ? (
-          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            {notes.length}
-          </span>
-        ) : undefined
-      }
-    >
+    <div className="space-y-3">
+      <SectionHeading
+        icon={<FileText className="h-4 w-4" />}
+        title="Clinical Notes"
+        badge={
+          notes.length > 0 ? (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+              {notes.length}
+            </span>
+          ) : undefined
+        }
+      />
       <div className="space-y-4">
         {notes.map((n) => (
           <div key={n.id} className="rounded-lg border border-gray-200 p-4">
@@ -106,6 +105,6 @@ export function ClinicalNotesSection({ notes, adding, onAdd }: ClinicalNotesSect
           </button>
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

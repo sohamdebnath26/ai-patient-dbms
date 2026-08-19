@@ -36,7 +36,11 @@ import { LabReportsSection } from "@presentation/components/patient/LabReportsSe
 import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
 import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
 import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import { AiSummaryBlock, SummaryItem } from "@presentation/components/patient/helpers";
+import {
+  AiSummaryBlock,
+  SectionHeading,
+  SummaryItem,
+} from "@presentation/components/patient/helpers";
 import {
   computeAge,
   formatDate,
@@ -47,12 +51,15 @@ import {
 import {
   ArrowLeft,
   Loader2,
-  CalendarDays,
   Sparkles,
   Save,
   UserRoundX,
   Clock,
   RefreshCw,
+  User,
+  HeartPulse,
+  Stethoscope,
+  FileText,
 } from "lucide-react";
 
 export function PatientEditPage() {
@@ -332,168 +339,172 @@ export function PatientEditPage() {
             </div>
           )}
 
-          <PatientPersonalSection
-            register={register}
-            errors={errors}
-            age={age}
-            statusDisabled={isReceptionist}
-          />
-
-          <PatientContactSection register={register} errors={errors} />
-
-          <MedicalHistorySection register={register} errors={errors} />
-
-          <FamilyHistorySection register={register} />
-
-          <LifestyleSection register={register} gender={genderValue} />
-
-          <DermatologySection
-            register={register}
-            errors={errors}
-            symptoms={symptomsValue}
-            onSymptomsChange={(value) => {
-              setValue("symptoms", value, { shouldValidate: true });
-            }}
-          />
-
-          <CurrentTreatmentSection
-            register={register}
-            errors={errors}
-            currentDiagnosis={diagnosisValue}
-            prescriptionAvailable={prescriptionAvailable}
-            reportGenerated={reportGenerated}
-          />
-
-          <MedicationSection
-            medications={clinical?.medications ?? []}
-            adding={addMedication.isPending}
-            onAdd={(input) => {
-              addMedication.mutate(input);
-            }}
-            onRemove={(id) => {
-              removeMedication.mutate(id);
-            }}
-          />
-
-          <MedicalAlertsSection
-            register={register}
-            errors={errors}
-            alerts={clinical?.alerts ?? []}
-            pendingAlerts={[]}
-            chronicConditions={patient.chronic_conditions ?? ""}
-          />
-
-          <ClinicalImagesSection
-            images={images}
-            onAdd={(img) => {
-              setImages((prev) => [...prev, img]);
-            }}
-            onRemove={(id) => {
-              setImages((prev) => prev.filter((x) => x.id !== id));
-            }}
-          />
-
-          <LabReportsSection reports={clinical?.labReports ?? []} />
-
-          <ClinicalNotesSection
-            notes={clinical?.clinicalNotes ?? []}
-            adding={addNote.isPending}
-            onAdd={(input) => {
-              addNote.mutate(input);
-            }}
-          />
-
-          {/* Section 13 — Visit Summary */}
-          <CollapsibleSection
-            title="Visit Summary"
-            icon={<CalendarDays className="h-4 w-4" />}
-            collapsible={false}
-          >
-            <VisitSummarySection
-              lastVisitDate={lastVisit?.appointment_date ?? null}
-              nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
-              totalVisits={totalVisits}
-              assignedDoctor={assignedDoctor}
-            />
-          </CollapsibleSection>
-
-          {/* Section 14 — AI Summary */}
-          <CollapsibleSection
-            title="AI Summary"
-            icon={<Sparkles className="h-4 w-4" />}
-            collapsible={false}
-          >
-            <div id="ai-summary" className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAiSummaryAt(new Date());
-                  }}
-                  className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  Regenerate Summary
-                </button>
-              </div>
-              <p className="text-xs text-gray-400">Generated {aiSummaryAt.toLocaleTimeString()}</p>
-              <div className="mt-3 space-y-3 text-sm text-gray-700">
-                <AiSummaryBlock
-                  label="Patient Summary"
-                  value={`${patient.first_name} ${patient.last_name}, ${summaryAge !== null ? `${summaryAge}-year-old` : "age unknown"} ${patient.gender?.toLowerCase() ?? "patient"}. Primary diagnosis: ${patient.primary_diagnosis || "none recorded"}.`}
-                />
-                <AiSummaryBlock
-                  label="Disease Progression"
-                  value={
-                    [
-                      patient.disease_severity ? `Severity: ${patient.disease_severity}` : null,
-                      patient.duration ? `Duration: ${patient.duration}` : null,
-                      patient.current_flare ? "Currently in flare" : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "No progression data recorded."
-                  }
-                />
-                <AiSummaryBlock
-                  label="Important Alerts"
-                  value={
-                    (clinical?.alerts ?? []).map((a) => a.label).join(", ") || "No active alerts."
-                  }
-                />
-                <AiSummaryBlock
-                  label="Medication Summary"
-                  value={
-                    (clinical?.medications ?? []).map((m) => m.medication_name).join(", ") ||
-                    "No active medications."
-                  }
-                />
-                <AiSummaryBlock
-                  label="Upcoming Follow-up"
-                  value={
-                    upcomingAppointment
-                      ? `${formatDate(upcomingAppointment.appointment_date)} (${upcomingAppointment.type})`
-                      : "No upcoming appointment scheduled."
-                  }
-                />
-                <AiSummaryBlock
-                  label="Recent Diagnosis"
-                  value={patient.primary_diagnosis ?? "None recorded."}
-                />
-                <AiSummaryBlock
-                  label="AI Recommendations"
-                  value="Review disease severity and current treatment at the next visit. Consider a follow-up skin examination and continue monitoring affected body areas."
-                />
-              </div>
+          <CollapsibleSection title="Demographics" icon={<User className="h-4 w-4" />} defaultOpen>
+            <div className="space-y-8">
+              <PatientPersonalSection
+                register={register}
+                errors={errors}
+                age={age}
+                statusDisabled={isReceptionist}
+              />
+              <PatientContactSection register={register} errors={errors} />
             </div>
           </CollapsibleSection>
 
-          <PatientAuditSection
-            createdBy={patient.created_by}
-            createdAt={formatDate(patient.created_at)}
-            updatedAt={formatDate(patient.updated_at)}
-            updatedBy="—"
-          />
+          <CollapsibleSection title="Medical History" icon={<HeartPulse className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <MedicalHistorySection register={register} errors={errors} />
+              <FamilyHistorySection register={register} />
+              <LifestyleSection register={register} gender={genderValue} />
+              <MedicalAlertsSection
+                register={register}
+                errors={errors}
+                alerts={clinical?.alerts ?? []}
+                pendingAlerts={[]}
+                chronicConditions={patient.chronic_conditions ?? ""}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Dermatology" icon={<Stethoscope className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <DermatologySection
+                register={register}
+                errors={errors}
+                symptoms={symptomsValue}
+                onSymptomsChange={(value) => {
+                  setValue("symptoms", value, { shouldValidate: true });
+                }}
+              />
+              <CurrentTreatmentSection
+                register={register}
+                errors={errors}
+                currentDiagnosis={diagnosisValue}
+                prescriptionAvailable={prescriptionAvailable}
+                reportGenerated={reportGenerated}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Clinical Records" icon={<FileText className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <MedicationSection
+                medications={clinical?.medications ?? []}
+                adding={addMedication.isPending}
+                onAdd={(input) => {
+                  addMedication.mutate(input);
+                }}
+                onRemove={(id) => {
+                  removeMedication.mutate(id);
+                }}
+              />
+              <LabReportsSection reports={clinical?.labReports ?? []} />
+              <ClinicalNotesSection
+                notes={clinical?.clinicalNotes ?? []}
+                adding={addNote.isPending}
+                onAdd={(input) => {
+                  addNote.mutate(input);
+                }}
+              />
+              <ClinicalImagesSection
+                images={images}
+                onAdd={(img) => {
+                  setImages((prev) => [...prev, img]);
+                }}
+                onRemove={(id) => {
+                  setImages((prev) => prev.filter((x) => x.id !== id));
+                }}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Summary" icon={<Clock className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <VisitSummarySection
+                lastVisitDate={lastVisit?.appointment_date ?? null}
+                nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
+                totalVisits={totalVisits}
+                assignedDoctor={assignedDoctor}
+              />
+
+              <div id="ai-summary" className="space-y-3">
+                <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI Summary" />
+                <div className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAiSummaryAt(new Date());
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Regenerate Summary
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Generated {aiSummaryAt.toLocaleTimeString()}
+                  </p>
+                  <div className="mt-3 space-y-3 text-sm text-gray-700">
+                    <AiSummaryBlock
+                      label="Patient Summary"
+                      value={`${patient.first_name} ${patient.last_name}, ${summaryAge !== null ? `${summaryAge}-year-old` : "age unknown"} ${patient.gender?.toLowerCase() ?? "patient"}. Primary diagnosis: ${patient.primary_diagnosis || "none recorded"}.`}
+                    />
+                    <AiSummaryBlock
+                      label="Disease Progression"
+                      value={
+                        [
+                          patient.disease_severity ? `Severity: ${patient.disease_severity}` : null,
+                          patient.duration ? `Duration: ${patient.duration}` : null,
+                          patient.current_flare ? "Currently in flare" : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "No progression data recorded."
+                      }
+                    />
+                    <AiSummaryBlock
+                      label="Important Alerts"
+                      value={
+                        (clinical?.alerts ?? []).map((a) => a.label).join(", ") ||
+                        "No active alerts."
+                      }
+                    />
+                    <AiSummaryBlock
+                      label="Medication Summary"
+                      value={
+                        (clinical?.medications ?? []).map((m) => m.medication_name).join(", ") ||
+                        "No active medications."
+                      }
+                    />
+                    <AiSummaryBlock
+                      label="Upcoming Follow-up"
+                      value={
+                        upcomingAppointment
+                          ? `${formatDate(upcomingAppointment.appointment_date)} (${upcomingAppointment.type})`
+                          : "No upcoming appointment scheduled."
+                      }
+                    />
+                    <AiSummaryBlock
+                      label="Recent Diagnosis"
+                      value={patient.primary_diagnosis ?? "None recorded."}
+                    />
+                    <AiSummaryBlock
+                      label="AI Recommendations"
+                      value="Review disease severity and current treatment at the next visit. Consider a follow-up skin examination and continue monitoring affected body areas."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <PatientAuditSection
+                createdBy={patient.created_by}
+                createdAt={formatDate(patient.created_at)}
+                updatedAt={formatDate(patient.updated_at)}
+                updatedBy="—"
+              />
+            </div>
+          </CollapsibleSection>
         </form>
       </div>
 

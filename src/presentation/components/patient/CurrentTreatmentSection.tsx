@@ -1,6 +1,5 @@
-import { CollapsibleSection } from "../CollapsibleSection";
 import { ClipboardList, Check, X } from "lucide-react";
-import { FieldError } from "./helpers";
+import { FieldError, SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import type { PatientFormSectionProps } from "./types";
 
@@ -34,11 +33,8 @@ export function CurrentTreatmentSection({
   reportGenerated,
 }: CurrentTreatmentSectionProps) {
   return (
-    <CollapsibleSection
-      title="Current Treatment"
-      icon={<ClipboardList className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<ClipboardList className="h-4 w-4" />} title="Current Treatment" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Current Diagnosis</label>
@@ -54,6 +50,6 @@ export function CurrentTreatmentSection({
         <BooleanBadge value={prescriptionAvailable} label="Prescription Available" />
         <BooleanBadge value={reportGenerated} label="Report Generated" />
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

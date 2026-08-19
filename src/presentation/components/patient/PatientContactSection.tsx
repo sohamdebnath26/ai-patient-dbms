@@ -1,16 +1,12 @@
-import { CollapsibleSection } from "../CollapsibleSection";
 import { MapPin } from "lucide-react";
-import { FieldError } from "./helpers";
+import { FieldError, SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import type { PatientFormSectionProps } from "./types";
 
 export function PatientContactSection({ register, errors }: PatientFormSectionProps) {
   return (
-    <CollapsibleSection
-      title="Contact Information"
-      icon={<MapPin className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<MapPin className="h-4 w-4" />} title="Contact Information" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Phone *</label>
@@ -49,7 +45,7 @@ export function PatientContactSection({ register, errors }: PatientFormSectionPr
         </div>
       </div>
 
-      <h3 className="mt-6 mb-2 text-sm font-semibold text-gray-500">Emergency Contact</h3>
+      <h4 className="pt-2 text-sm font-semibold text-gray-500">Emergency Contact</h4>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Name</label>
@@ -68,6 +64,6 @@ export function PatientContactSection({ register, errors }: PatientFormSectionPr
           />
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }

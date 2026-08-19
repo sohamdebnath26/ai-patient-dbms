@@ -1,16 +1,12 @@
-import { CollapsibleSection } from "../CollapsibleSection";
 import { HeartPulse } from "lucide-react";
-import { FieldError } from "./helpers";
+import { FieldError, SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import type { PatientFormSectionProps } from "./types";
 
 export function MedicalHistorySection({ register, errors }: PatientFormSectionProps) {
   return (
-    <CollapsibleSection
-      title="Medical History"
-      icon={<HeartPulse className="h-4 w-4" />}
-      collapsible={false}
-    >
+    <div className="space-y-3">
+      <SectionHeading icon={<HeartPulse className="h-4 w-4" />} title="Medical History" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Chief Complaint *</label>
@@ -50,6 +46,6 @@ export function MedicalHistorySection({ register, errors }: PatientFormSectionPr
           <textarea {...register("other_medical_conditions")} rows={2} className={inputClass} />
         </div>
       </div>
-    </CollapsibleSection>
+    </div>
   );
 }
