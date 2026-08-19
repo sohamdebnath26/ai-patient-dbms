@@ -101,7 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <div className="mb-3 px-2">
-              <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
+              <p className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
                 Main Menu
               </p>
             </div>
@@ -114,10 +114,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       setSidebarOpen(false);
                     }}
                     className={({ isActive }) =>
-                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
                         isActive
                           ? "bg-brand-50 text-brand-700"
-                          : "hover:bg-surface-50 text-gray-600 hover:text-gray-900"
+                          : "hover:bg-surface-50 text-gray-700 hover:text-gray-900"
                       }`
                     }
                   >
@@ -128,8 +128,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ))}
             </ul>
 
-            <div className="mt-6 mb-3 px-2">
-              <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
+            <div className="mt-8 mb-3 px-2">
+              <p className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
                 Clinical
               </p>
             </div>
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         onClick={() => {
                           setChatOpen(true);
                         }}
-                        className="hover:bg-surface-50 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                        className="hover:bg-surface-50 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150 hover:text-gray-900"
                       >
                         <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                         {label}
@@ -171,10 +171,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         setSidebarOpen(false);
                       }}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                        `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
                           isActive
                             ? "bg-brand-50 text-brand-700"
-                            : "hover:bg-surface-50 text-gray-600 hover:text-gray-900"
+                            : "hover:bg-surface-50 text-gray-700 hover:text-gray-900"
                         }`
                       }
                     >
@@ -186,8 +186,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </ul>
 
-            <div className="mt-6 mb-3 px-2">
-              <p className="text-[10px] font-semibold tracking-widest text-gray-400 uppercase">
+            <div className="mt-8 mb-3 px-2">
+              <p className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
                 Account
               </p>
             </div>
@@ -200,10 +200,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       setSidebarOpen(false);
                     }}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
                         isActive
                           ? "bg-brand-50 text-brand-700"
-                          : "hover:bg-surface-50 text-gray-600 hover:text-gray-900"
+                          : "hover:bg-surface-50 text-gray-700 hover:text-gray-900"
                       }`
                     }
                   >
@@ -281,7 +281,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             <form onSubmit={handleSearch} className="relative hidden sm:block">
-              <Search className="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 name="q"
                 value={searchQuery}
@@ -297,7 +297,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   }, 200);
                 }}
                 placeholder="Search patients..."
-                className="border-surface-200 bg-surface-50 focus:border-brand-300 focus:ring-brand-100 w-64 rounded-lg border py-1.5 pr-3 pl-9 text-sm placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:outline-none"
+                className="border-surface-200 bg-surface-50 focus:border-brand-400 focus:ring-brand-100 w-64 rounded-xl border py-2 pr-3 pl-9 text-sm placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:outline-none"
               />
               {searchFocused && searchResults && searchResults.patients.length > 0 && (
                 <div className="border-surface-200 absolute top-full right-0 left-0 z-50 mt-1 rounded-lg border bg-white shadow-lg">

@@ -21,25 +21,29 @@ export function StatCard({
   error,
 }: StatCardProps) {
   return (
-    <div className="group border-surface-200 rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium tracking-wider text-gray-400 uppercase">{label}</p>
-          {loading ? (
-            <Loader2 className="h-6 w-6 animate-spin text-gray-300" />
-          ) : error ? (
-            <p className="text-lg font-bold text-red-400">—</p>
-          ) : (
-            <p className="text-3xl font-bold tracking-tight text-gray-900">
-              {value?.toLocaleString() ?? 0}
-            </p>
+    <div className="group border-surface-200 hover:border-surface-300 rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">{label}</p>
+          <div className="mt-3 min-h-[44px]">
+            {loading ? (
+              <Loader2 className="h-7 w-7 animate-spin text-gray-300" />
+            ) : error ? (
+              <p className="text-[44px] leading-none font-extrabold text-gray-400">—</p>
+            ) : (
+              <p className="text-[44px] leading-none font-extrabold tracking-tight text-gray-900">
+                {value?.toLocaleString() ?? 0}
+              </p>
+            )}
+          </div>
+          {secondary && !loading && !error && (
+            <p className="mt-2 text-sm font-medium text-gray-500">{secondary}</p>
           )}
-          {secondary && !loading && !error && <p className="text-xs text-gray-400">{secondary}</p>}
         </div>
         <div
-          className={`flex h-11 w-11 items-center justify-center rounded-xl ${color} transition-transform group-hover:scale-105`}
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${color} transition-transform duration-200 group-hover:scale-105`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-6 w-6" />
         </div>
       </div>
     </div>
