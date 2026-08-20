@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Toaster } from "@presentation/components/Toaster";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate, NavLink, useLocation } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
@@ -72,6 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="bg-surface-100 flex h-screen overflow-hidden">
+      <Toaster />
       <aside
         className={`border-surface-200 fixed inset-y-0 left-0 z-30 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"

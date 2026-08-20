@@ -107,6 +107,7 @@ function SearchableCountrySelect({
         <input
           ref={inputRef}
           type="text"
+          name="country"
           value={open ? search : value}
           placeholder="Search country..."
           className={`${inputClass} ${error ? "border-red-500" : ""} pr-8 pl-9`}
@@ -247,6 +248,7 @@ function SearchableStateSelect({
         <input
           ref={inputRef}
           type="text"
+          name="state"
           value={open ? search : value}
           placeholder="Search state..."
           className={`${inputClass} ${error ? "border-red-500" : ""} pr-8 pl-9`}

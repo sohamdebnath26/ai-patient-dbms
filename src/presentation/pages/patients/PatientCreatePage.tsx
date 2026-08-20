@@ -18,6 +18,7 @@ import {
 import { useCreateFullPatient } from "@presentation/hooks/usePatients";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useResolvedOrganization } from "@presentation/hooks/useResolvedOrganization";
+import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
@@ -61,6 +62,7 @@ export function PatientCreatePage() {
   const { phase, hasOrganization, selectedOrganizationId } = useResolvedOrganization();
   const { profile } = useProfile();
   const createMutation = useCreateFullPatient();
+  const toast = useToast();
 
   const canSubmit = phase === "ready" && !createMutation.isPending;
   const defaultMrn = useMemo(() => `MRN-${Date.now()}`, []);
@@ -79,6 +81,7 @@ export function PatientCreatePage() {
     formState: { errors },
   } = useForm<PatientFormInput>({
     resolver: zodResolver(PatientFormSchema),
+    shouldFocusError: true,
     defaultValues: {
       mrn: defaultMrn,
       status: "active",
@@ -106,6 +109,8 @@ export function PatientCreatePage() {
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
   function onSubmit(data: PatientFormInput) {
+    if (!canSubmit) return;
+
     const medicationInputs: MedicationInput[] = medications.map((m) => ({
       medication_name: m.medication_name,
       dosage: m.dosage || undefined,
@@ -139,7 +144,7 @@ export function PatientCreatePage() {
 
     const reportInputs: LabReportInput[] = reports.map((r) => ({ test_name: r.test_name }));
 
-    createMutation.mutate(
+    void createMutation.mutateAsync(
       {
         input: data,
         medications: medicationInputs,
@@ -150,7 +155,14 @@ export function PatientCreatePage() {
       },
       {
         onSuccess: (patient) => {
+          toast.success("Patient registered successfully.");
           void navigate(`/patients/${patient.id}`);
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error ? error.message : "Registration failed. Please try again.";
+          toast.error(message);
+          setValue("mrn", `MRN-${Date.now()}`, { shouldDirty: true });
         },
       },
     );
@@ -217,7 +229,7 @@ export function PatientCreatePage() {
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                Register Patient
+                {createMutation.isPending ? "Saving..." : "Register Patient"}
               </button>
               <button
                 type="button"
@@ -243,6 +255,18 @@ export function PatientCreatePage() {
           {createMutation.isError && (
             <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
               {createMutation.error.message}
+            </div>
+          )}
+
+          {phase === "loading" && (
+            <div className="rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              Loading your workspace…
+            </div>
+          )}
+
+          {phase === "needs-selection" && (
+            <div className="rounded-md bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+              You belong to multiple organizations. Select an organization to register this patient.
             </div>
           )}
 
