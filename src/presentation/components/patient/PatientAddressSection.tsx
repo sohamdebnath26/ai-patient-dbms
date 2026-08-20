@@ -14,6 +14,23 @@ interface PatientAddressSectionProps {
   watch: UseFormWatch<PatientFormInput>;
 }
 
+function useClickOutside(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  onClose: () => void,
+) {
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [containerRef, onClose]);
+}
+
 function SearchableCountrySelect({
   value,
   onChange,
@@ -27,7 +44,12 @@ function SearchableCountrySelect({
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const highlightIndexRef = useRef(0);
+  const highlightRef = useRef(0);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useClickOutside(containerRef, () => {
+    setOpen(false);
+  });
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -38,20 +60,15 @@ function SearchableCountrySelect({
   }, [search]);
 
   useEffect(() => {
-    highlightIndexRef.current = 0;
+    highlightRef.current = 0;
   }, [filtered]);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    if (open && highlightRef.current >= 0) {
+      const el = listRef.current?.children[highlightRef.current] as HTMLElement | undefined;
+      el?.scrollIntoView({ block: "nearest" });
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  }, [open, filtered]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!open) {
@@ -61,16 +78,15 @@ function SearchableCountrySelect({
       }
       return;
     }
-
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      highlightIndexRef.current = Math.min(highlightIndexRef.current + 1, filtered.length - 1);
+      highlightRef.current = Math.min(highlightRef.current + 1, filtered.length - 1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      highlightIndexRef.current = Math.max(highlightIndexRef.current - 1, 0);
+      highlightRef.current = Math.max(highlightRef.current - 1, 0);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const item = filtered[highlightIndexRef.current];
+      const item = filtered[highlightRef.current];
       if (item) {
         onChange(item.name);
         setOpen(false);
@@ -81,13 +97,6 @@ function SearchableCountrySelect({
       inputRef.current?.blur();
     }
   }
-
-  useEffect(() => {
-    if (open && highlightIndexRef.current >= 0) {
-      const el = document.getElementById(`country-option-${highlightIndexRef.current}`);
-      el?.scrollIntoView({ block: "nearest" });
-    }
-  }, [open, filtered]);
 
   const selectedCountry = COUNTRIES.find((c) => c.name === value);
 
@@ -123,6 +132,7 @@ function SearchableCountrySelect({
       </div>
       {open && (
         <ul
+          ref={listRef}
           className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
           role="listbox"
         >
@@ -131,18 +141,17 @@ function SearchableCountrySelect({
           ) : (
             filtered.map((country, i) => {
               const isSelected = country.name === selectedCountry?.name;
-              const isHighlighted = i === highlightIndexRef.current;
+              const isHighlighted = i === highlightRef.current;
               return (
                 <li
                   key={country.code}
-                  id={`country-option-${i}`}
                   role="option"
                   aria-selected={isSelected}
                   className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
                     isHighlighted ? "bg-brand-50 text-brand-700" : isSelected ? "bg-gray-50" : ""
                   } hover:bg-brand-50 hover:text-brand-700`}
                   onMouseEnter={() => {
-                    highlightIndexRef.current = i;
+                    highlightRef.current = i;
                   }}
                   onClick={() => {
                     onChange(country.name);
@@ -154,6 +163,143 @@ function SearchableCountrySelect({
                     <span className="text-base">{flagEmoji(country.code)}</span>
                     {country.name}
                   </span>
+                  {isSelected && <Check className="text-brand-600 h-4 w-4" />}
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
+      {error && <FieldError message={error} />}
+    </div>
+  );
+}
+
+function SearchableStateSelect({
+  value,
+  onChange,
+  error,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  error?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const highlightRef = useRef(0);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useClickOutside(containerRef, () => {
+    setOpen(false);
+  });
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return INDIAN_STATES;
+    return INDIAN_STATES.filter((s) => s.toLowerCase().includes(q));
+  }, [search]);
+
+  useEffect(() => {
+    highlightRef.current = 0;
+  }, [filtered]);
+
+  useEffect(() => {
+    if (open && highlightRef.current >= 0) {
+      const el = listRef.current?.children[highlightRef.current] as HTMLElement | undefined;
+      el?.scrollIntoView({ block: "nearest" });
+    }
+  }, [open, filtered]);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        e.preventDefault();
+        setOpen(true);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      highlightRef.current = Math.min(highlightRef.current + 1, filtered.length - 1);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      highlightRef.current = Math.max(highlightRef.current - 1, 0);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const item = filtered[highlightRef.current];
+      if (item) {
+        onChange(item);
+        setOpen(false);
+        setSearch("");
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      inputRef.current?.blur();
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={open ? search : value}
+          placeholder="Search state..."
+          className={`${inputClass} ${error ? "border-red-500" : ""} pr-8 pl-9`}
+          onFocus={() => {
+            setOpen(true);
+            setSearch("");
+          }}
+          onChange={(e) => {
+            if (!open) setOpen(true);
+            setSearch(e.target.value);
+            if (!e.target.value) onChange("");
+          }}
+          onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          autoComplete="off"
+        />
+        <ChevronDown
+          className={`absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </div>
+      {open && (
+        <ul
+          ref={listRef}
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
+          role="listbox"
+        >
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-gray-500">No states found</li>
+          ) : (
+            filtered.map((state, i) => {
+              const isSelected = state === value;
+              const isHighlighted = i === highlightRef.current;
+              return (
+                <li
+                  key={state}
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
+                    isHighlighted ? "bg-brand-50 text-brand-700" : isSelected ? "bg-gray-50" : ""
+                  } hover:bg-brand-50 hover:text-brand-700`}
+                  onMouseEnter={() => {
+                    highlightRef.current = i;
+                  }}
+                  onClick={() => {
+                    onChange(state);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                >
+                  {state}
                   {isSelected && <Check className="text-brand-600 h-4 w-4" />}
                 </li>
               );
@@ -181,13 +327,13 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
   const lastLookedUpRef = useRef<string | null>(null);
 
   const lookup = useCallback(
-    (pinCode: string) => {
+    (pinCode: string | undefined) => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
 
-      const code = pinCode.trim();
+      const code = (pinCode ?? "").trim();
       if (!code || !/^\d{6}$/.test(code)) {
         setLoading(false);
         return;
@@ -250,6 +396,128 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
   return { loading, lookup };
 }
 
+function useCityAutocomplete(
+  country: string | undefined,
+  setValue: UseFormSetValue<PatientFormInput>,
+  inputValue: string | undefined,
+) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef(0);
+
+  useClickOutside(containerRef, () => {
+    setOpen(false);
+  });
+
+  useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    const q = (inputValue ?? "").trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setOpen(false);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    highlightRef.current = 0;
+
+    timerRef.current = setTimeout(() => {
+      if (abortRef.current) abortRef.current.abort();
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const countryQuery = country ? `&country=${encodeURIComponent(country)}` : "";
+      const url = `https://nominatim.openstreetmap.org/search?format=json&featuretype=city&accept-language=en&limit=8&q=${encodeURIComponent(q)}${countryQuery}`;
+
+      fetch(url, {
+        signal: controller.signal,
+        headers: { "User-Agent": "AI-Patient-DBMS/1.0" },
+      })
+        .then((res) => res.json() as Promise<Array<{ display_name: string; name?: string }>>)
+        .then((data) => {
+          if (controller.signal.aborted) return;
+          const names = new Set<string>();
+          const results: string[] = [];
+          for (const item of data) {
+            const name = item.name ?? item.display_name.split(",")[0]?.trim();
+            if (name && !names.has(name)) {
+              names.add(name);
+              results.push(name);
+            }
+          }
+          setSuggestions(results.slice(0, 8));
+          setOpen(results.length > 0);
+          setLoading(false);
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted) return;
+          setLoading(false);
+          if (err instanceof DOMException && err.name === "AbortError") return;
+        });
+    }, 300);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [inputValue, country]);
+
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+  }, []);
+
+  const selectSuggestion = useCallback(
+    (city: string) => {
+      setValue("city", city, { shouldValidate: true, shouldDirty: true });
+      setOpen(false);
+      setSuggestions([]);
+    },
+    [setValue],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!open) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        highlightRef.current = Math.min(highlightRef.current + 1, suggestions.length - 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        highlightRef.current = Math.max(highlightRef.current - 1, 0);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        const item = suggestions[highlightRef.current];
+        if (item) selectSuggestion(item);
+      } else if (e.key === "Escape") {
+        setOpen(false);
+      }
+    },
+    [open, suggestions, selectSuggestion],
+  );
+
+  return {
+    suggestions,
+    open,
+    loading,
+    containerRef,
+    highlightRef,
+    handleKeyDown,
+    selectSuggestion,
+  };
+}
+
 export function PatientAddressSection({
   register,
   errors,
@@ -276,23 +544,19 @@ export function PatientAddressSection({
 
   useEffect(() => {
     if (!isIndia) {
-      pinLookup("");
+      pinLookup(undefined);
     }
   }, [isIndia, pinLookup]);
 
-  const formattedAddress = useMemo(() => {
-    const parts = [
-      addressLine1,
-      addressLine2,
-      landmark,
-      city,
-      district,
-      state,
-      postalCode,
-      country,
-    ].filter(Boolean) as string[];
-    return parts.length > 0 ? parts.join(", ") : "";
-  }, [addressLine1, addressLine2, landmark, city, district, state, postalCode, country]);
+  const {
+    suggestions,
+    open: cityOpen,
+    loading: cityLoading,
+    containerRef: cityContainerRef,
+    highlightRef: cityHighlightRef,
+    handleKeyDown: cityHandleKeyDown,
+    selectSuggestion,
+  } = useCityAutocomplete(country, setValue, city);
 
   const formattedAddressMultiline = useMemo(() => {
     const lines = [
@@ -303,7 +567,7 @@ export function PatientAddressSection({
       district,
       [state, postalCode].filter(Boolean).join(" - "),
       country,
-    ].filter(Boolean) as string[];
+    ].filter(Boolean);
     return lines;
   }, [addressLine1, addressLine2, landmark, city, district, state, postalCode, country]);
 
@@ -354,7 +618,7 @@ export function PatientAddressSection({
           <input {...register("landmark")} className={inputClass} placeholder="Nearby landmark" />
         </div>
 
-        <div>
+        <div ref={cityContainerRef}>
           <label className={labelClass}>
             City <span className="text-red-500">*</span>
           </label>
@@ -363,11 +627,36 @@ export function PatientAddressSection({
               {...register("city")}
               className={`${inputClass} ${errors.city ? "border-red-500" : ""}`}
               placeholder="City"
+              onKeyDown={cityHandleKeyDown}
+              autoComplete="off"
             />
-            {pinLoading && isIndia && (
+            {(pinLoading || cityLoading) && (
               <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
             )}
           </div>
+          {cityOpen && suggestions.length > 0 && (
+            <ul className="absolute z-50 mt-1 max-h-48 w-[calc(50%-1rem)] overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+              {suggestions.map((s, i) => {
+                const isHighlighted = i === cityHighlightRef.current;
+                return (
+                  <li
+                    key={s}
+                    className={`cursor-pointer px-3 py-2 text-sm ${
+                      isHighlighted ? "bg-brand-50 text-brand-700" : ""
+                    } hover:bg-brand-50 hover:text-brand-700`}
+                    onMouseEnter={() => {
+                      cityHighlightRef.current = i;
+                    }}
+                    onClick={() => {
+                      selectSuggestion(s);
+                    }}
+                  >
+                    {s}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
           {pinLoading && isIndia && (
             <p className="mt-1 text-xs text-gray-400">Looking up location from PIN code...</p>
           )}
@@ -395,20 +684,13 @@ export function PatientAddressSection({
             {isIndia ? "State / UT" : "State / Province"} <span className="text-red-500">*</span>
           </label>
           {isIndia ? (
-            <div className="relative">
-              <select
-                {...register("state")}
-                className={`${inputClass} ${errors.state ? "border-red-500" : ""}`}
-              >
-                <option value="">Select state</option>
-                {INDIAN_STATES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
+            <SearchableStateSelect
+              value={state}
+              onChange={(val) => {
+                setValue("state", val, { shouldValidate: true, shouldDirty: true });
+              }}
+              error={errors.state?.message}
+            />
           ) : (
             <input
               {...register("state")}
@@ -439,7 +721,7 @@ export function PatientAddressSection({
         </div>
       </div>
 
-      {formattedAddress && (
+      {formattedAddressMultiline.length > 0 && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <p className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
             Formatted Address
