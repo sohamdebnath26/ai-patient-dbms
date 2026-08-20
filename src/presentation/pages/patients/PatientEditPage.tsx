@@ -24,6 +24,7 @@ import { CollapsibleSection } from "@presentation/components/CollapsibleSection"
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
 import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
+import { PatientAddressSection } from "@presentation/components/patient/PatientAddressSection";
 import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
 import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
 import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
@@ -111,7 +112,9 @@ export function PatientEditPage() {
         status: patient.status,
         address_line1: patient.address_line1 ?? patient.address ?? "",
         address_line2: patient.address_line2 ?? "",
+        landmark: patient.landmark ?? "",
         city: patient.city ?? "",
+        district: patient.district ?? "",
         state: patient.state ?? "",
         country: patient.country ?? "",
         postal_code: patient.postal_code ?? "",
@@ -205,7 +208,9 @@ export function PatientEditPage() {
           phone: data.phone,
           address_line1: data.address_line1,
           address_line2: data.address_line2,
+          landmark: data.landmark,
           city: data.city,
+          district: data.district,
           state: data.state,
           country: data.country,
           postal_code: data.postal_code,
@@ -346,6 +351,12 @@ export function PatientEditPage() {
                 errors={errors}
                 age={age}
                 statusDisabled={isReceptionist}
+              />
+              <PatientAddressSection
+                register={register}
+                errors={errors}
+                setValue={setValue}
+                watch={watch}
               />
               <PatientContactSection register={register} errors={errors} />
             </div>

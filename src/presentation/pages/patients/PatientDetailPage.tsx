@@ -221,7 +221,7 @@ export function PatientDetailPage() {
                 {patient.address_line1 && (
                   <div className="flex items-center gap-2 text-gray-600">
                     <MapPin className="h-4 w-4 text-gray-400" />
-                    {[patient.address_line1, patient.city, patient.state]
+                    {[patient.address_line1, patient.city, patient.state, patient.country]
                       .filter(Boolean)
                       .join(", ")}
                   </div>
@@ -247,16 +247,24 @@ export function PatientDetailPage() {
             </div>
 
             <div className="space-y-3">
-              <SectionHeading icon={<MapPin className="h-4 w-4" />} title="Contact Information" />
+              <SectionHeading icon={<MapPin className="h-4 w-4" />} title="Address" />
               <div className="grid gap-4 sm:grid-cols-3">
-                <FieldDisplay label="Phone" value={patient.phone} />
-                <FieldDisplay label="Email" value={patient.email} />
                 <FieldDisplay label="Address Line 1" value={patient.address_line1} />
                 <FieldDisplay label="Address Line 2" value={patient.address_line2} />
+                <FieldDisplay label="Landmark" value={patient.landmark} />
                 <FieldDisplay label="City" value={patient.city} />
+                <FieldDisplay label="District" value={patient.district} />
                 <FieldDisplay label="State" value={patient.state} />
                 <FieldDisplay label="Country" value={patient.country} />
                 <FieldDisplay label="Postal Code" value={patient.postal_code} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <SectionHeading icon={<Phone className="h-4 w-4" />} title="Contact Information" />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <FieldDisplay label="Phone" value={patient.phone} />
+                <FieldDisplay label="Email" value={patient.email} />
               </div>
             </div>
 

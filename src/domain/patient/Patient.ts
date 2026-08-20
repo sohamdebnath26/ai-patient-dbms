@@ -31,7 +31,9 @@ export const PatientSchema = z.object({
   updated_at: z.string(),
   address_line1: z.string().nullable(),
   address_line2: z.string().nullable(),
+  landmark: z.string().nullable(),
   city: z.string().nullable(),
+  district: z.string().nullable(),
   state: z.string().nullable(),
   country: z.string().nullable(),
   postal_code: z.string().nullable(),
@@ -81,7 +83,9 @@ export const CreatePatientFormSchema = z.object({
   mrn: z.string().min(1, "MRN is required"),
   address_line1: z.string().optional(),
   address_line2: z.string().optional(),
+  landmark: z.string().optional(),
   city: z.string().optional(),
+  district: z.string().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
   postal_code: z.string().optional(),
@@ -178,7 +182,9 @@ export const UpdatePatientSchema = z.object({
   status: PatientStatusSchema.optional(),
   address_line1: z.string().nullable().optional(),
   address_line2: z.string().nullable().optional(),
+  landmark: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
+  district: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
   postal_code: z.string().nullable().optional(),
@@ -222,58 +228,72 @@ const todayStr = new Date().toISOString().slice(0, 10);
  * pages. The single source of truth for patient form validation so the
  * two pages can never drift apart.
  */
-export const PatientFormSchema = z.object({
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
-  dob: z
-    .string()
-    .min(1, "Date of birth is required")
-    .refine((v) => v <= todayStr, "Date of birth cannot be in the future"),
-  gender: z.string().min(1, "Gender is required"),
-  blood_group: z.string().optional(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z
-    .string()
-    .min(1, "Phone is required")
-    .regex(/^\+?[0-9\s\-().]{7,20}$/, "Invalid phone number"),
-  mrn: z.string().min(1, "MRN is required"),
-  status: PatientStatusSchema,
-  address_line1: z.string().min(1, "Address is required"),
-  address_line2: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-  postal_code: z.string().optional(),
-  emergency_contact_name: z.string().optional(),
-  emergency_contact_phone: z.string().optional(),
-  emergency_contact_relationship: z.string().optional(),
-  chronic_conditions: z.string().optional(),
-  primary_diagnosis: z.string().min(1, "Current diagnosis is required"),
-  secondary_diagnosis: z.string().optional(),
-  skin_type: z.string().optional(),
-  affected_body_areas: z.string().optional(),
-  disease_severity: z.string().optional(),
-  duration: z.string().optional(),
-  current_flare: z.boolean().optional(),
-  previous_skin_cancer: z.boolean().optional(),
-  current_treatment: z.string().min(1, "Current treatment plan is required"),
-  medical_notes: z.string().optional(),
-  chief_complaint: z.string().min(1, "Chief complaint is required"),
-  present_illness: z.string().min(1, "Present illness is required"),
-  previous_skin_diseases: z.string().optional(),
-  previous_surgeries: z.string().optional(),
-  other_medical_conditions: z.string().optional(),
-  family_history_skin: z.string().optional(),
-  family_history_cancer: z.string().optional(),
-  smoking_status: z.string().optional(),
-  alcohol_consumption: z.string().optional(),
-  pregnancy_status: z.string().optional(),
-  date_of_onset: z.string().min(1, "Date of onset is required"),
-  symptoms: z.string().min(1, "At least one symptom is required"),
-  sun_exposure_history: z.string().optional(),
-  cosmetic_product_usage: z.string().optional(),
-  occupational_exposure: z.string().optional(),
-});
+export const PatientFormSchema = z
+  .object({
+    first_name: z.string().min(1, "First name is required"),
+    last_name: z.string().min(1, "Last name is required"),
+    dob: z
+      .string()
+      .min(1, "Date of birth is required")
+      .refine((v) => v <= todayStr, "Date of birth cannot be in the future"),
+    gender: z.string().min(1, "Gender is required"),
+    blood_group: z.string().optional(),
+    email: z.string().email("Invalid email").optional().or(z.literal("")),
+    phone: z
+      .string()
+      .min(1, "Phone is required")
+      .regex(/^\+?[0-9\s\-().]{7,20}$/, "Invalid phone number"),
+    mrn: z.string().min(1, "MRN is required"),
+    status: PatientStatusSchema,
+    address_line1: z.string().min(1, "Address Line 1 is required"),
+    address_line2: z.string().optional(),
+    landmark: z.string().optional(),
+    city: z.string().min(1, "City is required"),
+    district: z.string().optional(),
+    state: z.string().min(1, "State is required"),
+    country: z.string().min(1, "Country is required"),
+    postal_code: z.string().min(1, "Postal code is required"),
+    emergency_contact_name: z.string().optional(),
+    emergency_contact_phone: z.string().optional(),
+    emergency_contact_relationship: z.string().optional(),
+    chronic_conditions: z.string().optional(),
+    primary_diagnosis: z.string().min(1, "Current diagnosis is required"),
+    secondary_diagnosis: z.string().optional(),
+    skin_type: z.string().optional(),
+    affected_body_areas: z.string().optional(),
+    disease_severity: z.string().optional(),
+    duration: z.string().optional(),
+    current_flare: z.boolean().optional(),
+    previous_skin_cancer: z.boolean().optional(),
+    current_treatment: z.string().min(1, "Current treatment plan is required"),
+    medical_notes: z.string().optional(),
+    chief_complaint: z.string().min(1, "Chief complaint is required"),
+    present_illness: z.string().min(1, "Present illness is required"),
+    previous_skin_diseases: z.string().optional(),
+    previous_surgeries: z.string().optional(),
+    other_medical_conditions: z.string().optional(),
+    family_history_skin: z.string().optional(),
+    family_history_cancer: z.string().optional(),
+    smoking_status: z.string().optional(),
+    alcohol_consumption: z.string().optional(),
+    pregnancy_status: z.string().optional(),
+    date_of_onset: z.string().min(1, "Date of onset is required"),
+    symptoms: z.string().min(1, "At least one symptom is required"),
+    sun_exposure_history: z.string().optional(),
+    cosmetic_product_usage: z.string().optional(),
+    occupational_exposure: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.country.toLowerCase() === "india" && data.postal_code) {
+      if (!/^\d{6}$/.test(data.postal_code)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Indian postal code must be exactly 6 digits",
+          path: ["postal_code"],
+        });
+      }
+    }
+  });
 
 export type PatientFormInput = z.infer<typeof PatientFormSchema>;
 

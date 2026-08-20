@@ -22,6 +22,7 @@ import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
 import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
+import { PatientAddressSection } from "@presentation/components/patient/PatientAddressSection";
 import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
 import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
 import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
@@ -252,6 +253,12 @@ export function PatientCreatePage() {
                 errors={errors}
                 age={age}
                 showStatus={false}
+              />
+              <PatientAddressSection
+                register={register}
+                errors={errors}
+                setValue={setValue}
+                watch={watch}
               />
               <PatientContactSection register={register} errors={errors} />
             </div>

@@ -36,7 +36,9 @@ interface PatientRow {
   updated_at: string;
   address_line1: string | null;
   address_line2: string | null;
+  landmark: string | null;
   city: string | null;
+  district: string | null;
   state: string | null;
   country: string | null;
   postal_code: string | null;
@@ -211,7 +213,9 @@ export class SupabasePatientRepository implements IPatientRepository {
         created_by: auth.userId,
         address_line1: input.address_line1 ?? null,
         address_line2: input.address_line2 ?? null,
+        landmark: input.landmark ?? null,
         city: input.city ?? null,
+        district: input.district ?? null,
         state: input.state ?? null,
         country: input.country ?? null,
         postal_code: input.postal_code ?? null,
