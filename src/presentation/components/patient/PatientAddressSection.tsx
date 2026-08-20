@@ -532,7 +532,8 @@ export function PatientAddressSection({
   const city = watch("city");
   const district = watch("district");
   const state = watch("state");
-  const isIndia = country.toLowerCase() === "india";
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- watch() can return undefined before form defaults are applied
+  const isIndia = (country ?? "").toLowerCase() === "india";
 
   const { loading: pinLoading, lookup: pinLookup } = useIndianPinLookup(setValue);
 
@@ -581,7 +582,8 @@ export function PatientAddressSection({
             Country <span className="text-red-500">*</span>
           </label>
           <SearchableCountrySelect
-            value={country}
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- watch() can return undefined before form defaults are applied
+            value={country ?? ""}
             onChange={(val) => {
               setValue("country", val, { shouldValidate: true, shouldDirty: true });
               if (val !== "India") {
@@ -685,7 +687,8 @@ export function PatientAddressSection({
           </label>
           {isIndia ? (
             <SearchableStateSelect
-              value={state}
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- watch() can return undefined before form defaults are applied
+              value={state ?? ""}
               onChange={(val) => {
                 setValue("state", val, { shouldValidate: true, shouldDirty: true });
               }}
