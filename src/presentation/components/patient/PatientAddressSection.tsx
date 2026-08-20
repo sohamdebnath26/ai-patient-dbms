@@ -322,9 +322,20 @@ function flagEmoji(code: string): string {
 
 function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
   const [loading, setLoading] = useState(false);
+  const [pinCities, setPinCities] = useState<string[]>([]);
+  const [showPinCitySelect, setShowPinCitySelect] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastLookedUpRef = useRef<string | null>(null);
+
+  const selectPinCity = useCallback(
+    (cityName: string) => {
+      setValue("city", cityName, { shouldValidate: true, shouldDirty: true });
+      setShowPinCitySelect(false);
+      setPinCities([]);
+    },
+    [setValue],
+  );
 
   const lookup = useCallback(
     (pinCode: string | undefined) => {
@@ -336,6 +347,8 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
       const code = (pinCode ?? "").trim();
       if (!code || !/^\d{6}$/.test(code)) {
         setLoading(false);
+        setPinCities([]);
+        setShowPinCitySelect(false);
         return;
       }
 
@@ -343,6 +356,8 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
       lastLookedUpRef.current = code;
 
       setLoading(true);
+      setPinCities([]);
+      setShowPinCitySelect(false);
 
       timerRef.current = setTimeout(() => {
         if (abortRef.current) abortRef.current.abort();
@@ -364,16 +379,44 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
           )
           .then((data) => {
             if (controller.signal.aborted) return;
-            const postOffice = data[0]?.PostOffice?.[0];
-            if (postOffice) {
-              setValue("city", postOffice.Name, { shouldValidate: false, shouldDirty: true });
-              setValue("district", postOffice.District, {
-                shouldValidate: false,
+            const postOffices = data[0]?.PostOffice;
+            if (!postOffices || postOffices.length === 0) {
+              setLoading(false);
+              return;
+            }
+
+            const firstPO = postOffices[0];
+            if (!firstPO) {
+              setLoading(false);
+              return;
+            }
+            setValue("district", firstPO.District, {
+              shouldValidate: false,
+              shouldDirty: true,
+            });
+            setValue("state", firstPO.State, { shouldValidate: false, shouldDirty: true });
+            setValue("country", "India", { shouldValidate: false, shouldDirty: true });
+
+            const uniqueCities = [...new Set(postOffices.map((po) => po.Name))];
+
+            if (uniqueCities.length === 0) {
+              setLoading(false);
+              return;
+            }
+
+            if (uniqueCities.length === 1) {
+              const theCity = uniqueCities[0] as string;
+              setValue("city", theCity, {
+                shouldValidate: true,
                 shouldDirty: true,
               });
-              setValue("state", postOffice.State, { shouldValidate: false, shouldDirty: true });
-              setValue("country", "India", { shouldValidate: false, shouldDirty: true });
+              setPinCities([]);
+              setShowPinCitySelect(false);
+            } else {
+              setPinCities(uniqueCities);
+              setShowPinCitySelect(true);
             }
+
             setLoading(false);
           })
           .catch((err: unknown) => {
@@ -381,7 +424,7 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
             setLoading(false);
             if (err instanceof DOMException && err.name === "AbortError") return;
           });
-      }, 500);
+      }, 400);
     },
     [setValue],
   );
@@ -393,13 +436,14 @@ function useIndianPinLookup(setValue: UseFormSetValue<PatientFormInput>) {
     };
   }, []);
 
-  return { loading, lookup };
+  return { loading, pinCities, showPinCitySelect, selectPinCity, lookup };
 }
 
 function useCityAutocomplete(
   country: string | undefined,
   setValue: UseFormSetValue<PatientFormInput>,
   inputValue: string | undefined,
+  suppress: boolean,
 ) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -414,6 +458,13 @@ function useCityAutocomplete(
   });
 
   useEffect(() => {
+    if (suppress) {
+      setSuggestions([]);
+      setOpen(false);
+      setLoading(false);
+      return;
+    }
+
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -469,7 +520,7 @@ function useCityAutocomplete(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [inputValue, country]);
+  }, [inputValue, country, suppress]);
 
   useEffect(() => {
     return () => {
@@ -535,7 +586,13 @@ export function PatientAddressSection({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- watch() can return undefined before form defaults are applied
   const isIndia = (country ?? "").toLowerCase() === "india";
 
-  const { loading: pinLoading, lookup: pinLookup } = useIndianPinLookup(setValue);
+  const {
+    loading: pinLoading,
+    pinCities,
+    showPinCitySelect,
+    selectPinCity,
+    lookup: pinLookup,
+  } = useIndianPinLookup(setValue);
 
   useEffect(() => {
     if (isIndia) {
@@ -557,7 +614,7 @@ export function PatientAddressSection({
     highlightRef: cityHighlightRef,
     handleKeyDown: cityHandleKeyDown,
     selectSuggestion,
-  } = useCityAutocomplete(country, setValue, city);
+  } = useCityAutocomplete(country, setValue, city, showPinCitySelect);
 
   const formattedAddressMultiline = useMemo(() => {
     const lines = [
@@ -577,7 +634,29 @@ export function PatientAddressSection({
       <SectionHeading icon={<MapPin className="h-4 w-4" />} title="Address" />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
+        <div>
+          <label className={labelClass}>
+            Postal Code <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <input
+              {...register("postal_code")}
+              className={`${inputClass} ${errors.postal_code ? "border-red-500" : ""}`}
+              placeholder={isIndia ? "6-digit PIN code" : "Postal / ZIP code"}
+              inputMode={isIndia ? "numeric" : "text"}
+              maxLength={isIndia ? 6 : undefined}
+            />
+            {pinLoading && isIndia && (
+              <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+            )}
+          </div>
+          {pinLoading && isIndia && (
+            <p className="mt-1 text-xs text-gray-400">Looking up location...</p>
+          )}
+          <FieldError message={errors.postal_code?.message} />
+        </div>
+
+        <div>
           <label className={labelClass}>
             Country <span className="text-red-500">*</span>
           </label>
@@ -593,93 +672,6 @@ export function PatientAddressSection({
             error={errors.country?.message}
           />
         </div>
-
-        <div className="sm:col-span-2">
-          <label className={labelClass}>
-            Address Line 1 <span className="text-red-500">*</span>
-          </label>
-          <input
-            {...register("address_line1")}
-            className={`${inputClass} ${errors.address_line1 ? "border-red-500" : ""}`}
-            placeholder="House/Flat No., Building, Street"
-          />
-          <FieldError message={errors.address_line1?.message} />
-        </div>
-
-        <div className="sm:col-span-2">
-          <label className={labelClass}>Address Line 2</label>
-          <input
-            {...register("address_line2")}
-            className={inputClass}
-            placeholder="Apartment, Suite, Area"
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Landmark</label>
-          <input {...register("landmark")} className={inputClass} placeholder="Nearby landmark" />
-        </div>
-
-        <div ref={cityContainerRef}>
-          <label className={labelClass}>
-            City <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              {...register("city")}
-              className={`${inputClass} ${errors.city ? "border-red-500" : ""}`}
-              placeholder="City"
-              onKeyDown={cityHandleKeyDown}
-              autoComplete="off"
-            />
-            {(pinLoading || cityLoading) && (
-              <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
-            )}
-          </div>
-          {cityOpen && suggestions.length > 0 && (
-            <ul className="absolute z-50 mt-1 max-h-48 w-[calc(50%-1rem)] overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-              {suggestions.map((s, i) => {
-                const isHighlighted = i === cityHighlightRef.current;
-                return (
-                  <li
-                    key={s}
-                    className={`cursor-pointer px-3 py-2 text-sm ${
-                      isHighlighted ? "bg-brand-50 text-brand-700" : ""
-                    } hover:bg-brand-50 hover:text-brand-700`}
-                    onMouseEnter={() => {
-                      cityHighlightRef.current = i;
-                    }}
-                    onClick={() => {
-                      selectSuggestion(s);
-                    }}
-                  >
-                    {s}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {pinLoading && isIndia && (
-            <p className="mt-1 text-xs text-gray-400">Looking up location from PIN code...</p>
-          )}
-          <FieldError message={errors.city?.message} />
-        </div>
-
-        {isIndia && (
-          <div>
-            <label className={labelClass}>District</label>
-            <div className="relative">
-              <input
-                {...register("district")}
-                className={inputClass}
-                placeholder="District / County"
-              />
-              {pinLoading && (
-                <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
-              )}
-            </div>
-          </div>
-        )}
 
         <div>
           <label className={labelClass}>
@@ -704,23 +696,114 @@ export function PatientAddressSection({
           <FieldError message={errors.state?.message} />
         </div>
 
-        <div>
-          <label className={labelClass}>
-            Postal Code <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              {...register("postal_code")}
-              className={`${inputClass} ${errors.postal_code ? "border-red-500" : ""}`}
-              placeholder={isIndia ? "6-digit PIN code" : "Postal / ZIP code"}
-              inputMode={isIndia ? "numeric" : "text"}
-              maxLength={isIndia ? 6 : undefined}
-            />
-            {pinLoading && isIndia && (
-              <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
-            )}
+        {isIndia && (
+          <div>
+            <label className={labelClass}>District</label>
+            <div className="relative">
+              <input
+                {...register("district")}
+                className={inputClass}
+                placeholder="District / County"
+              />
+              {pinLoading && (
+                <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+              )}
+            </div>
           </div>
-          <FieldError message={errors.postal_code?.message} />
+        )}
+
+        <div ref={cityContainerRef} className="sm:col-span-2">
+          <label className={labelClass}>
+            City <span className="text-red-500">*</span>
+          </label>
+          {showPinCitySelect && pinCities.length > 0 ? (
+            <div className="relative">
+              <div className="border-brand-200 bg-brand-50/40 rounded-md border p-3">
+                <p className="text-brand-700 mb-2 text-xs font-medium">
+                  Multiple locations found for this PIN code. Select your city:
+                </p>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {pinCities.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className="hover:border-brand-300 hover:bg-brand-50 rounded-md border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-800"
+                      onClick={() => {
+                        selectPinCity(c);
+                      }}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="relative">
+                <input
+                  {...register("city")}
+                  className={`${inputClass} ${errors.city ? "border-red-500" : ""}`}
+                  placeholder="City"
+                  onKeyDown={cityHandleKeyDown}
+                  autoComplete="off"
+                />
+                {(pinLoading || cityLoading) && (
+                  <Loader2 className="absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+                )}
+              </div>
+              {cityOpen && suggestions.length > 0 && (
+                <ul className="absolute z-50 mt-1 max-h-48 w-[calc(100%-2rem)] overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                  {suggestions.map((s, i) => {
+                    const isHighlighted = i === cityHighlightRef.current;
+                    return (
+                      <li
+                        key={s}
+                        className={`cursor-pointer px-3 py-2 text-sm ${
+                          isHighlighted ? "bg-brand-50 text-brand-700" : ""
+                        } hover:bg-brand-50 hover:text-brand-700`}
+                        onMouseEnter={() => {
+                          cityHighlightRef.current = i;
+                        }}
+                        onClick={() => {
+                          selectSuggestion(s);
+                        }}
+                      >
+                        {s}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <FieldError message={errors.city?.message} />
+            </>
+          )}
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className={labelClass}>
+            Address Line 1 <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register("address_line1")}
+            className={`${inputClass} ${errors.address_line1 ? "border-red-500" : ""}`}
+            placeholder="House/Flat No., Building, Street"
+          />
+          <FieldError message={errors.address_line1?.message} />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Address Line 2</label>
+          <input
+            {...register("address_line2")}
+            className={inputClass}
+            placeholder="Area, Locality, Apartment, Village"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Landmark</label>
+          <input {...register("landmark")} className={inputClass} placeholder="Nearby landmark" />
         </div>
       </div>
 
