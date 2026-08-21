@@ -270,6 +270,7 @@ export class PatientContextResolver {
         clinical_notes: [],
         lab_reports: [],
         appointments: [],
+        image_analyses: [],
         topics: Array.from(topics),
         resolved_entity: entity,
       };
@@ -508,6 +509,7 @@ export class PatientContextResolver {
       clinical_notes: clinicalNotes as unknown as MedicalContext["clinical_notes"],
       lab_reports: labReports as unknown as MedicalContext["lab_reports"],
       appointments: appointments as unknown as MedicalContext["appointments"],
+      image_analyses: [] as unknown as MedicalContext["image_analyses"],
       topics: Array.from(topics),
       resolved_entity: entity,
     };

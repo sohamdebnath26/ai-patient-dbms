@@ -233,6 +233,44 @@ export class ContextBuilder {
       }
     }
 
+    if (context.image_analyses.length > 0) {
+      sections.push("\nIMAGE ANALYSES:");
+      for (const item of context.image_analyses) {
+        const row = item as Row;
+        const status = safeString(row["status"]);
+        const provider = safeString(row["provider"]);
+        const model = safeString(row["model"], "unknown");
+        const created = safeString(row["created_at"]);
+
+        if (status === "completed") {
+          const result = row["result"] as Record<string, unknown> | null;
+          if (result) {
+            sections.push(`- Analysis by ${provider}/${model} (${created})`);
+            if (result.findings) {
+              sections.push(`  Findings: ${safeString(result.findings)}`);
+            }
+            if (Array.isArray(result.differentialDiagnoses)) {
+              sections.push(
+                `  Differential Diagnoses: ${(result.differentialDiagnoses as string[]).join(", ")}`,
+              );
+            }
+            if (typeof result.confidence === "number") {
+              sections.push(`  Confidence: ${(result.confidence * 100).toFixed(0)}%`);
+            }
+            if (result.recommendations) {
+              sections.push(`  Recommendations: ${safeString(result.recommendations)}`);
+            }
+          }
+        } else if (status === "failed") {
+          sections.push(
+            `- Analysis by ${provider}/${model} FAILED: ${safeString(row["error_message"], "Unknown error")} (${created})`,
+          );
+        } else {
+          sections.push(`- Analysis by ${provider}/${model} is ${status} (${created})`);
+        }
+      }
+    }
+
     if (context.appointments.length > 0) {
       fetchedTopics.push("appointment");
       sections.push("\nAPPOINTMENTS (most recent first):");

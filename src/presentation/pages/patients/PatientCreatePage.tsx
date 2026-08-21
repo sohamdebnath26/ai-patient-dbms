@@ -395,11 +395,25 @@ export function PatientCreatePage() {
               />
               <ClinicalImagesSection
                 images={images}
-                onAdd={(img) => {
-                  setImages((prev) => [...prev, img]);
+                onAdd={(file) => {
+                  const url = URL.createObjectURL(file);
+                  setImages((prev) => [
+                    ...prev,
+                    {
+                      id: `${Date.now()}`,
+                      url,
+                      name: file.name,
+                      uploadedAt: new Date().toISOString(),
+                      bodyArea: "—",
+                      diagnosis: "—",
+                      notes: "",
+                    },
+                  ]);
+                  return Promise.resolve();
                 }}
                 onRemove={(id) => {
                   setImages((prev) => prev.filter((x) => x.id !== id));
+                  return Promise.resolve();
                 }}
               />
             </div>

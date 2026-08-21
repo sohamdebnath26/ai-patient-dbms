@@ -1,33 +1,81 @@
 import { useState, useRef } from "react";
-import { Image as ImageIcon, Plus, Trash2, GitCompareArrows } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+  GitCompareArrows,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
 import { SectionHeading } from "./helpers";
-import { formatDate, type ClinicalImage } from "./utils";
+import { formatDate } from "./utils";
+
+interface ClinicalImage {
+  id: string;
+  url: string;
+  name: string;
+  uploadedAt: string;
+  bodyArea: string;
+  diagnosis: string;
+  notes: string;
+  analysisStatus?: string;
+}
 
 interface ClinicalImagesSectionProps {
   images: ClinicalImage[];
-  onAdd: (image: ClinicalImage) => void;
-  onRemove: (id: string) => void;
+  onAdd?: (file: File) => Promise<void>;
+  onRemove?: (id: string) => Promise<void>;
+  onAnalyze?: (id: string) => Promise<void>;
+  isAdding?: boolean;
+  isRemoving?: string | null;
+  isAnalyzing?: string | null;
 }
 
-export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImagesSectionProps) {
+export function ClinicalImagesSection({
+  images,
+  onAdd,
+  onRemove,
+  onAnalyze,
+  isAdding,
+}: ClinicalImagesSectionProps) {
   const [compareOpen, setCompareOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    onAdd({
-      id: `${Date.now()}`,
-      url,
-      name: file.name,
-      uploadedAt: new Date().toISOString(),
-      bodyArea: "—",
-      diagnosis: "—",
-      notes: "",
-    });
+    if (!file || !onAdd) return;
+    void onAdd(file);
     if (fileRef.current) fileRef.current.value = "";
   }
+
+  const analysisBadgeClass = (status?: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-50 text-green-700";
+      case "processing":
+      case "pending":
+        return "bg-yellow-50 text-yellow-700";
+      case "failed":
+        return "bg-red-50 text-red-600";
+      default:
+        return "";
+    }
+  };
+
+  const analysisLabel = (status?: string) => {
+    switch (status) {
+      case "completed":
+        return "Analysis Complete";
+      case "processing":
+        return "Processing...";
+      case "pending":
+        return "Pending";
+      case "failed":
+        return "Analysis Failed";
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -43,17 +91,20 @@ export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImage
         }
       />
       <div className="flex flex-wrap gap-2">
-        <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
-          <Plus className="h-4 w-4" />
-          Upload Image
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </label>
+        {onAdd && (
+          <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
+            {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {isAdding ? "Uploading..." : "Upload Image"}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={isAdding}
+            />
+          </label>
+        )}
         {images.length >= 2 && (
           <button
             type="button"
@@ -89,18 +140,43 @@ export function ClinicalImagesSection({ images, onAdd, onRemove }: ClinicalImage
               <div className="space-y-1 p-3 text-xs text-gray-600">
                 <p className="font-medium text-gray-900">{img.name}</p>
                 <p>Uploaded: {formatDate(img.uploadedAt)}</p>
-                <p>Body Area: {img.bodyArea}</p>
-                <p>Diagnosis: {img.diagnosis}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onRemove(img.id);
-                  }}
-                  className="mt-1 inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Delete
-                </button>
+                {img.bodyArea && img.bodyArea !== "—" && <p>Body Area: {img.bodyArea}</p>}
+                {img.diagnosis && img.diagnosis !== "—" && <p>Diagnosis: {img.diagnosis}</p>}
+                {img.analysisStatus && (
+                  <p
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${analysisBadgeClass(img.analysisStatus)}`}
+                  >
+                    {analysisLabel(img.analysisStatus)}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {onAnalyze && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void onAnalyze(img.id);
+                      }}
+                      disabled
+                      className="inline-flex cursor-not-allowed items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-400"
+                      title="Image analysis provider not configured"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Analyze
+                    </button>
+                  )}
+                  {onRemove && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void onRemove(img.id);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

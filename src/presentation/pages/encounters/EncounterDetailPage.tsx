@@ -681,11 +681,25 @@ export function EncounterDetailPage() {
         {/* Section 7 — Clinical Images */}
         <ClinicalImagesSection
           images={images}
-          onAdd={(img) => {
-            setImages((p) => [...p, img]);
+          onAdd={(file) => {
+            const url = URL.createObjectURL(file);
+            setImages((p) => [
+              ...p,
+              {
+                id: `${Date.now()}`,
+                url,
+                name: file.name,
+                uploadedAt: new Date().toISOString(),
+                bodyArea: "—",
+                diagnosis: "—",
+                notes: "",
+              },
+            ]);
+            return Promise.resolve();
           }}
           onRemove={(id) => {
             setImages((p) => p.filter((x) => x.id !== id));
+            return Promise.resolve();
           }}
         />
 

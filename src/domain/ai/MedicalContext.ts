@@ -90,6 +90,7 @@ export const MedicalContextSchema = z.object({
   clinical_notes: z.array(z.record(z.unknown())),
   lab_reports: z.array(z.record(z.unknown())),
   appointments: z.array(z.record(z.unknown())),
+  image_analyses: z.array(z.record(z.unknown())),
   topics: z.array(TopicSchema),
   resolved_entity: ResolvedEntitySchema,
 });
@@ -109,6 +110,7 @@ export const EMPTY_CONTEXT: MedicalContext = {
   clinical_notes: [],
   lab_reports: [],
   appointments: [],
+  image_analyses: [],
   topics: [],
   resolved_entity: {
     patient_first_name: null,
