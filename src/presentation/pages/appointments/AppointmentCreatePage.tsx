@@ -5,7 +5,6 @@ import { CreateAppointmentSchema, type CreateAppointmentInput } from "@domain/ap
 import { useBookAppointment } from "@presentation/hooks/useAppointments";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { useAuth } from "@presentation/hooks/useAuth";
-import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -13,7 +12,6 @@ import { useState } from "react";
 export function AppointmentCreatePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const selectedOrganizationId = useSelectedOrganizationStore((s) => s.selectedOrganizationId);
   const mutation = useBookAppointment();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: patients } = usePatientList({ page: 1, limit: 50, query: searchQuery });
@@ -32,7 +30,7 @@ export function AppointmentCreatePage() {
   });
 
   function onSubmit(data: CreateAppointmentInput) {
-    if (!user || !selectedOrganizationId) return;
+    if (!user) return;
     mutation.mutate(
       { input: data, userId: user.id },
       {

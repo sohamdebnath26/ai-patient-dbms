@@ -94,7 +94,7 @@ export function ProfilePage() {
               </button>
               {profile?.role === "admin" && (
                 <button
-                  onClick={() => void navigate("/admin")}
+                  onClick={() => void navigate("/dashboard")}
                   className="flex items-center gap-1 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-100"
                 >
                   <Users className="h-4 w-4" />

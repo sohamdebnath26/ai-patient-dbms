@@ -327,7 +327,7 @@ export function DashboardPage() {
                 <h2 className="text-xl font-bold text-gray-900">Recent Encounters</h2>
                 <button
                   onClick={() => {
-                    void navigate("/encounters");
+                    void navigate("/appointments");
                   }}
                   className="text-brand-600 hover:text-brand-700 flex items-center gap-1 text-sm font-semibold"
                 >
