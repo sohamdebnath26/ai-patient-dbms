@@ -25,23 +25,28 @@ export class AppointmentService {
     return this.repo.create(input, auth);
   }
 
-  async reschedule(id: string, date: string, time: string): Promise<Appointment> {
-    return this.repo.update(id, { appointment_date: date, appointment_time: time });
+  async reschedule(
+    id: string,
+    date: string,
+    time: string,
+    auth: AuthorizationContext,
+  ): Promise<Appointment> {
+    return this.repo.update(id, { appointment_date: date, appointment_time: time }, auth);
   }
 
-  async confirm(id: string, userId: string): Promise<Appointment> {
-    return this.repo.updateStatus(id, "confirmed", userId);
+  async confirm(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
+    return this.repo.updateStatus(id, "confirmed", userId, auth);
   }
 
-  async checkIn(id: string, userId: string): Promise<Appointment> {
-    return this.repo.updateStatus(id, "in_progress", userId);
+  async checkIn(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
+    return this.repo.updateStatus(id, "in_progress", userId, auth);
   }
 
-  async cancel(id: string, userId: string): Promise<Appointment> {
-    return this.repo.updateStatus(id, "cancelled", userId);
+  async cancel(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
+    return this.repo.updateStatus(id, "cancelled", userId, auth);
   }
 
-  async markNoShow(id: string, userId: string): Promise<Appointment> {
-    return this.repo.updateStatus(id, "no_show", userId);
+  async markNoShow(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
+    return this.repo.updateStatus(id, "no_show", userId, auth);
   }
 }

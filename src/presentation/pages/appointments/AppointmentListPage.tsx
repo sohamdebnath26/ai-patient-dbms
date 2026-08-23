@@ -28,7 +28,14 @@ export function AppointmentListPage() {
   const dateFrom = params.get("dateFrom") ?? undefined;
   const dateTo = params.get("dateTo") ?? undefined;
 
-  const { data, isLoading } = useAppointmentList({ page, limit: 20, status, dateFrom, dateTo });
+  const { data, isLoading } = useAppointmentList({
+    page,
+    limit: 20,
+    status,
+    dateFrom,
+    dateTo,
+    hideCancelled: !status,
+  });
 
   function update(upd: Record<string, string>) {
     const next = new URLSearchParams(params);

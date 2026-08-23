@@ -70,6 +70,7 @@ export function AppointmentDetailPage() {
     setActionError(null);
     try {
       await cancel.mutateAsync({ id, userId: user.id });
+      void navigate("/appointments");
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Action failed");
     }

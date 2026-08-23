@@ -10,7 +10,12 @@ export interface IAppointmentRepository {
   search(params: AppointmentSearchParams, auth: AuthorizationContext): Promise<AppointmentListPage>;
   getById(id: string, auth: AuthorizationContext): Promise<Appointment | null>;
   create(input: CreateAppointmentInput, auth: AuthorizationContext): Promise<Appointment>;
-  updateStatus(id: string, status: string, userId: string): Promise<Appointment>;
+  updateStatus(
+    id: string,
+    status: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<Appointment>;
   update(
     id: string,
     input: Partial<{
@@ -20,5 +25,6 @@ export interface IAppointmentRepository {
       reason: string;
       notes: string;
     }>,
+    auth: AuthorizationContext,
   ): Promise<Appointment>;
 }

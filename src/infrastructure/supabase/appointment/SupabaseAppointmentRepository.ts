@@ -54,6 +54,9 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       .eq(scope.column, scope.value);
 
     if (params.status) query = query.eq("status", params.status);
+    if (!params.status && params.hideCancelled) {
+      query = query.not("status", "in", '("cancelled","no_show")');
+    }
     if (params.assigned_to) query = query.eq("assigned_to", params.assigned_to);
     if (params.patient_id) query = query.eq("patient_id", params.patient_id);
     if (params.dateFrom) query = query.gte("appointment_date", params.dateFrom);
@@ -129,16 +132,24 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     return mapToAppointment(data);
   }
 
-  async updateStatus(id: string, status: string, userId: string): Promise<Appointment> {
+  async updateStatus(
+    id: string,
+    status: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<Appointment> {
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const prev = (await client
       .from("appointments")
       .select("status")
       .eq("id", id)
+      .eq(scope.column, scope.value)
       .single()) as unknown as {
       data: { status: string } | null;
       error: { message: string } | null;
     };
+    if (prev.error) throw new Error(prev.error.message);
     const prevStatus = prev.data?.status ?? null;
     await client.from("appointment_status_history").insert({
       appointment_id: id,
@@ -150,6 +161,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       .from("appointments")
       .update({ status })
       .eq("id", id)
+      .eq(scope.column, scope.value)
       .select("*, patient:patients(first_name,last_name,mrn)")
       .single()) as unknown as {
       data: AppointmentRow;
@@ -168,12 +180,15 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
       reason: string;
       notes: string;
     }>,
+    auth: AuthorizationContext,
   ): Promise<Appointment> {
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("appointments")
       .update(input)
       .eq("id", id)
+      .eq(scope.column, scope.value)
       .select("*, patient:patients(first_name,last_name,mrn)")
       .single()) as unknown as {
       data: AppointmentRow;
