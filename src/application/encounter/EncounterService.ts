@@ -20,8 +20,12 @@ export class EncounterService {
     return this.repo.listByPatient(patientId, auth);
   }
 
-  async start(appointmentId: string, userId: string): Promise<Encounter> {
-    return this.repo.startEncounter(appointmentId, userId);
+  async start(
+    appointmentId: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<Encounter> {
+    return this.repo.startEncounter(appointmentId, userId, auth);
   }
 
   async createForPatient(patientId: string, auth: AuthorizationContext): Promise<Encounter> {

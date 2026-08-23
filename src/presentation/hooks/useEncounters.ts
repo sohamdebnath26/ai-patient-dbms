@@ -53,12 +53,14 @@ export function usePatientEncounters(patientId: string) {
 
 export function useStartEncounter() {
   const qc = useQueryClient();
+  const auth = useCurrentAuth();
   return useMutation({
     mutationFn: ({ appointmentId, userId }: { appointmentId: string; userId: string }) =>
-      svc.start(appointmentId, userId),
+      svc.start(appointmentId, userId, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -70,6 +72,7 @@ export function useCreateEncounter() {
     mutationFn: (patientId: string) => svc.createForPatient(patientId, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -94,6 +97,7 @@ export function useCompleteEncounter() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -105,6 +109,7 @@ export function useCancelEncounter() {
     mutationFn: (id: string) => svc.cancel(id, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

@@ -88,6 +88,7 @@ function useTodaySchedule(auth: AuthorizationContext) {
         .from("appointments")
         .select("id,appointment_time,status,patient:patients(first_name,last_name,mrn)")
         .eq("appointment_date", today)
+        .not("status", "in", '("cancelled","no_show")')
         .eq(scope.column, scope.value)
         .order("appointment_time", { ascending: true })
         .limit(8)) as unknown as {

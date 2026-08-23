@@ -122,12 +122,18 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
     return (data ?? []).map(mapToEncounter);
   }
 
-  async startEncounter(appointmentId: string, userId: string): Promise<Encounter> {
+  async startEncounter(
+    appointmentId: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<Encounter> {
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const appt = (await client
       .from("appointments")
       .select("patient_id,organization_id,clinic_id,assigned_to")
       .eq("id", appointmentId)
+      .eq(scope.column, scope.value)
       .single()) as unknown as {
       data: {
         patient_id: string;
