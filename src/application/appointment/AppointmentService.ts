@@ -49,4 +49,12 @@ export class AppointmentService {
   async markNoShow(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
     return this.repo.updateStatus(id, "no_show", userId, auth);
   }
+
+  async completeAppointment(
+    id: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<Appointment> {
+    return this.repo.updateStatus(id, "completed", userId, auth);
+  }
 }

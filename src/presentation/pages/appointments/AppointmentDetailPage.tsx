@@ -64,7 +64,8 @@ export function AppointmentDetailPage() {
     setActionError(null);
     try {
       await checkIn.mutateAsync({ id, userId: user.id });
-      await startEncounter.mutateAsync({ appointmentId: id, userId: user.id });
+      const enc = await startEncounter.mutateAsync({ appointmentId: id, userId: user.id });
+      void navigate(`/encounters/${enc.id}`);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Action failed");
     }

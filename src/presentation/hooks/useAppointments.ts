@@ -100,3 +100,16 @@ export function useRescheduleAppointment() {
     },
   });
 }
+
+export function useCompleteAppointment() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: ({ id, userId }: { id: string; userId: string }) =>
+      svc.completeAppointment(id, userId, auth),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}

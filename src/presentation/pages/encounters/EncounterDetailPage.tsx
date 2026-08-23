@@ -38,6 +38,9 @@ import {
   useEncounterNotes,
   useAddEncounterNote,
 } from "@presentation/hooks/useClinical";
+import { useCompleteAppointment } from "@presentation/hooks/useAppointments";
+import { useAuth } from "@presentation/hooks/useAuth";
+import { useToast } from "@presentation/hooks/useToast";
 import type { DiagnosisInput, ClinicalNoteInput, LabReportInput, Diagnosis } from "@domain/patient";
 import type { ProcedureInput, ProcedureType } from "@domain/encounter";
 import {
@@ -84,11 +87,14 @@ const emptyEncounterForm = {
 export function EncounterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: encounter, isLoading } = useEncounter(id ?? "");
   const { data: patient } = usePatient(encounter?.patient_id ?? "");
   const { profile } = useProfile();
+  const toast = useToast();
   const updateMutation = useUpdateEncounter();
   const completeMutation = useCompleteEncounter();
+  const completeApptMutation = useCompleteAppointment();
   const encounters = usePatientEncounters(encounter?.patient_id ?? "");
   const procedures = useEncounterProcedures(id ?? "");
   const addProcedure = useAddProcedure(id ?? "");
@@ -171,18 +177,27 @@ export function EncounterDetailPage() {
         onError: (e) => {
           setActionError(e instanceof Error ? e.message : "Save failed");
         },
+        onSuccess: () => {
+          toast.success("Encounter saved.");
+        },
       },
     );
   }
 
   async function handleComplete() {
-    if (!id) return;
+    if (!id || !user) return;
     setActionError(null);
     try {
       await updateMutation.mutateAsync({ id, input: buildUpdatePayload() });
-      await completeMutation.mutateAsync(id, {
-        onSuccess: () => void navigate(`/encounters/${id}`),
-      });
+      await completeMutation.mutateAsync(id);
+      if (encounter?.appointment_id) {
+        await completeApptMutation.mutateAsync({
+          id: encounter.appointment_id,
+          userId: user.id,
+        });
+      }
+      toast.success("Encounter completed.");
+      void navigate(`/patients/${encounter?.patient_id}`);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to complete encounter");
     }
