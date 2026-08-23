@@ -44,17 +44,7 @@ import {
   statusBadgeClass,
   type ClinicalImage,
 } from "@presentation/components/patient/utils";
-import {
-  ArrowLeft,
-  Loader2,
-  Sparkles,
-  UserRound,
-  Building2,
-  User,
-  HeartPulse,
-  Stethoscope,
-  Clock,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, UserRound, Building2, User, HeartPulse } from "lucide-react";
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
@@ -288,8 +278,9 @@ export function PatientCreatePage() {
           </CollapsibleSection>
 
           <CollapsibleSection
-            title="Medical History & Clinical Records"
+            title="Analysis"
             icon={<HeartPulse className="h-4 w-4" />}
+            defaultOpen
           >
             <div className="space-y-8">
               <MedicalHistorySection register={register} errors={errors} />
@@ -393,11 +384,6 @@ export function PatientCreatePage() {
                   return Promise.resolve();
                 }}
               />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Dermatology" icon={<Stethoscope className="h-4 w-4" />}>
-            <div className="space-y-8">
               <DermatologySection
                 register={register}
                 errors={errors}
@@ -413,18 +399,12 @@ export function PatientCreatePage() {
                 prescriptionAvailable={medications.length > 0}
                 reportGenerated={reports.length > 0}
               />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Summary" icon={<Clock className="h-4 w-4" />}>
-            <div className="space-y-8">
               <VisitSummarySection
                 lastVisitDate={null}
                 nextFollowUpDate={null}
                 totalVisits={0}
                 assignedDoctor={doctorName}
               />
-
               <div id="ai-summary" className="space-y-3">
                 <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI Summary" />
                 <div className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
@@ -435,7 +415,6 @@ export function PatientCreatePage() {
                   </p>
                 </div>
               </div>
-
               <PatientAuditSection
                 createdBy={doctorName}
                 createdAt={formatDate(new Date().toISOString())}

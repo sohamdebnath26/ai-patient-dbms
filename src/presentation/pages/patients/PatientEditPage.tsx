@@ -59,7 +59,6 @@ import {
   RefreshCw,
   User,
   HeartPulse,
-  Stethoscope,
 } from "lucide-react";
 
 export function PatientEditPage() {
@@ -362,8 +361,9 @@ export function PatientEditPage() {
           </CollapsibleSection>
 
           <CollapsibleSection
-            title="Medical History & Clinical Records"
+            title="Analysis"
             icon={<HeartPulse className="h-4 w-4" />}
+            defaultOpen
           >
             <div className="space-y-8">
               <MedicalHistorySection register={register} errors={errors} />
@@ -417,11 +417,6 @@ export function PatientEditPage() {
                   return Promise.resolve();
                 }}
               />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Dermatology" icon={<Stethoscope className="h-4 w-4" />}>
-            <div className="space-y-8">
               <DermatologySection
                 register={register}
                 errors={errors}
@@ -437,18 +432,12 @@ export function PatientEditPage() {
                 prescriptionAvailable={prescriptionAvailable}
                 reportGenerated={reportGenerated}
               />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Summary" icon={<Clock className="h-4 w-4" />}>
-            <div className="space-y-8">
               <VisitSummarySection
                 lastVisitDate={lastVisit?.appointment_date ?? null}
                 nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
                 totalVisits={totalVisits}
                 assignedDoctor={assignedDoctor}
               />
-
               <div id="ai-summary" className="space-y-3">
                 <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI Summary" />
                 <div className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
@@ -518,7 +507,6 @@ export function PatientEditPage() {
                   </div>
                 </div>
               </div>
-
               <PatientAuditSection
                 createdBy={patient.created_by}
                 createdAt={formatDate(patient.created_at)}
