@@ -463,7 +463,18 @@ export function DashboardPage() {
 
             <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Recent Patients</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-gray-900">Recent Patients</h2>
+                  <button
+                    onClick={() => {
+                      void navigate("/patients/new");
+                    }}
+                    className="bg-brand-600 hover:bg-brand-700 inline-flex h-7 w-7 items-center justify-center rounded-full text-white transition-colors"
+                    title="Add Patient"
+                  >
+                    <span className="text-lg leading-none">+</span>
+                  </button>
+                </div>
                 <button
                   onClick={() => {
                     void navigate("/patients");
