@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
+import { resolveAuthScope } from "@domain/patient";
+import type { AuthorizationContext } from "@domain/patient";
 import { useNavigate } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
 import { StatCard } from "@presentation/components/StatCard";
@@ -17,9 +20,20 @@ import {
 } from "lucide-react";
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 
-function useDashboardSummary() {
+function useAuthContext(): AuthorizationContext {
+  const { user } = useAuth();
+  const { selectedOrganizationId, selectedClinicId } = useSelectedOrganizationStore();
+  return {
+    userId: user?.id ?? "",
+    selectedOrganizationId,
+    selectedClinicId,
+  };
+}
+
+function useDashboardSummary(auth: AuthorizationContext) {
+  const scope = resolveAuthScope(auth);
   return useQuery({
-    queryKey: ["dashboard", "summary"],
+    queryKey: ["dashboard", "summary", scope.column, scope.value],
     queryFn: async () => {
       const client = getSupabaseClient();
       const today = new Date().toISOString().split("T")[0];
@@ -29,23 +43,27 @@ function useDashboardSummary() {
           .from("patients")
           .select("*", { count: "exact", head: true })
           .eq("status", "active")
+          .eq(scope.column, scope.value)
           .then((r: unknown) => (r as { count: number }).count),
         client
           .from("appointments")
           .select("*", { count: "exact", head: true })
           .eq("appointment_date", today)
           .not("status", "in", '("cancelled","no_show")')
+          .eq(scope.column, scope.value)
           .then((r: unknown) => (r as { count: number }).count),
         client
           .from("encounters")
           .select("*", { count: "exact", head: true })
           .eq("status", "in_progress")
+          .eq(scope.column, scope.value)
           .then((r: unknown) => (r as { count: number }).count),
         client
           .from("appointments")
           .select("*", { count: "exact", head: true })
           .eq("appointment_date", today)
           .eq("status", "completed")
+          .eq(scope.column, scope.value)
           .then((r: unknown) => (r as { count: number }).count),
       ]);
 
@@ -59,9 +77,10 @@ function useDashboardSummary() {
   });
 }
 
-function useTodaySchedule() {
+function useTodaySchedule(auth: AuthorizationContext) {
+  const scope = resolveAuthScope(auth);
   return useQuery({
-    queryKey: ["dashboard", "schedule"],
+    queryKey: ["dashboard", "schedule", scope.column, scope.value],
     queryFn: async () => {
       const client = getSupabaseClient();
       const today = new Date().toISOString().split("T")[0];
@@ -69,6 +88,7 @@ function useTodaySchedule() {
         .from("appointments")
         .select("id,appointment_time,status,patient:patients(first_name,last_name,mrn)")
         .eq("appointment_date", today)
+        .eq(scope.column, scope.value)
         .order("appointment_time", { ascending: true })
         .limit(8)) as unknown as {
         data:
@@ -85,14 +105,17 @@ function useTodaySchedule() {
   });
 }
 
-function useRecentEncounters() {
+function useRecentEncounters(auth: AuthorizationContext) {
+  const scope = resolveAuthScope(auth);
   return useQuery({
-    queryKey: ["dashboard", "recentEncounters"],
+    queryKey: ["dashboard", "recentEncounters", scope.column, scope.value],
     queryFn: async () => {
       const client = getSupabaseClient();
       const { data } = (await client
         .from("encounters")
         .select("id,status,chief_complaint,encounter_date,patient:patients(first_name,last_name)")
+        .eq(scope.column, scope.value)
+        .neq("status", "cancelled")
         .order("created_at", { ascending: false })
         .limit(5)) as unknown as {
         data:
@@ -110,14 +133,17 @@ function useRecentEncounters() {
   });
 }
 
-function useRecentPatients() {
+function useRecentPatients(auth: AuthorizationContext) {
+  const scope = resolveAuthScope(auth);
   return useQuery({
-    queryKey: ["dashboard", "recentPatients"],
+    queryKey: ["dashboard", "recentPatients", scope.column, scope.value],
     queryFn: async () => {
       const client = getSupabaseClient();
       const { data } = (await client
         .from("patients")
         .select("id,first_name,last_name,mrn,dob,gender,created_at")
+        .neq("status", "deregistered")
+        .eq(scope.column, scope.value)
         .order("created_at", { ascending: false })
         .limit(5)) as unknown as {
         data:
@@ -154,10 +180,11 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const navigate = useNavigate();
-  const summary = useDashboardSummary();
-  const schedule = useTodaySchedule();
-  const encounters = useRecentEncounters();
-  const recentPatients = useRecentPatients();
+  const auth = useAuthContext();
+  const summary = useDashboardSummary(auth);
+  const schedule = useTodaySchedule(auth);
+  const encounters = useRecentEncounters(auth);
+  const recentPatients = useRecentPatients(auth);
 
   const s = summary.data;
 

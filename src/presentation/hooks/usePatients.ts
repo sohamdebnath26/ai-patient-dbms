@@ -71,6 +71,7 @@ export function useCreateFullPatient() {
       service.createFull(input, medications, notes, allergies, medicalHistory, labReports, auth),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -84,6 +85,7 @@ export function useUpdatePatient() {
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
       void queryClient.invalidateQueries({ queryKey: ["patients", variables.id] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -95,6 +97,7 @@ export function useArchivePatient() {
     mutationFn: (id: string) => service.archive(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -106,6 +109,7 @@ export function useDeregisterPatient() {
     mutationFn: (id: string) => service.deregister(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
