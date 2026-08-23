@@ -225,6 +225,26 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
     return mapToEncounter(data);
   }
 
+  async cancelEncounter(id: string, auth: AuthorizationContext): Promise<Encounter> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+    const { data, error } = (await client
+      .from("encounters")
+      .update({
+        status: "cancelled",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq(scope.column, scope.value)
+      .select("*")
+      .single()) as unknown as {
+      data: EncounterRow;
+      error: { code: string; message: string } | null;
+    };
+    if (error) throw new Error(error.message);
+    return mapToEncounter(data);
+  }
+
   async listProcedures(encounterId: string): Promise<Procedure[]> {
     const client = getSupabaseClient();
     const { data, error } = (await client

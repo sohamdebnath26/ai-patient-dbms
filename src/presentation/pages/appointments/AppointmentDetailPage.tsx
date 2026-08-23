@@ -5,7 +5,11 @@ import {
   useCancelAppointment,
   useRescheduleAppointment,
 } from "@presentation/hooks/useAppointments";
-import { useEncounterByAppointment, useStartEncounter } from "@presentation/hooks/useEncounters";
+import {
+  useEncounterByAppointment,
+  useStartEncounter,
+  useCancelEncounter,
+} from "@presentation/hooks/useEncounters";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { AppShell } from "@presentation/components/AppShell";
@@ -31,6 +35,7 @@ export function AppointmentDetailPage() {
   const checkIn = useCheckInAppointment();
   const cancel = useCancelAppointment();
   const startEncounter = useStartEncounter();
+  const cancelEncounter = useCancelEncounter();
   const reschedule = useRescheduleAppointment();
   const [showReschedule, setShowReschedule] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -69,6 +74,9 @@ export function AppointmentDetailPage() {
     if (!user || !id) return;
     setActionError(null);
     try {
+      if (encounter) {
+        await cancelEncounter.mutateAsync(encounter.id);
+      }
       await cancel.mutateAsync({ id, userId: user.id });
       void navigate("/appointments");
     } catch (e) {

@@ -9,6 +9,7 @@ export interface IEncounterRepository {
   createForPatient(patientId: string, auth: AuthorizationContext): Promise<Encounter>;
   update(id: string, input: UpdateEncounterInput, auth: AuthorizationContext): Promise<Encounter>;
   completeEncounter(id: string, auth: AuthorizationContext): Promise<Encounter>;
+  cancelEncounter(id: string, auth: AuthorizationContext): Promise<Encounter>;
   listProcedures(encounterId: string): Promise<Procedure[]>;
   addProcedure(
     encounterId: string,

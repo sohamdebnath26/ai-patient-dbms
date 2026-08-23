@@ -40,6 +40,10 @@ export class EncounterService {
     return this.repo.completeEncounter(id, auth);
   }
 
+  async cancel(id: string, auth: AuthorizationContext): Promise<Encounter> {
+    return this.repo.cancelEncounter(id, auth);
+  }
+
   async listProcedures(encounterId: string): Promise<Procedure[]> {
     return this.repo.listProcedures(encounterId);
   }

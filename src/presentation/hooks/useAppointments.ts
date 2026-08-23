@@ -45,6 +45,7 @@ export function useBookAppointment() {
       svc.book(input, { ...auth, userId }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -58,6 +59,7 @@ export function useUpdateAppointmentStatus() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -69,6 +71,7 @@ export function useCheckInAppointment() {
     mutationFn: ({ id, userId }: { id: string; userId: string }) => svc.checkIn(id, userId, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -80,6 +83,7 @@ export function useCancelAppointment() {
     mutationFn: ({ id, userId }: { id: string; userId: string }) => svc.cancel(id, userId, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -92,6 +96,7 @@ export function useRescheduleAppointment() {
       svc.reschedule(id, date, time, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

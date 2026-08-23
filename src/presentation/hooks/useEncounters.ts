@@ -98,6 +98,17 @@ export function useCompleteEncounter() {
   });
 }
 
+export function useCancelEncounter() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: (id: string) => svc.cancel(id, auth),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["encounters"] });
+    },
+  });
+}
+
 export function useEncounterProcedures(encounterId: string) {
   return useQuery({
     queryKey: ["encounters", encounterId, "procedures"],
