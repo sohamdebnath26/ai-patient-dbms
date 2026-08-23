@@ -160,23 +160,32 @@ export function EncounterDetailPage() {
     };
   }
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
   function handleSave() {
     if (!id) return;
-    updateMutation.mutate({ id, input: buildUpdatePayload() });
-  }
-
-  function handleComplete() {
-    if (!id) return;
+    setActionError(null);
     updateMutation.mutate(
       { id, input: buildUpdatePayload() },
       {
-        onSuccess: () => {
-          completeMutation.mutate(id, {
-            onSuccess: () => void navigate(`/encounters/${id}`),
-          });
+        onError: (e) => {
+          setActionError(e instanceof Error ? e.message : "Save failed");
         },
       },
     );
+  }
+
+  async function handleComplete() {
+    if (!id) return;
+    setActionError(null);
+    try {
+      await updateMutation.mutateAsync({ id, input: buildUpdatePayload() });
+      await completeMutation.mutateAsync(id, {
+        onSuccess: () => void navigate(`/encounters/${id}`),
+      });
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to complete encounter");
+    }
   }
 
   if (isLoading || !encounter) {
@@ -287,7 +296,9 @@ export function EncounterDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={handleComplete}
+                onClick={() => {
+                  void handleComplete();
+                }}
                 disabled={completeMutation.isPending}
                 className="inline-flex items-center gap-2 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
               >
@@ -321,6 +332,10 @@ export function EncounterDetailPage() {
             </div>
           )}
         </div>
+
+        {actionError && (
+          <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{actionError}</div>
+        )}
 
         {/* Assessment */}
         <CollapsibleSection title="Assessment" icon={<Search className="h-4 w-4" />} defaultOpen>

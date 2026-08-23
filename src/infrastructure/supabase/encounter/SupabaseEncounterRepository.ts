@@ -88,12 +88,17 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
     return data ? mapToEncounter(data) : null;
   }
 
-  async getByAppointmentId(appointmentId: string): Promise<Encounter | null> {
+  async getByAppointmentId(
+    appointmentId: string,
+    auth: AuthorizationContext,
+  ): Promise<Encounter | null> {
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("encounters")
       .select("*")
       .eq("appointment_id", appointmentId)
+      .eq(scope.column, scope.value)
       .maybeSingle()) as unknown as {
       data: EncounterRow | null;
       error: { message: string } | null;
@@ -179,12 +184,18 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
     return mapToEncounter(data);
   }
 
-  async update(id: string, input: UpdateEncounterInput): Promise<Encounter> {
+  async update(
+    id: string,
+    input: UpdateEncounterInput,
+    auth: AuthorizationContext,
+  ): Promise<Encounter> {
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("encounters")
       .update(input)
       .eq("id", id)
+      .eq(scope.column, scope.value)
       .select("*")
       .single()) as unknown as {
       data: EncounterRow;
@@ -194,8 +205,9 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
     return mapToEncounter(data);
   }
 
-  async completeEncounter(id: string): Promise<Encounter> {
+  async completeEncounter(id: string, auth: AuthorizationContext): Promise<Encounter> {
     const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
     const { data, error } = (await client
       .from("encounters")
       .update({
@@ -203,6 +215,7 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
         completed_at: new Date().toISOString(),
       })
       .eq("id", id)
+      .eq(scope.column, scope.value)
       .select("*")
       .single()) as unknown as {
       data: EncounterRow;

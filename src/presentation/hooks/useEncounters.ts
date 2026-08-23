@@ -29,9 +29,15 @@ export function useEncounter(id: string) {
 }
 
 export function useEncounterByAppointment(appointmentId: string) {
+  const auth = useCurrentAuth();
   return useQuery({
-    queryKey: ["encounters", "appointment", appointmentId],
-    queryFn: () => svc.getByAppointmentId(appointmentId),
+    queryKey: [
+      "encounters",
+      "appointment",
+      appointmentId,
+      auth.selectedOrganizationId ?? `user:${auth.userId}`,
+    ],
+    queryFn: () => svc.getByAppointmentId(appointmentId, auth),
     enabled: !!appointmentId,
   });
 }
@@ -70,9 +76,10 @@ export function useCreateEncounter() {
 
 export function useUpdateEncounter() {
   const qc = useQueryClient();
+  const auth = useCurrentAuth();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateEncounterInput }) =>
-      svc.update(id, input),
+      svc.update(id, input, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
     },
@@ -81,8 +88,9 @@ export function useUpdateEncounter() {
 
 export function useCompleteEncounter() {
   const qc = useQueryClient();
+  const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: (id: string) => svc.complete(id),
+    mutationFn: (id: string) => svc.complete(id, auth),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
       void qc.invalidateQueries({ queryKey: ["appointments"] });

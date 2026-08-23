@@ -9,8 +9,11 @@ export class EncounterService {
     return this.repo.getById(id, auth);
   }
 
-  async getByAppointmentId(appointmentId: string): Promise<Encounter | null> {
-    return this.repo.getByAppointmentId(appointmentId);
+  async getByAppointmentId(
+    appointmentId: string,
+    auth: AuthorizationContext,
+  ): Promise<Encounter | null> {
+    return this.repo.getByAppointmentId(appointmentId, auth);
   }
 
   async listByPatient(patientId: string, auth: AuthorizationContext): Promise<Encounter[]> {
@@ -25,12 +28,16 @@ export class EncounterService {
     return this.repo.createForPatient(patientId, auth);
   }
 
-  async update(id: string, input: UpdateEncounterInput): Promise<Encounter> {
-    return this.repo.update(id, input);
+  async update(
+    id: string,
+    input: UpdateEncounterInput,
+    auth: AuthorizationContext,
+  ): Promise<Encounter> {
+    return this.repo.update(id, input, auth);
   }
 
-  async complete(id: string): Promise<Encounter> {
-    return this.repo.completeEncounter(id);
+  async complete(id: string, auth: AuthorizationContext): Promise<Encounter> {
+    return this.repo.completeEncounter(id, auth);
   }
 
   async listProcedures(encounterId: string): Promise<Procedure[]> {
