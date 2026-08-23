@@ -53,7 +53,6 @@ import {
   User,
   HeartPulse,
   Stethoscope,
-  FileText,
   Clock,
 } from "lucide-react";
 
@@ -288,7 +287,10 @@ export function PatientCreatePage() {
             </div>
           </CollapsibleSection>
 
-          <CollapsibleSection title="Medical History" icon={<HeartPulse className="h-4 w-4" />}>
+          <CollapsibleSection
+            title="Medical History & Clinical Records"
+            icon={<HeartPulse className="h-4 w-4" />}
+          >
             <div className="space-y-8">
               <MedicalHistorySection register={register} errors={errors} />
               <FamilyHistorySection register={register} />
@@ -306,31 +308,6 @@ export function PatientCreatePage() {
                   setAlerts((prev) => prev.filter((a) => a.id !== id));
                 }}
               />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Dermatology" icon={<Stethoscope className="h-4 w-4" />}>
-            <div className="space-y-8">
-              <DermatologySection
-                register={register}
-                errors={errors}
-                symptoms={symptomsValue}
-                onSymptomsChange={(value) => {
-                  setValue("symptoms", value, { shouldValidate: true });
-                }}
-              />
-              <CurrentTreatmentSection
-                register={register}
-                errors={errors}
-                currentDiagnosis={diagnosisValue}
-                prescriptionAvailable={medications.length > 0}
-                reportGenerated={reports.length > 0}
-              />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Clinical Records" icon={<FileText className="h-4 w-4" />}>
-            <div className="space-y-8">
               <MedicationSection
                 medications={medications}
                 adding={false}
@@ -415,6 +392,26 @@ export function PatientCreatePage() {
                   setImages((prev) => prev.filter((x) => x.id !== id));
                   return Promise.resolve();
                 }}
+              />
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Dermatology" icon={<Stethoscope className="h-4 w-4" />}>
+            <div className="space-y-8">
+              <DermatologySection
+                register={register}
+                errors={errors}
+                symptoms={symptomsValue}
+                onSymptomsChange={(value) => {
+                  setValue("symptoms", value, { shouldValidate: true });
+                }}
+              />
+              <CurrentTreatmentSection
+                register={register}
+                errors={errors}
+                currentDiagnosis={diagnosisValue}
+                prescriptionAvailable={medications.length > 0}
+                reportGenerated={reports.length > 0}
               />
             </div>
           </CollapsibleSection>
