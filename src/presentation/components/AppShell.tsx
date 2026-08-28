@@ -26,7 +26,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, addAction: null },
   { to: "/patients", label: "Patients", icon: Users, addAction: "/patients/new" },
   { to: "/appointments", label: "Appointments", icon: Calendar, addAction: "/appointments/new" },
-  { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: true, addAction: null },
+  { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: false, addAction: null },
   { to: "/images", label: "Medical Images", icon: Image, disabled: true, addAction: null },
   { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: false, addAction: null },
   { to: "/reports", label: "Reports", icon: FileText, disabled: true, addAction: null },
