@@ -18,6 +18,7 @@ import { AppointmentListPage } from "@presentation/pages/appointments/Appointmen
 import { AppointmentCreatePage } from "@presentation/pages/appointments/AppointmentCreatePage";
 import { AppointmentDetailPage } from "@presentation/pages/appointments/AppointmentDetailPage";
 import { EncounterDetailPage } from "@presentation/pages/encounters/EncounterDetailPage";
+import { EncounterListPage } from "@presentation/pages/encounters/EncounterListPage";
 import { ChatProvider } from "@presentation/contexts/ChatProvider";
 import { AIChatbot, ChatLauncher } from "@presentation/components/AIChatbot";
 
@@ -162,6 +163,14 @@ export function App() {
                 element={
                   <ProtectedRoute>
                     <AppointmentDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/encounters"
+                element={
+                  <ProtectedRoute>
+                    <EncounterListPage />
                   </ProtectedRoute>
                 }
               />

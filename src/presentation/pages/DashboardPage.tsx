@@ -106,34 +106,6 @@ function useTodaySchedule(auth: AuthorizationContext) {
   });
 }
 
-function useRecentEncounters(auth: AuthorizationContext) {
-  const scope = resolveAuthScope(auth);
-  return useQuery({
-    queryKey: ["dashboard", "recentEncounters", scope.column, scope.value],
-    queryFn: async () => {
-      const client = getSupabaseClient();
-      const { data } = (await client
-        .from("encounters")
-        .select("id,status,chief_complaint,encounter_date,patient:patients(first_name,last_name)")
-        .eq(scope.column, scope.value)
-        .neq("status", "cancelled")
-        .order("created_at", { ascending: false })
-        .limit(5)) as unknown as {
-        data:
-          | {
-              id: string;
-              status: string;
-              chief_complaint: string | null;
-              encounter_date: string;
-              patient: { first_name: string; last_name: string }[] | null;
-            }[]
-          | null;
-      };
-      return data ?? [];
-    },
-  });
-}
-
 function useRecentPatients(auth: AuthorizationContext) {
   const scope = resolveAuthScope(auth);
   return useQuery({
@@ -184,7 +156,6 @@ export function DashboardPage() {
   const auth = useAuthContext();
   const summary = useDashboardSummary(auth);
   const schedule = useTodaySchedule(auth);
-  const encounters = useRecentEncounters(auth);
   const recentPatients = useRecentPatients(auth);
 
   const s = summary.data;
@@ -317,87 +288,6 @@ export function DashboardPage() {
                         </p>
                       </div>
                       <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Recent Encounters</h2>
-                <button
-                  onClick={() => {
-                    void navigate("/appointments");
-                  }}
-                  className="text-brand-600 hover:text-brand-700 flex items-center gap-1 text-sm font-semibold"
-                >
-                  View all <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              {encounters.isLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="bg-surface-50 flex animate-pulse items-center gap-3 rounded-lg p-3"
-                    >
-                      <div className="bg-surface-200 h-8 w-8 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="bg-surface-200 h-3 w-36 rounded" />
-                        <div className="bg-surface-200 h-2.5 w-24 rounded" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : encounters.data && encounters.data.length === 0 ? (
-                <div className="flex flex-col items-center py-12 text-center">
-                  <div className="bg-surface-50 flex h-16 w-16 items-center justify-center rounded-full">
-                    <Stethoscope className="h-7 w-7 text-gray-400" />
-                  </div>
-                  <p className="mt-4 text-sm font-bold text-gray-900">No encounters yet</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200">
-                  {encounters.data?.map((e) => (
-                    <div
-                      key={e.id}
-                      onClick={() => {
-                        void navigate(`/encounters/${e.id}`);
-                      }}
-                      className="flex cursor-pointer items-center gap-4 py-5 transition-colors first:pt-0 last:pb-0 hover:bg-gray-50"
-                    >
-                      <div
-                        className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full ${
-                          e.status === "in_progress"
-                            ? "bg-purple-50 text-purple-600"
-                            : "bg-surface-100 text-gray-500"
-                        }`}
-                      >
-                        <Stethoscope className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-gray-900">
-                          {e.patient?.[0]?.first_name ?? "—"} {e.patient?.[0]?.last_name ?? ""}
-                        </p>
-                        <p className="truncate text-xs font-medium text-gray-500">
-                          {new Date(e.encounter_date).toLocaleDateString()} ·{" "}
-                          {e.chief_complaint || "No complaint recorded"}
-                        </p>
-                      </div>
-                      <span
-                        className={`inline-flex flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                          e.status === "in_progress"
-                            ? "bg-purple-50 text-purple-700"
-                            : "bg-surface-100 text-gray-600"
-                        }`}
-                      >
-                        {e.status.replace("_", " ")}
-                      </span>
-                      <span className="text-brand-600 w-16 flex-shrink-0 text-right text-sm font-semibold">
-                        {e.status === "in_progress" ? "Continue" : "View"}
-                      </span>
                     </div>
                   ))}
                 </div>
