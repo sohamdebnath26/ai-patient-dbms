@@ -114,7 +114,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         patient_id: input.patient_id,
         organization_id: auth.selectedOrganizationId,
         clinic_id: auth.selectedClinicId ?? null,
-        assigned_to: input.assigned_to ?? null,
+        assigned_to: input.assigned_to ?? auth.userId,
         appointment_date: input.appointment_date,
         appointment_time: input.appointment_time ?? null,
         duration_minutes: input.duration_minutes,

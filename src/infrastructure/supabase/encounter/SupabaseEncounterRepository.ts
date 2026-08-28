@@ -129,9 +129,26 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
   ): Promise<Encounter> {
     const client = getSupabaseClient();
     const scope = resolveAuthScope(auth);
+
+    // Guard against duplicate encounters for the same appointment
+    // (double-click, refresh, or a prior check-in).
+    const existing = (await client
+      .from("encounters")
+      .select("*")
+      .eq("appointment_id", appointmentId)
+      .eq(scope.column, scope.value)
+      .maybeSingle()) as unknown as {
+      data: EncounterRow | null;
+      error: { message: string } | null;
+    };
+    if (existing.error) throw new Error(existing.error.message);
+    if (existing.data && existing.data.status !== "cancelled") {
+      return mapToEncounter(existing.data);
+    }
+
     const appt = (await client
       .from("appointments")
-      .select("patient_id,organization_id,clinic_id,assigned_to")
+      .select("patient_id,organization_id,clinic_id,assigned_to,status")
       .eq("id", appointmentId)
       .eq(scope.column, scope.value)
       .single()) as unknown as {
@@ -140,11 +157,16 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
         organization_id: string | null;
         clinic_id: string | null;
         assigned_to: string | null;
+        status: string;
       } | null;
       error: { message: string } | null;
     };
+    if (appt.error) throw new Error(appt.error.message);
     const apptResult = appt.data;
     if (!apptResult) throw new Error("Appointment not found");
+    if (["cancelled", "completed", "no_show"].includes(apptResult.status)) {
+      throw new Error(`Cannot start an encounter for a ${apptResult.status} appointment.`);
+    }
 
     const { data, error } = (await client
       .from("encounters")
@@ -153,7 +175,7 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
         appointment_id: appointmentId,
         organization_id: apptResult.organization_id,
         clinic_id: apptResult.clinic_id,
-        assigned_to: apptResult.assigned_to,
+        assigned_to: apptResult.assigned_to ?? userId,
         encounter_date: new Date().toISOString().split("T")[0],
         encounter_number: `ENC-${Date.now()}`,
         started_at: new Date().toISOString(),
@@ -176,6 +198,7 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
         patient_id: patientId,
         organization_id: auth.selectedOrganizationId,
         clinic_id: auth.selectedClinicId ?? null,
+        assigned_to: auth.userId,
         created_by: auth.userId,
         encounter_date: new Date().toISOString().split("T")[0],
         encounter_number: `ENC-${Date.now()}`,

@@ -94,6 +94,7 @@ export function useAddEncounterDiagnosis(encounterId: string, patientId: string)
       service.addDiagnosis(encounterId, patientId, input, auth),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["encounters", encounterId, "diagnoses"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical", patientId] });
     },
   });
 }
@@ -104,6 +105,7 @@ export function useRemoveEncounterDiagnosis(encounterId: string) {
     mutationFn: (id: string) => service.removeDiagnosis(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["encounters", encounterId, "diagnoses"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical"] });
     },
   });
 }
@@ -124,6 +126,7 @@ export function useAddEncounterMedication(encounterId: string, patientId: string
       service.addMedication(patientId, input, auth, encounterId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["encounters", encounterId, "medications"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical", patientId] });
     },
   });
 }
@@ -134,6 +137,7 @@ export function useRemoveEncounterMedication(encounterId: string) {
     mutationFn: (itemId: string) => service.removeMedication(itemId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["encounters", encounterId, "medications"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical"] });
     },
   });
 }
@@ -154,6 +158,7 @@ export function useAddEncounterLabReport(encounterId: string, patientId: string)
       service.addLabReport(patientId, input, auth, encounterId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["encounters", encounterId, "labReports"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical", patientId] });
     },
   });
 }
@@ -174,6 +179,7 @@ export function useAddEncounterNote(encounterId: string, patientId: string) {
       service.addClinicalNote(patientId, input, auth, encounterId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["encounters", encounterId, "notes"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical", patientId] });
     },
   });
 }

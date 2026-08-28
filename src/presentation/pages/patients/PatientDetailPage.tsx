@@ -89,6 +89,7 @@ export function PatientDetailPage() {
   const latestEncounter =
     (encounters ?? []).find((e) => e.status === "completed") ?? (encounters ?? [])[0] ?? null;
   const nextFollowUp = latestEncounter?.follow_up_date ?? null;
+  const totalVisits = (encounters ?? []).filter((e) => e.status === "completed").length;
 
   const handleNewEncounter = () => {
     createEncounter.mutate(patient.id, {
@@ -522,7 +523,7 @@ export function PatientDetailPage() {
                   value={formatDate(latestEncounter?.encounter_date ?? null)}
                 />
                 <FieldDisplay label="Next Follow-up" value={formatDate(nextFollowUp)} />
-                <FieldDisplay label="Total Visits" value={String(encounters?.length ?? 0)} />
+                <FieldDisplay label="Total Visits" value={String(totalVisits)} />
                 <FieldDisplay label="Assigned Doctor" value={assignedDoctor} />
               </div>
             </div>
