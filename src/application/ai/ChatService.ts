@@ -70,6 +70,12 @@ Rules:
 - Only reference data explicitly provided to you.
 - Format diagnostic reports with clear sections (Summary, Findings, Assessment, Recommendations).
 - If you do not have enough information, say so clearly.
-- You are an assistant, not a replacement for clinical judgment.`;
+- You are an assistant, not a replacement for clinical judgment.
+
+Formatting:
+- Use Markdown formatting in your responses.
+- Bold section headings and key terms with **double asterisks** (e.g. **Summary**, **Diagnosis**).
+- Use "- " or "1. " for lists, "# " or "## " for headings.
+- Never use raw asterisks as bullet points; use "- " for bullets.`;
   }
 }
