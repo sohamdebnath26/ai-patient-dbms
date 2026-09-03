@@ -1,66 +1,79 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  PatientFormSchema,
-  type PatientFormInput,
-  type Medication,
-  type MedicationInput,
-  type ClinicalNote,
-  type ClinicalNoteInput,
-  type MedicalAlert,
-  type AllergyInput,
-  type MedicalHistoryInput,
-  type LabReport,
-  type LabReportInput,
-} from "@domain/patient";
 import { useCreateFullPatient } from "@presentation/hooks/usePatients";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useResolvedOrganization } from "@presentation/hooks/useResolvedOrganization";
 import { useToast } from "@presentation/hooks/useToast";
+import { PatientFormSchema, type PatientFormInput } from "@domain/patient";
+import type {
+  MedicationInput,
+  ClinicalNoteInput,
+  LabReportInput,
+  AllergyInput,
+  MedicalHistoryInput,
+  ClinicalNote,
+  Medication,
+  LabReport,
+  MedicalAlert,
+} from "@domain/patient";
 import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
+import {
+  PatientHeader,
+  type PatientHeaderData,
+} from "@presentation/components/patient/PatientHeader";
+import { MedicationSection } from "@presentation/components/patient/MedicationSection";
+import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
+import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
+import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
+import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
-import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
 import { PatientAddressSection } from "@presentation/components/patient/PatientAddressSection";
+import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
 import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
 import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
 import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
 import { CurrentTreatmentSection } from "@presentation/components/patient/CurrentTreatmentSection";
-import { MedicationSection } from "@presentation/components/patient/MedicationSection";
-import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
-import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
-import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
-import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
 import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
-import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import { SectionHeading, SummaryItem } from "@presentation/components/patient/helpers";
+import { computeAge, type ClinicalImage } from "@presentation/components/patient/utils";
 import {
-  computeAge,
-  formatDate,
-  initials,
-  statusBadgeClass,
-  type ClinicalImage,
-} from "@presentation/components/patient/utils";
-import { ArrowLeft, Loader2, Sparkles, UserRound, Building2, User, HeartPulse } from "lucide-react";
+  ArrowLeft,
+  Loader2,
+  Sparkles,
+  User,
+  Phone as PhoneIcon,
+  Stethoscope,
+  Heart,
+  Pill,
+  ClipboardList,
+  CheckCircle2,
+  Activity,
+} from "lucide-react";
+
+type Step = "identity" | "medical" | "clinical";
+
+interface StepConfig {
+  key: Step;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const STEPS: StepConfig[] = [
+  { key: "identity", label: "Identity & Contact", icon: <User className="h-4 w-4" /> },
+  { key: "medical", label: "Medical Background", icon: <Heart className="h-4 w-4" /> },
+  { key: "clinical", label: "Clinical & Treatment", icon: <ClipboardList className="h-4 w-4" /> },
+];
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
-  const { phase, hasOrganization, selectedOrganizationId } = useResolvedOrganization();
   const { profile } = useProfile();
-  const createMutation = useCreateFullPatient();
+  const { phase } = useResolvedOrganization();
   const toast = useToast();
-
-  const canSubmit = phase === "ready" && !createMutation.isPending;
-  const defaultMrn = useMemo(() => `MRN-${Date.now()}`, []);
-
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [notes, setNotes] = useState<ClinicalNote[]>([]);
-  const [alerts, setAlerts] = useState<MedicalAlert[]>([]);
-  const [reports, setReports] = useState<LabReport[]>([]);
-  const [images, setImages] = useState<ClinicalImage[]>([]);
+  const createMutation = useCreateFullPatient();
+  const [step, setStep] = useState<Step>("identity");
 
   const {
     register,
@@ -70,32 +83,50 @@ export function PatientCreatePage() {
     formState: { errors },
   } = useForm<PatientFormInput>({
     resolver: zodResolver(PatientFormSchema),
-    shouldFocusError: true,
     defaultValues: {
-      mrn: defaultMrn,
-      status: "active",
       first_name: "",
       last_name: "",
       dob: "",
       gender: "",
       blood_group: "",
-      chronic_conditions: "",
+      mrn: `MRN-${Date.now()}`,
+      status: "active",
       symptoms: "",
       primary_diagnosis: "",
+      chronic_conditions: "",
     },
+    shouldFocusError: true,
   });
+
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [notes, setNotes] = useState<ClinicalNote[]>([]);
+  const [alerts, setAlerts] = useState<MedicalAlert[]>([]);
+  const [reports, setReports] = useState<LabReport[]>([]);
+  const [images, setImages] = useState<ClinicalImage[]>([]);
 
   const firstName = watch("first_name");
   const lastName = watch("last_name");
-  const dobValue = watch("dob");
+  const dob = watch("dob");
   const gender = watch("gender");
   const bloodGroup = watch("blood_group");
   const mrn = watch("mrn");
-  const symptomsValue = watch("symptoms");
-  const diagnosisValue = watch("primary_diagnosis");
+  const symptoms = watch("symptoms");
+  const diagnosis = watch("primary_diagnosis");
+  const chronicConditions = watch("chronic_conditions");
 
-  const age = useMemo(() => computeAge(dobValue), [dobValue]);
-  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+  const age = useMemo(() => (dob ? computeAge(dob) : null), [dob]);
+
+  const headerData: PatientHeaderData = {
+    firstName,
+    lastName,
+    dob,
+    gender,
+    bloodGroup,
+    mrn,
+    status: "active",
+  };
+
+  const canSubmit = phase === "ready" && !createMutation.isPending;
 
   function onSubmit(data: PatientFormInput) {
     if (!canSubmit) return;
@@ -157,303 +188,336 @@ export function PatientCreatePage() {
     );
   }
 
-  const doctorName = profile?.firstName
-    ? `Dr. ${profile.firstName} ${profile.lastName}`
-    : (profile?.email ?? "Current user");
+  const currentStepIdx = STEPS.findIndex((s) => s.key === step);
 
   return (
     <AppShell>
       <div className="mx-auto max-w-4xl space-y-4">
         <button
-          onClick={() => void navigate("/patients")}
-          className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          type="button"
+          onClick={() => {
+            void navigate("/patients");
+          }}
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Patients
+          <ArrowLeft className="h-4 w-4" /> Back to Patients
         </button>
 
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
-          {/* Section 1 — Patient Summary */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-start gap-4 p-6">
-              <div className="bg-brand-50 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full">
-                <span className="text-brand-600 text-2xl font-semibold">
-                  {fullName ? initials(firstName, lastName) : "NP"}
-                </span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-bold text-gray-900">{fullName || "New Patient"}</h1>
-                  <span className="text-xs font-medium text-gray-500">
-                    New Patient Registration
-                  </span>
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass("active")}`}
-                  >
-                    active
-                  </span>
-                </div>
-                <div className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                  <SummaryItem label="MRN" value={mrn} mono />
-                  <SummaryItem label="Age" value={age !== null ? `${age} yrs` : "—"} />
-                  <SummaryItem label="Gender" value={gender || "—"} />
-                  <SummaryItem label="Blood Group" value={bloodGroup || "—"} />
-                  <SummaryItem label="Status" value="Active" />
-                  <SummaryItem
-                    label="Patient ID"
-                    value="Will be generated after registration"
-                    truncate
+        <PatientHeader
+          patient={headerData}
+          heading="New Patient Registration"
+          subtitle={`Registering as ${profile?.role ?? "..."}`}
+        />
+
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-white p-2">
+          {STEPS.map((s, i) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => {
+                if (i < currentStepIdx) setStep(s.key);
+              }}
+              disabled={i > currentStepIdx}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                i === currentStepIdx
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : i < currentStepIdx
+                    ? "bg-brand-50 text-brand-700 hover:bg-brand-100"
+                    : "cursor-not-allowed text-gray-400"
+              }`}
+            >
+              {i < currentStepIdx ? <CheckCircle2 className="h-4 w-4" /> : s.icon}
+              <span className="hidden sm:inline">{s.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {phase === "loading" && (
+          <div className="rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-500">
+            Loading your workspace&hellip;
+          </div>
+        )}
+        {phase === "needs-selection" && (
+          <div className="rounded-md bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+            You belong to multiple organizations. Select an organization to register this patient.
+          </div>
+        )}
+
+        {createMutation.isError && (
+          <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+            {createMutation.error.message}
+          </div>
+        )}
+
+        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-4">
+            {step === "identity" && (
+              <>
+                <CollapsibleSection
+                  title="Personal Information"
+                  icon={<User className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <PatientPersonalSection
+                    register={register}
+                    errors={errors}
+                    age={age}
+                    showStatus={false}
                   />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {createMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                {createMutation.isPending ? "Saving..." : "Register Patient"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void navigate("/patients")}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  document.getElementById("ai-summary")?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <Sparkles className="h-4 w-4" />
-                AI Summary
-              </button>
-              <ScopeBadge hasOrganization={hasOrganization} orgId={selectedOrganizationId} />
-            </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Address"
+                  icon={<PhoneIcon className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <div className="space-y-8">
+                    <PatientAddressSection
+                      register={register}
+                      errors={errors}
+                      setValue={setValue}
+                      watch={watch}
+                    />
+                    <div className="border-t border-gray-100 pt-6">
+                      <PatientContactSection register={register} errors={errors} />
+                    </div>
+                  </div>
+                </CollapsibleSection>
+              </>
+            )}
+
+            {step === "medical" && (
+              <>
+                <CollapsibleSection
+                  title="Medical History"
+                  icon={<Stethoscope className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <div className="space-y-8">
+                    <MedicalHistorySection register={register} errors={errors} />
+                    <FamilyHistorySection register={register} />
+                  </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Alerts & Conditions"
+                  icon={<Activity className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <MedicalAlertsSection
+                    register={register}
+                    errors={errors}
+                    alerts={[]}
+                    pendingAlerts={alerts}
+                    chronicConditions={chronicConditions}
+                    onAddAlert={(a) => {
+                      setAlerts((prev) => [...prev, a]);
+                    }}
+                    onRemoveAlert={(id) => {
+                      setAlerts((prev) => prev.filter((p) => p.id !== id));
+                    }}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Lifestyle"
+                  icon={<Heart className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <LifestyleSection register={register} gender={gender} />
+                </CollapsibleSection>
+              </>
+            )}
+
+            {step === "clinical" && (
+              <>
+                <CollapsibleSection
+                  title="Dermatology Profile"
+                  icon={<Activity className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <DermatologySection
+                    register={register}
+                    errors={errors}
+                    symptoms={symptoms}
+                    onSymptomsChange={(v) => {
+                      setValue("symptoms", v);
+                    }}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Current Treatment"
+                  icon={<Pill className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <CurrentTreatmentSection
+                    register={register}
+                    errors={errors}
+                    currentDiagnosis={diagnosis}
+                    prescriptionAvailable={medications.length > 0}
+                    reportGenerated={reports.length > 0}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Medications"
+                  icon={<Pill className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <MedicationSection
+                    medications={medications}
+                    adding={false}
+                    onAdd={(input) => {
+                      setMedications((prev) => [
+                        ...prev,
+                        {
+                          id: crypto.randomUUID(),
+                          ...input,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                          patient_id: "",
+                          created_by: "",
+                        } as Medication,
+                      ]);
+                    }}
+                    onRemove={(id) => {
+                      setMedications((prev) => prev.filter((m) => m.id !== id));
+                    }}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Lab Reports" icon={<Activity className="h-4 w-4" />}>
+                  <LabReportsSection
+                    reports={reports}
+                    onAdd={(input) => {
+                      setReports((prev) => [
+                        ...prev,
+                        {
+                          id: crypto.randomUUID(),
+                          ...input,
+                          status: "ordered",
+                          patient_id: "",
+                          created_by: "",
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                        } as LabReport,
+                      ]);
+                    }}
+                    onRemove={(id) => {
+                      setReports((prev) => prev.filter((r) => r.id !== id));
+                    }}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Clinical Notes"
+                  icon={<ClipboardList className="h-4 w-4" />}
+                >
+                  <ClinicalNotesSection
+                    notes={notes}
+                    adding={false}
+                    onAdd={(input) => {
+                      setNotes((prev) => [
+                        ...prev,
+                        {
+                          id: crypto.randomUUID(),
+                          ...input,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                          patient_id: "",
+                          created_by: "",
+                          note_type: input.note_type || "general",
+                        } as ClinicalNote,
+                      ]);
+                    }}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Clinical Images" icon={<Sparkles className="h-4 w-4" />}>
+                  <ClinicalImagesSection
+                    images={images}
+                    onAdd={(file) => {
+                      setImages((prev) => [
+                        ...prev,
+                        {
+                          id: crypto.randomUUID(),
+                          url: URL.createObjectURL(file),
+                          name: file.name,
+                          uploadedAt: new Date().toISOString(),
+                          bodyArea: "",
+                          diagnosis: "",
+                          notes: "",
+                        },
+                      ]);
+                    }}
+                    onRemove={(id) => {
+                      setImages((prev) => prev.filter((img) => img.id !== id));
+                    }}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Visit Summary" icon={<Activity className="h-4 w-4" />}>
+                  <VisitSummarySection
+                    lastVisitDate={null}
+                    nextFollowUpDate={null}
+                    totalVisits={0}
+                    assignedDoctor={
+                      profile?.firstName
+                        ? `Dr. ${profile.firstName} ${profile.lastName}`
+                        : "Not assigned"
+                    }
+                  />
+                </CollapsibleSection>
+              </>
+            )}
           </div>
 
-          {createMutation.isError && (
-            <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
-              {createMutation.error.message}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4">
+            <div className="text-sm text-gray-500">
+              Step {currentStepIdx + 1} of {STEPS.length} &middot; {STEPS[currentStepIdx]?.label}
             </div>
-          )}
-
-          {phase === "loading" && (
-            <div className="rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-600">
-              Loading your workspace…
+            <div className="flex gap-2">
+              {currentStepIdx > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(STEPS[currentStepIdx - 1].key);
+                  }}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+              )}
+              {currentStepIdx < STEPS.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(STEPS[currentStepIdx + 1].key);
+                  }}
+                  className="bg-brand-600 hover:bg-brand-700 rounded-md px-4 py-2 text-sm font-medium text-white"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {createMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {createMutation.isPending ? "Saving..." : "Register Patient"}
+                </button>
+              )}
             </div>
-          )}
-
-          {phase === "needs-selection" && (
-            <div className="rounded-md bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-              You belong to multiple organizations. Select an organization to register this patient.
-            </div>
-          )}
-
-          <CollapsibleSection title="Demographics" icon={<User className="h-4 w-4" />} defaultOpen>
-            <div className="space-y-8">
-              <PatientPersonalSection
-                register={register}
-                errors={errors}
-                age={age}
-                showStatus={false}
-              />
-              <PatientAddressSection
-                register={register}
-                errors={errors}
-                setValue={setValue}
-                watch={watch}
-              />
-              <PatientContactSection register={register} errors={errors} />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection
-            title="Analysis"
-            icon={<HeartPulse className="h-4 w-4" />}
-            defaultOpen
-          >
-            <div className="space-y-8">
-              <MedicalHistorySection register={register} errors={errors} />
-              <FamilyHistorySection register={register} />
-              <LifestyleSection register={register} gender={gender} />
-              <MedicalAlertsSection
-                register={register}
-                errors={errors}
-                alerts={[]}
-                pendingAlerts={alerts}
-                chronicConditions={watch("chronic_conditions") ?? ""}
-                onAddAlert={(alert) => {
-                  setAlerts((prev) => [...prev, alert]);
-                }}
-                onRemoveAlert={(id) => {
-                  setAlerts((prev) => prev.filter((a) => a.id !== id));
-                }}
-              />
-              <MedicationSection
-                medications={medications}
-                adding={false}
-                onAdd={(input) => {
-                  setMedications((prev) => [
-                    ...prev,
-                    {
-                      id: crypto.randomUUID(),
-                      prescription_id: crypto.randomUUID(),
-                      medication_name: input.medication_name,
-                      dosage: input.dosage ?? "",
-                      frequency: input.frequency ?? "",
-                      duration: input.duration ?? null,
-                      start_date: input.start_date ?? null,
-                      end_date: input.end_date ?? null,
-                      prescribing_doctor: input.prescribing_doctor ?? null,
-                      instructions: null,
-                    },
-                  ]);
-                }}
-                onRemove={(id) => {
-                  setMedications((prev) => prev.filter((m) => m.id !== id));
-                }}
-              />
-              <LabReportsSection
-                reports={reports}
-                onAdd={(input) => {
-                  setReports((prev) => [
-                    ...prev,
-                    {
-                      id: crypto.randomUUID(),
-                      test_name: input.test_name,
-                      status: "ordered",
-                      report_date: null,
-                      result_summary: null,
-                      lab_name: null,
-                    },
-                  ]);
-                }}
-                onRemove={(id) => {
-                  setReports((prev) => prev.filter((r) => r.id !== id));
-                }}
-              />
-              <ClinicalNotesSection
-                notes={notes}
-                adding={false}
-                onAdd={(input) => {
-                  setNotes((prev) => [
-                    ...prev,
-                    {
-                      id: crypto.randomUUID(),
-                      note_type: input.note_type ?? "soap",
-                      subjective: input.subjective ?? null,
-                      objective: input.objective ?? null,
-                      assessment: input.assessment ?? null,
-                      plan: input.plan ?? null,
-                      created_by: "",
-                      created_at: new Date().toISOString(),
-                    },
-                  ]);
-                }}
-              />
-              <ClinicalImagesSection
-                images={images}
-                onAdd={(file) => {
-                  const url = URL.createObjectURL(file);
-                  setImages((prev) => [
-                    ...prev,
-                    {
-                      id: `${Date.now()}`,
-                      url,
-                      name: file.name,
-                      uploadedAt: new Date().toISOString(),
-                      bodyArea: "—",
-                      diagnosis: "—",
-                      notes: "",
-                    },
-                  ]);
-                  return Promise.resolve();
-                }}
-                onRemove={(id) => {
-                  setImages((prev) => prev.filter((x) => x.id !== id));
-                  return Promise.resolve();
-                }}
-              />
-              <DermatologySection
-                register={register}
-                errors={errors}
-                symptoms={symptomsValue}
-                onSymptomsChange={(value) => {
-                  setValue("symptoms", value, { shouldValidate: true });
-                }}
-              />
-              <CurrentTreatmentSection
-                register={register}
-                errors={errors}
-                currentDiagnosis={diagnosisValue}
-                prescriptionAvailable={medications.length > 0}
-                reportGenerated={reports.length > 0}
-              />
-              <VisitSummarySection
-                lastVisitDate={null}
-                nextFollowUpDate={null}
-                totalVisits={0}
-                assignedDoctor={doctorName}
-              />
-              <div id="ai-summary" className="space-y-3">
-                <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI Summary" />
-                <div className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
-                  <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
-                  <p className="mt-2 text-sm text-gray-600">No clinical data available yet.</p>
-                  <p className="mt-1 text-xs text-gray-400">
-                    After patient creation, future visits will populate this section automatically.
-                  </p>
-                </div>
-              </div>
-              <PatientAuditSection
-                createdBy={doctorName}
-                createdAt={formatDate(new Date().toISOString())}
-                updatedAt={formatDate(new Date().toISOString())}
-                updatedBy="—"
-                organization={
-                  hasOrganization ? (selectedOrganizationId ?? "Organization") : "Personal record"
-                }
-              />
-            </div>
-          </CollapsibleSection>
+          </div>
         </form>
       </div>
     </AppShell>
-  );
-}
-
-function ScopeBadge({
-  hasOrganization,
-  orgId,
-}: {
-  hasOrganization: boolean;
-  orgId: string | null;
-}) {
-  if (hasOrganization) {
-    return (
-      <span className="bg-brand-50 text-brand-700 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
-        <Building2 className="h-3.5 w-3.5" />
-        Organization record
-      </span>
-    );
-  }
-  return (
-    <span
-      className="bg-surface-100 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-gray-700"
-      title={orgId === null ? "Saved with created_by = auth.uid() only" : "Pending selection"}
-    >
-      <UserRound className="h-3.5 w-3.5" />
-      Personal record
-    </span>
   );
 }

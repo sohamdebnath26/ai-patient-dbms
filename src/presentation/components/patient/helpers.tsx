@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { inputClass } from "./utils";
+import { Loader2 } from "lucide-react";
 
 export function SectionHeading({
   icon,
@@ -139,5 +140,115 @@ export function AuditItem({
       <dt className="text-gray-500">{label}</dt>
       <dd className={`text-right text-gray-900 ${mono ? "font-mono text-xs" : ""}`}>{value}</dd>
     </div>
+  );
+}
+
+export function TextField({
+  label,
+  value,
+  onChange,
+  disabled,
+  placeholder,
+  span,
+  type = "text",
+  id,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  span?: "full";
+  type?: string;
+  id?: string;
+}) {
+  return (
+    <div className={span === "full" ? "col-span-2" : ""}>
+      <label className="block text-xs font-medium text-gray-600">{label}</label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
+        disabled={disabled}
+        placeholder={placeholder}
+        className={inputClass}
+      />
+    </div>
+  );
+}
+
+export function TextAreaField({
+  label,
+  value,
+  onChange,
+  disabled,
+  placeholder,
+  span,
+  rows = 3,
+  id,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  span?: "full";
+  rows?: number;
+  id?: string;
+}) {
+  return (
+    <div className={span === "full" ? "col-span-2" : ""}>
+      <label className="block text-xs font-medium text-gray-600">{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
+        disabled={disabled}
+        placeholder={placeholder}
+        rows={rows}
+        className={inputClass}
+      />
+    </div>
+  );
+}
+
+export function LoadingButton({
+  onClick,
+  disabled,
+  loading,
+  icon: Icon,
+  label,
+  variant = "primary",
+  type = "button",
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: ReactNode;
+  label: string;
+  variant?: "primary" | "secondary" | "danger";
+  type?: "button" | "submit";
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={`inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+        variant === "danger"
+          ? "bg-red-600 text-white hover:bg-red-700"
+          : variant === "secondary"
+            ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
+            : "bg-brand-600 hover:bg-brand-700 text-white"
+      }`}
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : Icon}
+      {loading ? "Saving..." : label}
+    </button>
   );
 }

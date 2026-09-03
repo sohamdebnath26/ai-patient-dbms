@@ -14,16 +14,23 @@
 BEGIN;
 
 -- 1. Deduplicate pre-existing encounters per appointment (keep the
---    earliest, soft-cancel the rest) so the unique index can be built.
+--    earliest by created_at, soft-cancel the rest) so the unique index
+--    can be built.
+WITH ranked AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY appointment_id
+      ORDER BY created_at ASC, id ASC
+    ) AS rn
+  FROM public.encounters
+  WHERE appointment_id IS NOT NULL
+)
 UPDATE public.encounters e
 SET status = 'cancelled'
-WHERE e.appointment_id IS NOT NULL
-  AND e.id NOT IN (
-    SELECT MIN(id)
-    FROM public.encounters
-    WHERE appointment_id IS NOT NULL
-    GROUP BY appointment_id
-  );
+FROM ranked
+WHERE e.id = ranked.id
+  AND ranked.rn > 1;
 
 -- 2. Partial unique index: one encounter per appointment.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_encounters_appointment_unique

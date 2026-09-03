@@ -22,6 +22,10 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
+import {
+  PatientHeader,
+  type PatientHeaderData,
+} from "@presentation/components/patient/PatientHeader";
 import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
 import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
 import { PatientAddressSection } from "@presentation/components/patient/PatientAddressSection";
@@ -37,29 +41,30 @@ import { LabReportsSection } from "@presentation/components/patient/LabReportsSe
 import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
 import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
 import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import {
-  AiSummaryBlock,
-  SectionHeading,
-  SummaryItem,
-} from "@presentation/components/patient/helpers";
-import {
-  computeAge,
-  formatDate,
-  initials,
-  statusBadgeClass,
-  type ClinicalImage,
-} from "@presentation/components/patient/utils";
+import { computeAge, type ClinicalImage } from "@presentation/components/patient/utils";
 import {
   ArrowLeft,
   Loader2,
-  Sparkles,
   Save,
   UserRoundX,
-  Clock,
-  RefreshCw,
   User,
   HeartPulse,
+  Stethoscope,
+  Activity,
+  Pill,
+  ClipboardList,
+  Sparkles,
+  Clock,
 } from "lucide-react";
+
+type EditTab = "overview" | "demographics" | "medical" | "clinical";
+
+const TABS: { key: EditTab; label: string; icon: React.ReactNode }[] = [
+  { key: "overview", label: "Overview", icon: <HeartPulse className="h-4 w-4" /> },
+  { key: "demographics", label: "Demographics", icon: <User className="h-4 w-4" /> },
+  { key: "medical", label: "History & Lifestyle", icon: <Stethoscope className="h-4 w-4" /> },
+  { key: "clinical", label: "Clinical Record", icon: <ClipboardList className="h-4 w-4" /> },
+];
 
 export function PatientEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -76,7 +81,7 @@ export function PatientEditPage() {
   const isReceptionist = profile?.role === "receptionist";
   const [deregisterOpen, setDeregisterOpen] = useState(false);
   const [images, setImages] = useState<ClinicalImage[]>([]);
-  const [aiSummaryAt, setAiSummaryAt] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState<EditTab>("overview");
 
   const {
     register,
@@ -87,11 +92,7 @@ export function PatientEditPage() {
     formState: { errors },
   } = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
-    defaultValues: {
-      gender: "",
-      symptoms: "",
-      primary_diagnosis: "",
-    },
+    defaultValues: { gender: "", symptoms: "", primary_diagnosis: "" },
   });
 
   const dobValue = watch("dob");
@@ -150,30 +151,23 @@ export function PatientEditPage() {
   }, [patient, reset]);
 
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
-
   const symptomsValue = watch("symptoms");
   const genderValue = watch("gender");
   const diagnosisValue = watch("primary_diagnosis");
 
-  const prescriptionAvailable = (clinical?.medications.length ?? 0) > 0;
-  const reportGenerated = (clinical?.labReports.length ?? 0) > 0;
-  const assignedDoctor = profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—";
-
-  const appointments = useMemo(() => clinical?.appointments ?? [], [clinical?.appointments]);
+  const appointmentList = useMemo(() => clinical?.appointments ?? [], [clinical?.appointments]);
   const lastVisit = useMemo(() => {
-    const completed = appointments.filter((a) => a.status === "completed");
-    const latest = [...appointments].sort((a, b) =>
+    const latest = [...appointmentList].sort((a, b) =>
       b.appointment_date.localeCompare(a.appointment_date),
     )[0];
-    return completed[0] ?? latest ?? null;
-  }, [appointments]);
-
+    return latest ?? null;
+  }, [appointmentList]);
+  const totalVisits = appointmentList.filter((a) => a.status === "completed").length;
   const upcomingAppointment = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    return appointments.find((a) => a.appointment_date >= today) ?? null;
-  }, [appointments]);
-
-  const totalVisits = appointments.filter((a) => a.status === "completed").length;
+    return appointmentList.find((a) => a.appointment_date >= today) ?? null;
+  }, [appointmentList]);
+  const assignedDoctor = profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—";
 
   if (isLoading) {
     return (
@@ -184,7 +178,6 @@ export function PatientEditPage() {
       </AppShell>
     );
   }
-
   if (!patient) {
     return (
       <AppShell>
@@ -217,24 +210,47 @@ export function PatientEditPage() {
           emergency_contact_relationship: data.emergency_contact_relationship,
         }
       : data;
-
     updateMutation.mutate(
       { id, input: payload },
-      { onSuccess: () => void navigate(`/patients/${id}`) },
+      {
+        onSuccess: () => {
+          void navigate(`/patients/${id}`);
+        },
+      },
     );
   }
 
-  const summaryAge = computeAge(patient.dob);
+  const headerData: PatientHeaderData = {
+    id: patient.id,
+    firstName: patient.first_name,
+    lastName: patient.last_name,
+    dob: patient.dob,
+    gender: patient.gender,
+    bloodGroup: patient.blood_group,
+    mrn: patient.mrn,
+    status: patient.status,
+    primaryDiagnosis: patient.primary_diagnosis,
+    diseaseSeverity: patient.disease_severity,
+    assignedDoctor,
+  };
+
+  const allergyList = (clinical?.alerts ?? [])
+    .filter((a) => a.category === "allergy")
+    .map((a) => a.label);
+
+  const medList = (clinical?.medications ?? []).map((m) => m.medication_name);
 
   return (
     <AppShell>
       <div className="mx-auto max-w-4xl space-y-4">
         <button
-          onClick={() => void navigate(`/patients/${id}`)}
+          type="button"
+          onClick={() => {
+            void navigate(`/patients/${id}`);
+          }}
           className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Patient
+          <ArrowLeft className="h-4 w-4" /> Back to Patient
         </button>
 
         {isReceptionist && (
@@ -243,300 +259,326 @@ export function PatientEditPage() {
           </div>
         )}
 
-        <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-4">
-          {/* Section 1 — Patient Summary */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-start gap-4 p-6">
-              <div className="bg-brand-50 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full">
-                <span className="text-brand-600 text-2xl font-semibold">
-                  {initials(patient.first_name, patient.last_name)}
-                </span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-bold text-gray-900">
-                    {patient.first_name} {patient.last_name}
-                  </h1>
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(patient.status)}`}
-                  >
-                    {patient.status}
-                  </span>
-                </div>
-                <div className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                  <SummaryItem label="MRN" value={patient.mrn} mono />
-                  <SummaryItem
-                    label="Age"
-                    value={summaryAge !== null ? `${summaryAge} yrs` : "—"}
-                  />
-                  <SummaryItem label="Gender" value={patient.gender ?? "—"} />
-                  <SummaryItem label="Blood Group" value={patient.blood_group ?? "—"} />
-                  <SummaryItem label="Registration Date" value={formatDate(patient.created_at)} />
-                  <SummaryItem label="Last Visit" value={formatDate(lastVisit?.appointment_date)} />
-                  <SummaryItem
-                    label="Assigned Doctor"
-                    value={
-                      profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—"
-                    }
-                  />
-                  <SummaryItem label="Patient ID" value={patient.id} mono truncate />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
-              <button
-                type="submit"
-                disabled={updateMutation.isPending}
-                className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              >
-                {updateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => void navigate(`/patients/${id}`)}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              {patient.status !== "deregistered" && profile?.role === "doctor" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeregisterOpen(true);
-                  }}
-                  className="inline-flex items-center gap-1 rounded-md border border-orange-200 px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50"
-                >
-                  <UserRoundX className="h-4 w-4" />
-                  Deregister Patient
-                </button>
+        <PatientHeader
+          patient={headerData}
+          showId
+          allergies={allergyList}
+          activeMedications={medList}
+          previousSkinCancer={patient.previous_skin_cancer ?? false}
+          lastVisit={lastVisit?.appointment_date ?? null}
+          nextFollowUp={upcomingAppointment?.appointment_date ?? null}
+        >
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              form="edit-patient-form"
+              disabled={updateMutation.isPending}
+              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
               )}
+              Save
+            </button>
+            {patient.status !== "deregistered" && profile?.role === "doctor" && (
               <button
                 type="button"
-                onClick={() => void navigate(`/patients/${id}`)}
-                className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  setDeregisterOpen(true);
+                }}
+                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
               >
-                <Clock className="h-4 w-4" />
-                View Timeline
+                <UserRoundX className="h-4 w-4" /> Deregister
               </button>
-              <button
-                type="button"
-                onClick={() =>
-                  document.getElementById("ai-summary")?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <Sparkles className="h-4 w-4" />
-                AI Summary
-              </button>
-            </div>
+            )}
           </div>
+        </PatientHeader>
 
-          {updateMutation.isError && (
-            <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
-              {updateMutation.error.message}
-            </div>
+        {updateMutation.isError && (
+          <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+            {updateMutation.error.message}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1.5">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.key);
+              }}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                activeTab === tab.key
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {tab.icon}
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+        <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {activeTab === "overview" && (
+            <>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <CollapsibleSection
+                  title="Current Condition"
+                  icon={<Activity className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <CurrentTreatmentSection
+                    register={register}
+                    errors={errors}
+                    currentDiagnosis={diagnosisValue}
+                    prescriptionAvailable={(clinical?.medications.length ?? 0) > 0}
+                    reportGenerated={(clinical?.labReports.length ?? 0) > 0}
+                  />
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Visit Summary"
+                  icon={<Clock className="h-4 w-4" />}
+                  defaultOpen
+                >
+                  <VisitSummarySection
+                    lastVisitDate={lastVisit?.appointment_date ?? null}
+                    nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
+                    totalVisits={totalVisits}
+                    assignedDoctor={assignedDoctor}
+                  />
+                </CollapsibleSection>
+              </div>
+
+              <CollapsibleSection
+                title="Medical Alerts"
+                icon={<Activity className="h-4 w-4" />}
+                defaultOpen
+              >
+                <MedicalAlertsSection
+                  register={register}
+                  errors={errors}
+                  alerts={clinical?.alerts ?? []}
+                  pendingAlerts={[]}
+                  chronicConditions={patient.chronic_conditions ?? ""}
+                />
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Clinical Data"
+                icon={<ClipboardList className="h-4 w-4" />}
+                defaultOpen
+              >
+                <div className="space-y-6">
+                  <MedicationSection
+                    medications={clinical?.medications ?? []}
+                    adding={addMedication.isPending}
+                    onAdd={(input) => {
+                      addMedication.mutate(input);
+                    }}
+                    onRemove={(itemId) => {
+                      removeMedication.mutate(itemId);
+                    }}
+                  />
+                  <div className="border-t border-gray-100 pt-6">
+                    <LabReportsSection reports={clinical?.labReports ?? []} />
+                  </div>
+                  <div className="border-t border-gray-100 pt-6">
+                    <ClinicalNotesSection
+                      notes={clinical?.clinicalNotes ?? []}
+                      adding={addNote.isPending}
+                      onAdd={(input) => {
+                        addNote.mutate(input);
+                      }}
+                    />
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection title="Images" icon={<Sparkles className="h-4 w-4" />}>
+                <ClinicalImagesSection
+                  images={images}
+                  onAdd={(file) => {
+                    setImages((prev) => [
+                      ...prev,
+                      {
+                        id: crypto.randomUUID(),
+                        url: URL.createObjectURL(file),
+                        name: file.name,
+                        uploadedAt: new Date().toISOString(),
+                        bodyArea: "",
+                        diagnosis: "",
+                        notes: "",
+                      },
+                    ]);
+                  }}
+                  onRemove={(imgId) => {
+                    setImages((prev) => prev.filter((i) => i.id !== imgId));
+                  }}
+                />
+              </CollapsibleSection>
+            </>
           )}
 
-          <CollapsibleSection title="Demographics" icon={<User className="h-4 w-4" />} defaultOpen>
-            <div className="space-y-8">
-              <PatientPersonalSection
-                register={register}
-                errors={errors}
-                age={age}
-                statusDisabled={isReceptionist}
-              />
-              <PatientAddressSection
-                register={register}
-                errors={errors}
-                setValue={setValue}
-                watch={watch}
-              />
-              <PatientContactSection register={register} errors={errors} />
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection
-            title="Analysis"
-            icon={<HeartPulse className="h-4 w-4" />}
-            defaultOpen
-          >
-            <div className="space-y-8">
-              <MedicalHistorySection register={register} errors={errors} />
-              <FamilyHistorySection register={register} />
-              <LifestyleSection register={register} gender={genderValue} />
-              <MedicalAlertsSection
-                register={register}
-                errors={errors}
-                alerts={clinical?.alerts ?? []}
-                pendingAlerts={[]}
-                chronicConditions={patient.chronic_conditions ?? ""}
-              />
-              <MedicationSection
-                medications={clinical?.medications ?? []}
-                adding={addMedication.isPending}
-                onAdd={(input) => {
-                  addMedication.mutate(input);
-                }}
-                onRemove={(id) => {
-                  removeMedication.mutate(id);
-                }}
-              />
-              <LabReportsSection reports={clinical?.labReports ?? []} />
-              <ClinicalNotesSection
-                notes={clinical?.clinicalNotes ?? []}
-                adding={addNote.isPending}
-                onAdd={(input) => {
-                  addNote.mutate(input);
-                }}
-              />
-              <ClinicalImagesSection
-                images={images}
-                onAdd={(file) => {
-                  const url = URL.createObjectURL(file);
-                  setImages((prev) => [
-                    ...prev,
-                    {
-                      id: `${Date.now()}`,
-                      url,
-                      name: file.name,
-                      uploadedAt: new Date().toISOString(),
-                      bodyArea: "—",
-                      diagnosis: "—",
-                      notes: "",
-                    },
-                  ]);
-                  return Promise.resolve();
-                }}
-                onRemove={(id) => {
-                  setImages((prev) => prev.filter((x) => x.id !== id));
-                  return Promise.resolve();
-                }}
-              />
-              <DermatologySection
-                register={register}
-                errors={errors}
-                symptoms={symptomsValue}
-                onSymptomsChange={(value) => {
-                  setValue("symptoms", value, { shouldValidate: true });
-                }}
-              />
-              <CurrentTreatmentSection
-                register={register}
-                errors={errors}
-                currentDiagnosis={diagnosisValue}
-                prescriptionAvailable={prescriptionAvailable}
-                reportGenerated={reportGenerated}
-              />
-              <VisitSummarySection
-                lastVisitDate={lastVisit?.appointment_date ?? null}
-                nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
-                totalVisits={totalVisits}
-                assignedDoctor={assignedDoctor}
-              />
-              <div id="ai-summary" className="space-y-3">
-                <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI Summary" />
-                <div className="border-brand-100 bg-brand-50/40 rounded-lg border p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900">Clinical Summary</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAiSummaryAt(new Date());
-                      }}
-                      className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      Regenerate Summary
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Generated {aiSummaryAt.toLocaleTimeString()}
-                  </p>
-                  <div className="mt-3 space-y-3 text-sm text-gray-700">
-                    <AiSummaryBlock
-                      label="Patient Summary"
-                      value={`${patient.first_name} ${patient.last_name}, ${summaryAge !== null ? `${summaryAge}-year-old` : "age unknown"} ${patient.gender?.toLowerCase() ?? "patient"}. Primary diagnosis: ${patient.primary_diagnosis || "none recorded"}.`}
-                    />
-                    <AiSummaryBlock
-                      label="Disease Progression"
-                      value={
-                        [
-                          patient.disease_severity ? `Severity: ${patient.disease_severity}` : null,
-                          patient.duration ? `Duration: ${patient.duration}` : null,
-                          patient.current_flare ? "Currently in flare" : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ") || "No progression data recorded."
-                      }
-                    />
-                    <AiSummaryBlock
-                      label="Important Alerts"
-                      value={
-                        (clinical?.alerts ?? []).map((a) => a.label).join(", ") ||
-                        "No active alerts."
-                      }
-                    />
-                    <AiSummaryBlock
-                      label="Medication Summary"
-                      value={
-                        (clinical?.medications ?? []).map((m) => m.medication_name).join(", ") ||
-                        "No active medications."
-                      }
-                    />
-                    <AiSummaryBlock
-                      label="Upcoming Follow-up"
-                      value={
-                        upcomingAppointment
-                          ? `${formatDate(upcomingAppointment.appointment_date)} (${upcomingAppointment.type})`
-                          : "No upcoming appointment scheduled."
-                      }
-                    />
-                    <AiSummaryBlock
-                      label="Recent Diagnosis"
-                      value={patient.primary_diagnosis ?? "None recorded."}
-                    />
-                    <AiSummaryBlock
-                      label="AI Recommendations"
-                      value="Review disease severity and current treatment at the next visit. Consider a follow-up skin examination and continue monitoring affected body areas."
-                    />
+          {activeTab === "demographics" && (
+            <>
+              <CollapsibleSection
+                title="Personal Information"
+                icon={<User className="h-4 w-4" />}
+                defaultOpen
+              >
+                <PatientPersonalSection register={register} errors={errors} age={age} />
+              </CollapsibleSection>
+              <CollapsibleSection title="Address" icon={<User className="h-4 w-4" />} defaultOpen>
+                <div className="space-y-8">
+                  <PatientAddressSection
+                    register={register}
+                    errors={errors}
+                    setValue={setValue}
+                    watch={watch}
+                  />
+                  <div className="border-t border-gray-100 pt-6">
+                    <PatientContactSection register={register} errors={errors} />
                   </div>
                 </div>
-              </div>
-              <PatientAuditSection
-                createdBy={patient.created_by}
-                createdAt={formatDate(patient.created_at)}
-                updatedAt={formatDate(patient.updated_at)}
-                updatedBy="—"
-              />
-            </div>
-          </CollapsibleSection>
-        </form>
-      </div>
+              </CollapsibleSection>
+            </>
+          )}
 
-      <ConfirmDialog
-        open={deregisterOpen}
-        title="Deregister Patient"
-        message="Are you sure you want to deregister this patient?"
-        confirmLabel="Deregister"
-        confirmationText="DEREGISTER"
-        loading={deregisterMutation.isPending}
-        onCancel={() => {
-          setDeregisterOpen(false);
-        }}
-        onConfirm={() => {
-          deregisterMutation.mutate(patient.id, {
-            onSuccess: () => {
-              setDeregisterOpen(false);
-              void navigate(`/patients/${id}`);
-            },
-          });
-        }}
-      />
+          {activeTab === "medical" && (
+            <>
+              <CollapsibleSection
+                title="Medical History"
+                icon={<Stethoscope className="h-4 w-4" />}
+                defaultOpen
+              >
+                <div className="space-y-8">
+                  <MedicalHistorySection register={register} errors={errors} />
+                  <FamilyHistorySection register={register} />
+                </div>
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Lifestyle"
+                icon={<HeartPulse className="h-4 w-4" />}
+                defaultOpen
+              >
+                <LifestyleSection register={register} gender={genderValue} />
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Dermatology Profile"
+                icon={<Activity className="h-4 w-4" />}
+                defaultOpen
+              >
+                <DermatologySection
+                  register={register}
+                  errors={errors}
+                  symptoms={symptomsValue}
+                  onSymptomsChange={(v) => {
+                    setValue("symptoms", v);
+                  }}
+                />
+              </CollapsibleSection>
+            </>
+          )}
+
+          {activeTab === "clinical" && (
+            <>
+              <CollapsibleSection
+                title="Treatment & Diagnosis"
+                icon={<Pill className="h-4 w-4" />}
+                defaultOpen
+              >
+                <CurrentTreatmentSection
+                  register={register}
+                  errors={errors}
+                  currentDiagnosis={diagnosisValue}
+                  prescriptionAvailable={(clinical?.medications.length ?? 0) > 0}
+                  reportGenerated={(clinical?.labReports.length ?? 0) > 0}
+                />
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Dermatology"
+                icon={<Activity className="h-4 w-4" />}
+                defaultOpen
+              >
+                <DermatologySection
+                  register={register}
+                  errors={errors}
+                  symptoms={symptomsValue}
+                  onSymptomsChange={(v) => {
+                    setValue("symptoms", v);
+                  }}
+                />
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Medications"
+                icon={<Pill className="h-4 w-4" />}
+                defaultOpen
+              >
+                <MedicationSection
+                  medications={clinical?.medications ?? []}
+                  adding={addMedication.isPending}
+                  onAdd={(input) => {
+                    addMedication.mutate(input);
+                  }}
+                  onRemove={(itemId) => {
+                    removeMedication.mutate(itemId);
+                  }}
+                />
+              </CollapsibleSection>
+              <CollapsibleSection title="Lab Reports" icon={<Activity className="h-4 w-4" />}>
+                <LabReportsSection reports={clinical?.labReports ?? []} />
+              </CollapsibleSection>
+              <CollapsibleSection
+                title="Clinical Notes"
+                icon={<ClipboardList className="h-4 w-4" />}
+              >
+                <ClinicalNotesSection
+                  notes={clinical?.clinicalNotes ?? []}
+                  adding={addNote.isPending}
+                  onAdd={(input) => {
+                    addNote.mutate(input);
+                  }}
+                />
+              </CollapsibleSection>
+            </>
+          )}
+        </form>
+
+        <CollapsibleSection title="Audit" icon={<Clock className="h-4 w-4" />}>
+          <PatientAuditSection
+            createdBy={patient.created_by}
+            createdAt={patient.created_at}
+            updatedAt={patient.updated_at}
+            updatedBy="—"
+          />
+        </CollapsibleSection>
+
+        <ConfirmDialog
+          open={deregisterOpen}
+          title="Deregister Patient"
+          message={`Are you sure you want to deregister ${patient.first_name} ${patient.last_name}? They will be removed from active views but historical records will be preserved.`}
+          confirmLabel="Deregister"
+          confirmationText="DEREGISTER"
+          loading={deregisterMutation.isPending}
+          onConfirm={() => {
+            deregisterMutation.mutate(patient.id, {
+              onSuccess: () => {
+                setDeregisterOpen(false);
+                void navigate(`/patients/${id}`);
+              },
+            });
+          }}
+          onCancel={() => {
+            setDeregisterOpen(false);
+          }}
+        />
+      </div>
     </AppShell>
   );
 }

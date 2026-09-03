@@ -11,13 +11,12 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
-import { SectionHeading } from "@presentation/components/patient/helpers";
 import {
-  formatDate,
-  computeAge,
-  initials,
-  statusBadgeClass,
-} from "@presentation/components/patient/utils";
+  PatientHeader,
+  type PatientHeaderData,
+} from "@presentation/components/patient/PatientHeader";
+import { SectionHeading } from "@presentation/components/patient/helpers";
+import { formatDate, computeAge } from "@presentation/components/patient/utils";
 import {
   ArrowLeft,
   Pencil,
@@ -25,9 +24,6 @@ import {
   UserRoundX,
   Loader2,
   User,
-  Calendar,
-  Phone,
-  Mail,
   Stethoscope,
   Pill,
   AlertTriangle,
@@ -101,6 +97,25 @@ export function PatientDetailPage() {
   const reportGenerated = (clinical?.labReports.length ?? 0) > 0;
   const assignedDoctor = profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—";
 
+  const allergyList = (clinical?.alerts ?? [])
+    .filter((a) => a.category === "allergy")
+    .map((a) => a.label);
+  const medList = (clinical?.medications ?? []).map((m) => m.medication_name);
+
+  const headerData: PatientHeaderData = {
+    id: patient.id,
+    firstName: patient.first_name,
+    lastName: patient.last_name,
+    dob: patient.dob,
+    gender: patient.gender,
+    bloodGroup: patient.blood_group,
+    mrn: patient.mrn,
+    status: patient.status,
+    primaryDiagnosis: patient.primary_diagnosis,
+    diseaseSeverity: patient.disease_severity,
+    assignedDoctor,
+  };
+
   return (
     <AppShell>
       <div className="mx-auto max-w-4xl space-y-4">
@@ -112,70 +127,16 @@ export function PatientDetailPage() {
           Back to Patients
         </button>
 
-        {/* Header Card */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-wrap items-start gap-4 p-6">
-            <div className="bg-brand-50 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full">
-              <span className="text-brand-600 text-2xl font-semibold">
-                {initials(patient.first_name, patient.last_name)}
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900">
-                  {patient.first_name} {patient.last_name}
-                </h1>
-                <span
-                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(patient.status)}`}
-                >
-                  {patient.status}
-                </span>
-              </div>
-              <div className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <div className="flex items-center gap-1.5 text-gray-600">
-                  <span className="text-xs text-gray-400">MRN:</span>
-                  <span className="font-mono font-medium text-gray-900">{patient.mrn}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-600">
-                  <span className="text-xs text-gray-400">Age:</span>
-                  <span className="font-medium text-gray-900">
-                    {age !== null ? `${age} yrs` : "—"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-600">
-                  <span className="text-xs text-gray-400">Gender:</span>
-                  <span className="font-medium text-gray-900">{patient.gender ?? "—"}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-600">
-                  <span className="text-xs text-gray-400">Blood:</span>
-                  <span className="font-medium text-gray-900">{patient.blood_group ?? "—"}</span>
-                </div>
-                {patient.phone && (
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <Phone className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="text-gray-900">{patient.phone}</span>
-                  </div>
-                )}
-                {patient.email && (
-                  <div className="flex items-center gap-1.5 text-gray-600">
-                    <Mail className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="text-gray-900">{patient.email}</span>
-                  </div>
-                )}
-                {patient.address_line1 && (
-                  <div className="flex items-center gap-1.5 text-gray-600 sm:col-span-2">
-                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="truncate text-gray-900">
-                      {[patient.address_line1, patient.city, patient.state, patient.country]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
+        <PatientHeader
+          patient={headerData}
+          showId
+          allergies={allergyList}
+          activeMedications={medList}
+          previousSkinCancer={patient.previous_skin_cancer ?? false}
+          lastVisit={latestEncounter?.encounter_date ?? null}
+          nextFollowUp={nextFollowUp}
+        >
+          <div className="flex items-center gap-2">
             {profile?.role === "doctor" &&
               patient.status !== "archived" &&
               patient.status !== "deregistered" && (
@@ -197,8 +158,7 @@ export function PatientDetailPage() {
                 onClick={() => void navigate(`/patients/${patient.id}/edit`)}
                 className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                <Pencil className="h-4 w-4" />
-                Edit
+                <Pencil className="h-4 w-4" /> Edit
               </button>
             )}
             {patient.status !== "archived" &&
@@ -211,8 +171,7 @@ export function PatientDetailPage() {
                     }}
                     className="inline-flex items-center gap-2 rounded-md border border-orange-200 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50"
                   >
-                    <UserRoundX className="h-4 w-4" />
-                    Deregister
+                    <UserRoundX className="h-4 w-4" /> Deregister
                   </button>
                   <button
                     onClick={() => {
@@ -223,13 +182,12 @@ export function PatientDetailPage() {
                     }}
                     className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
                   >
-                    <Archive className="h-4 w-4" />
-                    Archive
+                    <Archive className="h-4 w-4" /> Archive
                   </button>
                 </>
               )}
           </div>
-        </div>
+        </PatientHeader>
 
         {/* Demographics */}
         <CollapsibleSection title="Demographics" icon={<User className="h-4 w-4" />} defaultOpen>
