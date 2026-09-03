@@ -1,55 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
-import { useAuth } from "@presentation/hooks/useAuth";
-import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
-import { resolveAuthScope } from "@domain/patient";
-import type { AuthorizationContext } from "@domain/patient";
-import { getSupabaseClient } from "@infrastructure/supabase/client";
+import { useRecentEncounters } from "@presentation/hooks/useEncounters";
 import { formatDate } from "@presentation/components/patient/utils";
 import { Stethoscope, ChevronRight, Loader2 } from "lucide-react";
 
-interface EncounterListItem {
-  id: string;
-  status: string;
-  chief_complaint: string | null;
-  encounter_date: string;
-  encounter_number: string | null;
-  patient: { first_name: string; last_name: string }[] | null;
-}
-
-function useRecentEncounters(auth: AuthorizationContext) {
-  const scope = resolveAuthScope(auth);
-  return useQuery({
-    queryKey: ["encounters", "recent", scope.column, scope.value],
-    queryFn: async () => {
-      const client = getSupabaseClient();
-      const { data } = (await client
-        .from("encounters")
-        .select(
-          "id,status,chief_complaint,encounter_date,encounter_number,patient:patients(first_name,last_name)",
-        )
-        .eq(scope.column, scope.value)
-        .neq("status", "cancelled")
-        .order("created_at", { ascending: false })
-        .limit(50)) as unknown as {
-        data: EncounterListItem[] | null;
-      };
-      return data ?? [];
-    },
-  });
-}
-
 export function EncounterListPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { selectedOrganizationId, selectedClinicId } = useSelectedOrganizationStore();
-  const auth: AuthorizationContext = {
-    userId: user?.id ?? "",
-    selectedOrganizationId,
-    selectedClinicId,
-  };
-  const { data: encounters, isLoading } = useRecentEncounters(auth);
+  const { data: encounters, isLoading } = useRecentEncounters();
 
   return (
     <AppShell>
@@ -101,7 +58,7 @@ export function EncounterListPage() {
                     className="cursor-pointer hover:bg-gray-50"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
-                      {e.patient?.[0]?.first_name ?? "—"} {e.patient?.[0]?.last_name ?? ""}
+                      {e.patient ? `${e.patient.first_name} ${e.patient.last_name}` : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{e.encounter_number ?? "Encounter"}</td>
                     <td className="hidden px-4 py-3 text-gray-600 md:table-cell">

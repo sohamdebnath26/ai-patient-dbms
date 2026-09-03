@@ -5,6 +5,7 @@ export interface IEncounterRepository {
   getByAppointmentId(appointmentId: string, auth: AuthorizationContext): Promise<Encounter | null>;
   getById(id: string, auth: AuthorizationContext): Promise<Encounter | null>;
   listByPatient(patientId: string, auth: AuthorizationContext): Promise<Encounter[]>;
+  listRecentEncounters(auth: AuthorizationContext, limit?: number): Promise<Encounter[]>;
   startEncounter(
     appointmentId: string,
     userId: string,

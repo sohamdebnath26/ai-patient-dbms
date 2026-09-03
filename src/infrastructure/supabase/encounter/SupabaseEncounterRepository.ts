@@ -44,6 +44,7 @@ interface EncounterRow {
   created_by: string;
   created_at: string;
   updated_at: string;
+  patient?: { first_name: string; last_name: string }[] | null;
 }
 
 interface ProcedureRow {
@@ -61,7 +62,13 @@ interface ProcedureRow {
 type SupabaseResult<T> = { data: T; error: { code?: string; message: string } | null };
 
 function mapToEncounter(raw: EncounterRow): Encounter {
-  return EncounterSchema.parse(raw);
+  const patientArr = raw.patient && raw.patient.length > 0 ? raw.patient[0] : undefined;
+  return EncounterSchema.parse({
+    ...raw,
+    patient: patientArr
+      ? { first_name: patientArr.first_name, last_name: patientArr.last_name }
+      : undefined,
+  });
 }
 
 function mapToProcedure(raw: ProcedureRow): Procedure {
@@ -117,6 +124,21 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
       .eq(scope.column, scope.value)
       .order("encounter_date", { ascending: false })
       .limit(50)) as unknown as SupabaseResult<EncounterRow[] | null>;
+
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(mapToEncounter);
+  }
+
+  async listRecentEncounters(auth: AuthorizationContext, limit = 50): Promise<Encounter[]> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+    const { data, error } = (await client
+      .from("encounters")
+      .select("*, patient:patients(first_name,last_name)")
+      .eq(scope.column, scope.value)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(limit)) as unknown as SupabaseResult<EncounterRow[] | null>;
 
     if (error) throw new Error(error.message);
     return (data ?? []).map(mapToEncounter);

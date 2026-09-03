@@ -41,6 +41,12 @@ export const EncounterSchema = z.object({
   created_by: z.string().uuid(),
   created_at: z.string(),
   updated_at: z.string(),
+  patient: z
+    .object({
+      first_name: z.string(),
+      last_name: z.string(),
+    })
+    .optional(),
 });
 
 export type Encounter = z.infer<typeof EncounterSchema>;

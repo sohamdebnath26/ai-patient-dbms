@@ -51,6 +51,14 @@ export function usePatientEncounters(patientId: string) {
   });
 }
 
+export function useRecentEncounters() {
+  const auth = useCurrentAuth();
+  return useQuery({
+    queryKey: ["encounters", "recent", auth.selectedOrganizationId ?? `user:${auth.userId}`],
+    queryFn: () => svc.listRecentEncounters(auth),
+  });
+}
+
 export function useStartEncounter() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();

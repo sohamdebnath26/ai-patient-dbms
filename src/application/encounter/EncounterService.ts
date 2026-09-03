@@ -20,6 +20,10 @@ export class EncounterService {
     return this.repo.listByPatient(patientId, auth);
   }
 
+  async listRecentEncounters(auth: AuthorizationContext): Promise<Encounter[]> {
+    return this.repo.listRecentEncounters(auth);
+  }
+
   async start(
     appointmentId: string,
     userId: string,

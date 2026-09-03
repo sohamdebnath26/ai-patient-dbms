@@ -323,10 +323,10 @@ export function DashboardPage() {
                   },
                   {
                     label: "Start Consultation",
-                    desc: "Begin a new encounter",
+                    desc: "View clinical encounters",
                     icon: Stethoscope,
                     color: "bg-amber-50 text-amber-600",
-                    to: "/appointments",
+                    to: "/encounters",
                   },
                 ].map(({ label, desc, icon: Icon, color, to }) => (
                   <button
