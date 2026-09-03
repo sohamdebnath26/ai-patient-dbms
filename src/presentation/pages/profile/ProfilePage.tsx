@@ -1,24 +1,13 @@
 import { useState } from "react";
-import { useLogout } from "@presentation/hooks/useLogout";
-import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
-import { useNavigate } from "react-router";
+import { AppShell } from "@presentation/components/AppShell";
 import { RoleBadge } from "@presentation/components/RoleBadge";
-import {
-  LogOut,
-  User as UserIcon,
-  Save,
-  Loader2,
-  LayoutDashboard,
-  Users,
-  Building2,
-} from "lucide-react";
+import { useAuth } from "@presentation/hooks/useAuth";
+import { User as UserIcon, Save, Loader2 } from "lucide-react";
 
 export function ProfilePage() {
   const { user } = useAuth();
-  const handleLogout = useLogout();
   const { profile, loading, error, updateProfile } = useProfile();
-  const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [editing, setEditing] = useState(false);
@@ -46,74 +35,27 @@ export function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="text-brand-600 h-8 w-8 animate-spin" />
-      </div>
+      <AppShell>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="text-brand-600 h-8 w-8 animate-spin" />
+        </div>
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <AppShell>
         <div className="text-center text-red-600">{error}</div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="bg-brand-600 flex h-8 w-8 items-center justify-center rounded-md">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-            </div>
-            <span className="font-semibold text-gray-900">ClinicOS AI</span>
-            <nav className="ml-4 flex items-center gap-1 text-sm">
-              <button
-                onClick={() => void navigate("/dashboard")}
-                className="flex items-center gap-1 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-100"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </button>
-              <button className="bg-brand-50 text-brand-700 flex items-center gap-1 rounded-md px-3 py-1.5">
-                <UserIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Profile</span>
-              </button>
-              {profile?.role === "admin" && (
-                <button
-                  onClick={() => void navigate("/dashboard")}
-                  className="flex items-center gap-1 rounded-md px-3 py-1.5 text-gray-600 hover:bg-gray-100"
-                >
-                  <Users className="h-4 w-4" />
-                  <span className="hidden sm:inline">Admin</span>
-                </button>
-              )}
-            </nav>
-          </div>
-          <button
-            onClick={() => void handleLogout()}
-            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign out</span>
-          </button>
-        </div>
-      </header>
+    <AppShell>
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">Profile</h1>
 
-      <main className="mx-auto max-w-5xl p-6">
         <div className="rounded-lg border border-gray-200 bg-white p-8">
           <div className="mb-6 flex items-center gap-4">
             <div className="bg-brand-50 flex h-16 w-16 items-center justify-center rounded-full">
@@ -170,17 +112,6 @@ export function ProfilePage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Organization</label>
-              <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
-                <Building2 className="h-3.5 w-3.5" />
-                {profile?.organizationId ?? "No organization assigned"}
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                Organization is managed from the sidebar; switch any time.
-              </p>
-            </div>
-
             {saveError && (
               <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</div>
             )}
@@ -220,7 +151,7 @@ export function ProfilePage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

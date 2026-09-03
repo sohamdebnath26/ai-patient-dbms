@@ -2,11 +2,11 @@ import { useNavigate } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
 import { useRecentEncounters } from "@presentation/hooks/useEncounters";
 import { formatDate } from "@presentation/components/patient/utils";
-import { Stethoscope, ChevronRight, Loader2 } from "lucide-react";
+import { Stethoscope, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 
 export function EncounterListPage() {
   const navigate = useNavigate();
-  const { data: encounters, isLoading } = useRecentEncounters();
+  const { data: encounters, isLoading, isError, error } = useRecentEncounters();
 
   return (
     <AppShell>
@@ -21,7 +21,25 @@ export function EncounterListPage() {
           </div>
         )}
 
-        {!isLoading && (encounters?.length ?? 0) === 0 && (
+        {isError && (
+          <div className="flex flex-col items-center py-12 text-center">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+            <p className="mt-2 text-sm font-medium text-red-600">Failed to load encounters</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {error instanceof Error ? error.message : "An unexpected error occurred."}
+            </p>
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="mt-4 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !isError && (encounters?.length ?? 0) === 0 && (
           <div className="flex flex-col items-center py-16 text-center">
             <div className="bg-surface-50 flex h-16 w-16 items-center justify-center rounded-full">
               <Stethoscope className="h-7 w-7 text-gray-400" />
@@ -33,7 +51,7 @@ export function EncounterListPage() {
           </div>
         )}
 
-        {!isLoading && (encounters?.length ?? 0) > 0 && (
+        {!isLoading && !isError && (encounters?.length ?? 0) > 0 && (
           <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
             <table className="w-full text-sm">
               <thead>

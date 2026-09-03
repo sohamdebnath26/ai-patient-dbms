@@ -332,7 +332,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </form>
 
-            <button className="hover:bg-surface-100 relative rounded-lg p-2 text-gray-400">
+            <button
+              className="hover:bg-surface-100 relative rounded-lg p-2 text-gray-400"
+              title="Notifications coming soon"
+            >
               <Bell className="h-[18px] w-[18px]" />
             </button>
           </div>

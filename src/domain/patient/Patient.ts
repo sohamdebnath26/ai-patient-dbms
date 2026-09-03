@@ -221,12 +221,13 @@ export const UpdatePatientSchema = z.object({
 
 export type UpdatePatientInput = z.infer<typeof UpdatePatientSchema>;
 
-const todayStr = new Date().toISOString().slice(0, 10);
-
 /**
  * Shared form schema used by both the Register Patient and Edit Patient
  * pages. The single source of truth for patient form validation so the
  * two pages can never drift apart.
+ *
+ * @returns A Zod schema factory. Call at validation time to ensure the
+ *          "today" check reflects the current date, not module-import time.
  */
 export const PatientFormSchema = z
   .object({
@@ -235,7 +236,10 @@ export const PatientFormSchema = z
     dob: z
       .string()
       .min(1, "Date of birth is required")
-      .refine((v) => v <= todayStr, "Date of birth cannot be in the future"),
+      .refine(
+        (v) => v <= new Date().toISOString().slice(0, 10),
+        "Date of birth cannot be in the future",
+      ),
     gender: z.string().min(1, "Gender is required"),
     blood_group: z.string().optional(),
     email: z.string().email("Invalid email").optional().or(z.literal("")),

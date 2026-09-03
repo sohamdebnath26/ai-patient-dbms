@@ -19,7 +19,7 @@ const NAVIGATION_PATTERNS: { pattern: RegExp; route: string }[] = [
   { pattern: /\b(profile|account)\b/i, route: "/profile" },
 ];
 
-export class ChatService {
+export class AIChatService {
   constructor(private readonly provider: IAIModelProvider) {}
 
   detectNavigation(message: string): NavigationAction | undefined {

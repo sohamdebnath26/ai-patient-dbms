@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { AppShell } from "@presentation/components/AppShell";
-import { Search, Plus, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Plus, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 
 export function PatientListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,7 +13,7 @@ export function PatientListPage() {
     (searchParams.get("status") as
       "active" | "inactive" | "deceased" | "archived" | "deregistered" | undefined) ?? undefined;
 
-  const { data, isLoading } = usePatientList({
+  const { data, isLoading, isError, error } = usePatientList({
     page,
     limit: 20,
     query: query || undefined,
@@ -81,6 +81,24 @@ export function PatientListPage() {
         {isLoading && (
           <div className="flex justify-center py-12">
             <Loader2 className="text-brand-600 h-8 w-8 animate-spin" />
+          </div>
+        )}
+
+        {isError && (
+          <div className="flex flex-col items-center py-12 text-center">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+            <p className="mt-2 text-sm font-medium text-red-600">Failed to load patients</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {error instanceof Error ? error.message : "An unexpected error occurred."}
+            </p>
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="mt-4 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Retry
+            </button>
           </div>
         )}
 

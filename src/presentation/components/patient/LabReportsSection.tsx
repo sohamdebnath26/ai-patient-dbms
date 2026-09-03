@@ -67,7 +67,9 @@ export function LabReportsSection({ reports, onAdd, onRemove }: LabReportsSectio
                   ) : (
                     <button
                       type="button"
-                      className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                      disabled
+                      title="Report viewing will be available in a future update"
+                      className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-400 disabled:cursor-not-allowed"
                     >
                       View
                     </button>

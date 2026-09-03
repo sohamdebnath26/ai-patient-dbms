@@ -5,6 +5,7 @@ import type {
   AppointmentSearchParams,
   AppointmentListPage,
 } from "@domain/appointment";
+import { APPOINTMENT_STATUS } from "@domain/appointment";
 import type { AuthorizationContext } from "@domain/patient";
 
 export class AppointmentService {
@@ -35,19 +36,19 @@ export class AppointmentService {
   }
 
   async confirm(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
-    return this.repo.updateStatus(id, "confirmed", userId, auth);
+    return this.repo.updateStatus(id, APPOINTMENT_STATUS.confirmed, userId, auth);
   }
 
   async checkIn(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
-    return this.repo.updateStatus(id, "in_progress", userId, auth);
+    return this.repo.updateStatus(id, APPOINTMENT_STATUS.in_progress, userId, auth);
   }
 
   async cancel(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
-    return this.repo.updateStatus(id, "cancelled", userId, auth);
+    return this.repo.updateStatus(id, APPOINTMENT_STATUS.cancelled, userId, auth);
   }
 
   async markNoShow(id: string, userId: string, auth: AuthorizationContext): Promise<Appointment> {
-    return this.repo.updateStatus(id, "no_show", userId, auth);
+    return this.repo.updateStatus(id, APPOINTMENT_STATUS.no_show, userId, auth);
   }
 
   async completeAppointment(
@@ -55,7 +56,7 @@ export class AppointmentService {
     userId: string,
     auth: AuthorizationContext,
   ): Promise<Appointment> {
-    return this.repo.updateStatus(id, "completed", userId, auth);
+    return this.repo.updateStatus(id, APPOINTMENT_STATUS.completed, userId, auth);
   }
 
   async delete(id: string, auth: AuthorizationContext): Promise<void> {

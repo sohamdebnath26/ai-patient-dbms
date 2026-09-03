@@ -175,6 +175,11 @@ export interface ResolvedPatientHandle {
 
 function safeCastArray<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
+  if (raw && typeof raw === "object" && "data" in raw && raw.data !== null) {
+    const record = raw as Record<string, unknown>;
+    const data = record["data"];
+    if (Array.isArray(data)) return data as T[];
+  }
   return [];
 }
 

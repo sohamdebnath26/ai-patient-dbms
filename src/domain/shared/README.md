@@ -1,8 +1,3 @@
 # Shared Domain Types
 
-Common types, value objects, and utilities shared across domain aggregates.
-
-- `Result.ts` — Result<T, E> discriminated union for operations that can fail
-- `TenantScoped.ts` — Base type for all tenant-scoped entities
-- `AuditEntry.ts` — Immutable audit log entry value object
-- `ValidationError.ts` — Domain error types
+Reserved for cross-cutting domain types shared across aggregates. See `src/domain/patient/Patient.ts` for `AuthorizationContext`, `AccessDeniedError`, `ForeignKeyError`, and scope utilities which are currently used across all aggregates.

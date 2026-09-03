@@ -9,6 +9,19 @@ export const AppointmentStatusEnum = z.enum([
   "no_show",
 ]);
 
+export type AppointmentStatus = z.infer<typeof AppointmentStatusEnum>;
+
+const STATUS_VALUES: Record<AppointmentStatus, AppointmentStatus> = {
+  scheduled: "scheduled",
+  confirmed: "confirmed",
+  in_progress: "in_progress",
+  completed: "completed",
+  cancelled: "cancelled",
+  no_show: "no_show",
+} as const;
+
+export const APPOINTMENT_STATUS = STATUS_VALUES;
+
 export const AppointmentTypeEnum = z.enum(["in_person", "telehealth", "home_visit"]);
 
 export const AppointmentSchema = z.object({

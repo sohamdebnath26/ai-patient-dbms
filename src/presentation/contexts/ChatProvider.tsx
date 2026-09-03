@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { ChatService } from "@application/ai/ChatService";
+import { AIChatService } from "@application/ai/ChatService";
 import { ContextBuilder } from "@application/ai/ContextBuilder";
 import { DeepSeekProvider } from "@infrastructure/ai/DeepSeekProvider";
 import { RegexEntityResolver } from "@infrastructure/ai/EntityResolver";
@@ -14,7 +14,7 @@ import { ChatContext } from "./ChatContext";
 import type { ChatBubble } from "./ChatContext";
 
 const provider = new DeepSeekProvider();
-const chatService = new ChatService(provider);
+const chatService = new AIChatService(provider);
 const entityResolver = new RegexEntityResolver();
 const patientContextResolver = new PatientContextResolver();
 const contextBuilder = new ContextBuilder();

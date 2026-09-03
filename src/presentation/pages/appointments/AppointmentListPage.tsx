@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router";
 import { useAppointmentList } from "@presentation/hooks/useAppointments";
 import { AppShell } from "@presentation/components/AppShell";
-import { Plus, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: "bg-blue-50 text-blue-700",
@@ -28,7 +28,7 @@ export function AppointmentListPage() {
   const dateFrom = params.get("dateFrom") ?? undefined;
   const dateTo = params.get("dateTo") ?? undefined;
 
-  const { data, isLoading } = useAppointmentList({
+  const { data, isLoading, isError, error } = useAppointmentList({
     page,
     limit: 20,
     status,
@@ -103,6 +103,24 @@ export function AppointmentListPage() {
         {isLoading && (
           <div className="flex justify-center py-12">
             <Loader2 className="text-brand-600 h-8 w-8 animate-spin" />
+          </div>
+        )}
+
+        {isError && (
+          <div className="flex flex-col items-center py-12 text-center">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+            <p className="mt-2 text-sm font-medium text-red-600">Failed to load appointments</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {error instanceof Error ? error.message : "An unexpected error occurred."}
+            </p>
+            <button
+              onClick={() => {
+                window.location.reload();
+              }}
+              className="mt-4 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Retry
+            </button>
           </div>
         )}
 
