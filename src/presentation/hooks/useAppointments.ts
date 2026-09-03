@@ -42,7 +42,7 @@ export function useBookAppointment() {
   const auth = useCurrentAuth();
   return useMutation({
     mutationFn: ({ input, userId }: { input: CreateAppointmentInput; userId: string }) =>
-      svc.book(input, { ...auth, userId }),
+      svc.book(input, { ...auth, userId: userId }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
       void qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -54,7 +54,7 @@ export function useUpdateAppointmentStatus() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: async ({ id, userId }: { id: string; status: string; userId: string }) => {
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
       return svc.confirm(id, userId, auth);
     },
     onSuccess: () => {
@@ -68,7 +68,9 @@ export function useCheckInAppointment() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: ({ id, userId }: { id: string; userId: string }) => svc.checkIn(id, userId, auth),
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      return svc.checkIn(id, userId, auth);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
       void qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -80,7 +82,9 @@ export function useCancelAppointment() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: ({ id, userId }: { id: string; userId: string }) => svc.cancel(id, userId, auth),
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      return svc.cancel(id, userId, auth);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
       void qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -92,8 +96,9 @@ export function useRescheduleAppointment() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: ({ id, date, time }: { id: string; date: string; time: string }) =>
-      svc.reschedule(id, date, time, auth),
+    mutationFn: async ({ id, date, time }: { id: string; date: string; time: string }) => {
+      return svc.reschedule(id, date, time, auth);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
       void qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -105,8 +110,9 @@ export function useCompleteAppointment() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: ({ id, userId }: { id: string; userId: string }) =>
-      svc.completeAppointment(id, userId, auth),
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      return svc.completeAppointment(id, userId, auth);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
       void qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -118,7 +124,9 @@ export function useDeleteAppointment() {
   const qc = useQueryClient();
   const auth = useCurrentAuth();
   return useMutation({
-    mutationFn: (id: string) => svc.delete(id, auth),
+    mutationFn: async (id: string) => {
+      return svc.delete(id, auth);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["appointments"] });
       void qc.invalidateQueries({ queryKey: ["dashboard"] });
