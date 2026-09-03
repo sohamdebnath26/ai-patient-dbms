@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useEncounter,
   useUpdateEncounter,
@@ -11,6 +12,8 @@ import {
 } from "@presentation/hooks/useEncounters";
 import { usePatient } from "@presentation/hooks/usePatients";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
+import { getSupabaseClient } from "@infrastructure/supabase/client";
 import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { EncounterTimeline } from "@presentation/components/encounter/EncounterTimeline";
@@ -57,6 +60,7 @@ import {
   Save,
   CheckCircle,
   FileText,
+  Ruler,
 } from "lucide-react";
 
 const emptyEncounterForm = {
@@ -109,6 +113,87 @@ export function EncounterDetailPage() {
   const addEncounterLab = useAddEncounterLabReport(id ?? "", encounter?.patient_id ?? "");
   const encounterNotes = useEncounterNotes(id ?? "");
   const addEncounterNote = useAddEncounterNote(id ?? "", encounter?.patient_id ?? "");
+  const qc = useQueryClient();
+  const { selectedOrganizationId, selectedClinicId } = useSelectedOrganizationStore();
+
+  const { data: vital } = useQuery({
+    queryKey: ["encounters", id, "vitals"],
+    queryFn: async () => {
+      if (!id) return null;
+      const client = getSupabaseClient();
+      const { data } = (await client
+        .from("vitals")
+        .select("*")
+        .eq("encounter_id", id)
+        .order("recorded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()) as unknown as {
+        data: {
+          id: string;
+          height_cm: number | null;
+          weight_kg: number | null;
+          bmi: number | null;
+        } | null;
+      };
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+
+  useEffect(() => {
+    if (vital) {
+      setHeight(vital.height_cm != null ? String(vital.height_cm) : "");
+      setWeight(vital.weight_kg != null ? String(vital.weight_kg) : "");
+    }
+  }, [vital]);
+
+  const saveVitals = useMutation({
+    mutationFn: async () => {
+      if (!id || !encounter) return;
+      const client = getSupabaseClient();
+      const h = height.trim() ? parseFloat(height) : null;
+      const w = weight.trim() ? parseFloat(weight) : null;
+
+      if (vital?.id) {
+        const { error } = await client
+          .from("vitals")
+          .update({ height_cm: h, weight_kg: w })
+          .eq("id", vital.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await client.from("vitals").insert({
+          encounter_id: id,
+          patient_id: encounter.patient_id,
+          organization_id: selectedOrganizationId,
+          clinic_id: selectedClinicId ?? null,
+          created_by: user?.id,
+          height_cm: h,
+          weight_kg: w,
+        });
+        if (error) throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["encounters", id, "vitals"] });
+      toast.success("Measurements saved.");
+    },
+    onError: (e) => {
+      setActionError(e instanceof Error ? e.message : "Failed to save measurements");
+    },
+  });
+
+  const bmi = vital?.bmi ?? null;
+  const computedBmi =
+    bmi ??
+    (() => {
+      const h = parseFloat(height);
+      const w = parseFloat(weight);
+      if (!h || !w || h <= 0) return null;
+      return parseFloat((w / ((h / 100) * (h / 100))).toFixed(1));
+    })();
 
   const [form, setForm] = useState(emptyEncounterForm);
   const [images, setImages] = useState<ClinicalImage[]>([]);
@@ -518,6 +603,76 @@ export function EncounterDetailPage() {
                   }}
                 />
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <SectionHeading icon={<Ruler className="h-4 w-4" />} title="Measurements" />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className={labelClass}>Height (cm)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={height}
+                    disabled={!isActive}
+                    placeholder="e.g. 170"
+                    onChange={(e) => {
+                      setHeight(e.target.value);
+                    }}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={weight}
+                    disabled={!isActive}
+                    placeholder="e.g. 70"
+                    onChange={(e) => {
+                      setWeight(e.target.value);
+                    }}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>BMI</label>
+                  <p
+                    className={`mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold ${
+                      computedBmi != null ? "text-gray-900" : "text-gray-400"
+                    }`}
+                  >
+                    {computedBmi != null ? computedBmi.toFixed(1) : "—"}
+                  </p>
+                  {computedBmi != null && (
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      {computedBmi < 18.5
+                        ? "Underweight"
+                        : computedBmi < 25
+                          ? "Normal weight"
+                          : computedBmi < 30
+                            ? "Overweight"
+                            : "Obese"}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {isActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveVitals.mutateAsync();
+                  }}
+                  disabled={saveVitals.isPending || (!height.trim() && !weight.trim())}
+                  className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {saveVitals.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Save Measurements
+                </button>
+              )}
             </div>
 
             <div className="space-y-3">
