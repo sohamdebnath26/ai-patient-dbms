@@ -296,6 +296,18 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
     return mapToEncounter(data);
   }
 
+  async deleteEncounter(id: string, auth: AuthorizationContext): Promise<void> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+    const { error } = await client
+      .from("encounters")
+      .delete()
+      .eq("id", id)
+      .eq(scope.column, scope.value);
+
+    if (error) throw new Error(error.message);
+  }
+
   async listProcedures(encounterId: string): Promise<Procedure[]> {
     const client = getSupabaseClient();
     const { data, error } = (await client

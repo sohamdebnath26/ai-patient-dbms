@@ -15,6 +15,7 @@ export interface IEncounterRepository {
   update(id: string, input: UpdateEncounterInput, auth: AuthorizationContext): Promise<Encounter>;
   completeEncounter(id: string, auth: AuthorizationContext): Promise<Encounter>;
   cancelEncounter(id: string, auth: AuthorizationContext): Promise<Encounter>;
+  deleteEncounter(id: string, auth: AuthorizationContext): Promise<void>;
   listProcedures(encounterId: string): Promise<Procedure[]>;
   addProcedure(
     encounterId: string,

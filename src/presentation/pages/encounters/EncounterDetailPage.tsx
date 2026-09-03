@@ -42,8 +42,10 @@ import {
   useAddEncounterNote,
 } from "@presentation/hooks/useClinical";
 import { useCompleteAppointment } from "@presentation/hooks/useAppointments";
+import { useDeleteEncounter } from "@presentation/hooks/useEncounters";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useToast } from "@presentation/hooks/useToast";
+import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import type { DiagnosisInput, ClinicalNoteInput, LabReportInput, Diagnosis } from "@domain/patient";
 import type { ProcedureInput, ProcedureType } from "@domain/encounter";
 import {
@@ -99,6 +101,7 @@ export function EncounterDetailPage() {
   const updateMutation = useUpdateEncounter();
   const completeMutation = useCompleteEncounter();
   const completeApptMutation = useCompleteAppointment();
+  const deleteMutation = useDeleteEncounter();
   const encounters = usePatientEncounters(encounter?.patient_id ?? "");
   const procedures = useEncounterProcedures(id ?? "");
   const addProcedure = useAddProcedure(id ?? "");
@@ -209,6 +212,7 @@ export function EncounterDetailPage() {
     severity: "",
   });
   const [showAi, setShowAi] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (encounter) {
@@ -285,6 +289,18 @@ export function EncounterDetailPage() {
       void navigate(`/patients/${encounter?.patient_id}`);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to complete encounter");
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+    setActionError(null);
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast.success("Encounter deleted.");
+      void navigate(`/patients/${encounter?.patient_id}`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to delete encounter");
     }
   }
 
@@ -428,6 +444,16 @@ export function EncounterDetailPage() {
               >
                 <Sparkles className="h-4 w-4" />
                 AI Assistant
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteOpen(true);
+                }}
+                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
               </button>
             </div>
           )}
@@ -1084,6 +1110,21 @@ export function EncounterDetailPage() {
           </div>
         </CollapsibleSection>
       </div>
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete Encounter"
+        message="Are you sure you want to permanently delete this encounter and all its clinical data?"
+        confirmLabel="Delete"
+        confirmationText="DELETE"
+        loading={deleteMutation.isPending}
+        onCancel={() => {
+          setDeleteOpen(false);
+        }}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          void handleDelete();
+        }}
+      />
     </AppShell>
   );
 }

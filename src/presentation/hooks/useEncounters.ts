@@ -122,6 +122,18 @@ export function useCancelEncounter() {
   });
 }
 
+export function useDeleteEncounter() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: (id: string) => svc.delete(id, auth),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["encounters"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
 export function useEncounterProcedures(encounterId: string) {
   return useQuery({
     queryKey: ["encounters", encounterId, "procedures"],

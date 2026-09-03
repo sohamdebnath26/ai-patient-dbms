@@ -52,6 +52,10 @@ export class EncounterService {
     return this.repo.cancelEncounter(id, auth);
   }
 
+  async delete(id: string, auth: AuthorizationContext): Promise<void> {
+    return this.repo.deleteEncounter(id, auth);
+  }
+
   async listProcedures(encounterId: string): Promise<Procedure[]> {
     return this.repo.listProcedures(encounterId);
   }
