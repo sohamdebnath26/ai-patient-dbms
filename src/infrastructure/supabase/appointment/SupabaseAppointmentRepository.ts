@@ -197,4 +197,16 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     if (error) throw new Error(error.message);
     return mapToAppointment(data);
   }
+
+  async delete(id: string, auth: AuthorizationContext): Promise<void> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+    const { error } = await client
+      .from("appointments")
+      .delete()
+      .eq("id", id)
+      .eq(scope.column, scope.value);
+
+    if (error) throw new Error(error.message);
+  }
 }

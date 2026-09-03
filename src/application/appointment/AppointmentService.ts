@@ -57,4 +57,8 @@ export class AppointmentService {
   ): Promise<Appointment> {
     return this.repo.updateStatus(id, "completed", userId, auth);
   }
+
+  async delete(id: string, auth: AuthorizationContext): Promise<void> {
+    return this.repo.delete(id, auth);
+  }
 }

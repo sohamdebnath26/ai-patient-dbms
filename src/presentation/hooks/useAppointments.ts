@@ -113,3 +113,15 @@ export function useCompleteAppointment() {
     },
   });
 }
+
+export function useDeleteAppointment() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: (id: string) => svc.delete(id, auth),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}

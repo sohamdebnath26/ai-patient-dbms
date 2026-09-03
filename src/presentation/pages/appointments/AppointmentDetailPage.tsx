@@ -4,6 +4,7 @@ import {
   useCheckInAppointment,
   useCancelAppointment,
   useRescheduleAppointment,
+  useDeleteAppointment,
 } from "@presentation/hooks/useAppointments";
 import {
   useEncounterByAppointment,
@@ -13,8 +14,9 @@ import {
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { AppShell } from "@presentation/components/AppShell";
+import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import { useState } from "react";
-import { ArrowLeft, Loader2, User, FileText, Play, XCircle, Calendar } from "lucide-react";
+import { ArrowLeft, Loader2, User, FileText, Play, XCircle, Calendar, Trash2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: "bg-blue-50 text-blue-700",
@@ -37,7 +39,9 @@ export function AppointmentDetailPage() {
   const startEncounter = useStartEncounter();
   const cancelEncounter = useCancelEncounter();
   const reschedule = useRescheduleAppointment();
+  const deleteAppt = useDeleteAppointment();
   const [showReschedule, setShowReschedule] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -91,6 +95,20 @@ export function AppointmentDetailPage() {
     try {
       await reschedule.mutateAsync({ id, date: newDate, time: newTime });
       setShowReschedule(false);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Action failed");
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+    setActionError(null);
+    try {
+      if (encounter) {
+        await cancelEncounter.mutateAsync(encounter.id);
+      }
+      await deleteAppt.mutateAsync(id);
+      void navigate("/appointments");
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Action failed");
     }
@@ -189,6 +207,16 @@ export function AppointmentDetailPage() {
                     </button>
                   </>
                 )}
+              <button
+                onClick={() => {
+                  setDeleteOpen(true);
+                }}
+                disabled={deleteAppt.isPending}
+                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
             </div>
           </div>
 
@@ -251,6 +279,21 @@ export function AppointmentDetailPage() {
             </button>
           </div>
         )}
+        <ConfirmDialog
+          open={deleteOpen}
+          title="Delete Appointment"
+          message="Are you sure you want to permanently delete this appointment?"
+          confirmLabel="Delete"
+          confirmationText="DELETE"
+          loading={deleteAppt.isPending}
+          onCancel={() => {
+            setDeleteOpen(false);
+          }}
+          onConfirm={() => {
+            setDeleteOpen(false);
+            void handleDelete();
+          }}
+        />
       </div>
     </AppShell>
   );

@@ -27,4 +27,5 @@ export interface IAppointmentRepository {
     }>,
     auth: AuthorizationContext,
   ): Promise<Appointment>;
+  delete(id: string, auth: AuthorizationContext): Promise<void>;
 }
