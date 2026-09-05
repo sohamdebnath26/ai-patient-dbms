@@ -2,13 +2,17 @@ import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CreateAppointmentSchema, type CreateAppointmentInput } from "@domain/appointment";
+import { CreateAppointmentSchema } from "@domain/appointment";
 import { useBookAppointment } from "@presentation/hooks/useAppointments";
 import { usePatientList, useCreateQuickPatient } from "@presentation/hooks/usePatients";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2, Search, User, UserPlus, Calendar, Clock } from "lucide-react";
 import { useState } from "react";
+
+const AppointmentFormSchema = CreateAppointmentSchema.omit({ patient_id: true });
+
+type AppointmentFormInput = z.infer<typeof AppointmentFormSchema>;
 
 const QuickPatientSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -37,17 +41,16 @@ export function AppointmentCreatePage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
-  } = useForm<CreateAppointmentInput>({
-    resolver: zodResolver(CreateAppointmentSchema),
+  } = useForm<AppointmentFormInput>({
+    resolver: zodResolver(AppointmentFormSchema),
     defaultValues: {
       duration_minutes: 30,
       type: "in_person",
     },
   });
 
-  function handleExistingSubmit(data: CreateAppointmentInput) {
+  function handleExistingSubmit(data: AppointmentFormInput) {
     if (!user || !selectedPatientId) return;
     setActionError(null);
     bookMutation.mutate(
@@ -138,7 +141,6 @@ export function AppointmentCreatePage() {
                           setSelectedPatientId(p.id);
                           setSelectedPatientLabel(`${p.first_name} ${p.last_name} (${p.mrn})`);
                           setSearchQuery(`${p.first_name} ${p.last_name} (${p.mrn})`);
-                          setValue("patient_id", p.id);
                         }}
                         className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-50 ${
                           selectedPatientId === p.id ? "bg-brand-50" : ""
@@ -156,10 +158,6 @@ export function AppointmentCreatePage() {
                 )}
                 {selectedPatientLabel && (
                   <p className="text-brand-600 mt-1 text-xs">Selected: {selectedPatientLabel}</p>
-                )}
-                <input type="hidden" {...register("patient_id")} />
-                {errors.patient_id && (
-                  <p className="mt-1 text-xs text-red-600">{errors.patient_id.message}</p>
                 )}
               </div>
 
@@ -220,8 +218,6 @@ export function AppointmentCreatePage() {
                 </div>
               </div>
             </div>
-
-            <input type="hidden" {...register("patient_id")} />
 
             {actionError && (
               <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -296,10 +292,9 @@ function NewPatientFlow({
   const {
     register: registerAppt,
     handleSubmit: handleApptSubmit,
-    setValue: setApptValue,
     formState: { errors: apptErrors },
-  } = useForm<CreateAppointmentInput>({
-    resolver: zodResolver(CreateAppointmentSchema),
+  } = useForm<AppointmentFormInput>({
+    resolver: zodResolver(AppointmentFormSchema),
     defaultValues: {
       duration_minutes: 30,
       type: "in_person",
@@ -333,7 +328,6 @@ function NewPatientFlow({
       {
         onSuccess: (patient) => {
           setCreatedPatientId(patient.id);
-          setApptValue("patient_id", patient.id);
           setStep("appointment");
         },
         onError: (err) => {
@@ -343,7 +337,7 @@ function NewPatientFlow({
     );
   }
 
-  function handleBookAppointment(data: CreateAppointmentInput) {
+  function handleBookAppointment(data: AppointmentFormInput) {
     if (!user || !createdPatientId) return;
     setActionError(null);
     bookMutation.mutate(
