@@ -37,6 +37,7 @@ export function AppointmentCreatePage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<CreateAppointmentInput>({
     resolver: zodResolver(CreateAppointmentSchema),
@@ -137,6 +138,7 @@ export function AppointmentCreatePage() {
                           setSelectedPatientId(p.id);
                           setSelectedPatientLabel(`${p.first_name} ${p.last_name} (${p.mrn})`);
                           setSearchQuery(`${p.first_name} ${p.last_name} (${p.mrn})`);
+                          setValue("patient_id", p.id);
                         }}
                         className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-50 ${
                           selectedPatientId === p.id ? "bg-brand-50" : ""
@@ -154,6 +156,10 @@ export function AppointmentCreatePage() {
                 )}
                 {selectedPatientLabel && (
                   <p className="text-brand-600 mt-1 text-xs">Selected: {selectedPatientLabel}</p>
+                )}
+                <input type="hidden" {...register("patient_id")} />
+                {errors.patient_id && (
+                  <p className="mt-1 text-xs text-red-600">{errors.patient_id.message}</p>
                 )}
               </div>
 
@@ -214,6 +220,8 @@ export function AppointmentCreatePage() {
                 </div>
               </div>
             </div>
+
+            <input type="hidden" {...register("patient_id")} />
 
             {actionError && (
               <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -288,6 +296,7 @@ function NewPatientFlow({
   const {
     register: registerAppt,
     handleSubmit: handleApptSubmit,
+    setValue: setApptValue,
     formState: { errors: apptErrors },
   } = useForm<CreateAppointmentInput>({
     resolver: zodResolver(CreateAppointmentSchema),
@@ -324,6 +333,7 @@ function NewPatientFlow({
       {
         onSuccess: (patient) => {
           setCreatedPatientId(patient.id);
+          setApptValue("patient_id", patient.id);
           setStep("appointment");
         },
         onError: (err) => {
