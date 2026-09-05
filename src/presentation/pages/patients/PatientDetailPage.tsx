@@ -28,6 +28,7 @@ import {
   Pill,
   AlertTriangle,
   Clock,
+  Calendar,
   MapPin,
   HeartPulse,
   Users,
