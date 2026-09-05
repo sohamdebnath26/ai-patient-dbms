@@ -242,9 +242,12 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
   ): Promise<Encounter> {
     const client = getSupabaseClient();
     const scope = resolveAuthScope(auth);
+    const normalized = { ...input };
+    if (normalized.follow_up_date !== undefined)
+      normalized.follow_up_date = normalized.follow_up_date || null;
     const { data, error } = (await client
       .from("encounters")
-      .update(input)
+      .update(normalized)
       .eq("id", id)
       .eq(scope.column, scope.value)
       .select("*")

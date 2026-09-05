@@ -201,7 +201,7 @@ export class SupabasePatientRepository implements IPatientRepository {
       .insert({
         first_name: input.first_name,
         last_name: input.last_name,
-        dob: input.dob,
+        dob: input.dob || null,
         gender: input.gender,
         blood_group: input.blood_group ?? null,
         email: input.email ?? null,
@@ -262,9 +262,13 @@ export class SupabasePatientRepository implements IPatientRepository {
 
   async update(id: string, input: UpdatePatientInput): Promise<Patient> {
     const client = getSupabaseClient();
+    const normalized = { ...input };
+    if (normalized.dob !== undefined) normalized.dob = normalized.dob || null;
+    if (normalized.date_of_onset !== undefined)
+      normalized.date_of_onset = normalized.date_of_onset || null;
     const { data, error } = (await client
       .from("patients")
-      .update(input)
+      .update(normalized)
       .eq("id", id)
       .select("*")
       .single()) as unknown as {
