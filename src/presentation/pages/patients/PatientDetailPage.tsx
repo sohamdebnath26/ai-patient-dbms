@@ -37,6 +37,7 @@ import {
   FlaskConical,
   Image as ImageIcon,
   History,
+  Phone,
 } from "lucide-react";
 
 function FieldDisplay({ label, value }: { label: string; value: string | null | undefined }) {
