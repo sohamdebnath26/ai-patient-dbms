@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateFullPatient } from "@presentation/hooks/usePatients";
+import { useCreateEncounter } from "@presentation/hooks/useEncounters";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useResolvedOrganization } from "@presentation/hooks/useResolvedOrganization";
 import { useToast } from "@presentation/hooks/useToast";
@@ -69,10 +70,13 @@ const STEPS: StepConfig[] = [
 
 export function PatientCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectToEncounter = searchParams.get("redirectToEncounter") === "true";
   const { profile } = useProfile();
   const { phase } = useResolvedOrganization();
   const toast = useToast();
   const createMutation = useCreateFullPatient();
+  const createEncounter = useCreateEncounter();
   const [step, setStep] = useState<Step>("identity");
 
   const {
@@ -176,7 +180,19 @@ export function PatientCreatePage() {
       {
         onSuccess: (patient) => {
           toast.success("Patient registered successfully.");
-          void navigate(`/patients/${patient.id}`);
+          if (redirectToEncounter) {
+            createEncounter.mutate(patient.id, {
+              onSuccess: (encounter) => {
+                void navigate(`/encounters/${encounter.id}`);
+              },
+              onError: (err) => {
+                toast.error(err instanceof Error ? err.message : "Failed to start encounter");
+                void navigate(`/patients/${patient.id}`);
+              },
+            });
+          } else {
+            void navigate(`/patients/${patient.id}`);
+          }
         },
         onError: (error) => {
           const message =
@@ -196,12 +212,20 @@ export function PatientCreatePage() {
         <button
           type="button"
           onClick={() => {
-            void navigate("/patients");
+            void navigate(redirectToEncounter ? "/encounters" : "/patients");
           }}
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Patients
+          <ArrowLeft className="h-4 w-4" />{" "}
+          {redirectToEncounter ? "Back to Encounters" : "Back to Patients"}
         </button>
+
+        {redirectToEncounter && (
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <span className="font-semibold">New Encounter Flow</span> — Register a new patient, then
+            continue directly into their encounter.
+          </div>
+        )}
 
         <PatientHeader
           patient={headerData}

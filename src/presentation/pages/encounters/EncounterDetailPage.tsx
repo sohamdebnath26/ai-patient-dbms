@@ -299,7 +299,7 @@ export function EncounterDetailPage() {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success("Encounter deleted.");
-      void navigate(`/patients/${encounter?.patient_id}`);
+      void navigate("/encounters");
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to delete encounter");
     }

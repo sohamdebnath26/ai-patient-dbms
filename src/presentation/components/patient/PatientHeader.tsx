@@ -64,9 +64,7 @@ export function PatientHeader({
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900">
-                  {patient ? `Dr. ${displayName}` : displayName}
-                </h1>
+                <h1 className="text-xl font-bold text-gray-900">{displayName}</h1>
                 {patient?.status && (
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusBadgeClass(patient.status)}`}
