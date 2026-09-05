@@ -24,7 +24,7 @@ import {
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, addAction: null },
-  { to: "/patients", label: "Patients", icon: Users, addAction: "/patients/new" },
+  { to: "/patients", label: "Patients", icon: Users, addAction: null },
   { to: "/appointments", label: "Appointments", icon: Calendar, addAction: "/appointments/new" },
   { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: false, addAction: null },
   { to: "/images", label: "Medical Images", icon: Image, disabled: true, addAction: null },

@@ -59,7 +59,10 @@ import {
   FileText,
   Ruler,
   Save,
+  Brain,
 } from "lucide-react";
+import { DeepSeekProvider } from "@infrastructure/ai/DeepSeekProvider";
+import { AIChatService } from "@application/ai/ChatService";
 
 const emptyEncounterForm = {
   chief_complaint: "",
@@ -218,6 +221,84 @@ export function EncounterDetailPage() {
   });
   const [showAi, setShowAi] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // AI Summary
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryError, setAiSummaryError] = useState<string | null>(null);
+
+  function buildEncounterContext(): string {
+    const parts: string[] = [];
+    if (form.chief_complaint) parts.push(`Chief Complaint: ${form.chief_complaint}`);
+    if (form.present_illness) parts.push(`Present Illness: ${form.present_illness}`);
+    if (form.duration_) parts.push(`Duration: ${form.duration_}`);
+    if (form.symptoms) parts.push(`Symptoms: ${form.symptoms}`);
+    if (form.associated_symptoms) parts.push(`Associated Symptoms: ${form.associated_symptoms}`);
+    if (form.general_examination) parts.push(`General Examination: ${form.general_examination}`);
+    if (form.local_skin_examination)
+      parts.push(`Local Skin Examination: ${form.local_skin_examination}`);
+    if (form.body_site) parts.push(`Body Site: ${form.body_site}`);
+    if (form.lesion_description) parts.push(`Lesion Description: ${form.lesion_description}`);
+    if (form.morphology) parts.push(`Morphology: ${form.morphology}`);
+    if (form.distribution) parts.push(`Distribution: ${form.distribution}`);
+    if (form.findings) parts.push(`Findings: ${form.findings}`);
+    if (form.plan) parts.push(`Plan: ${form.plan}`);
+    if (form.temperature) parts.push(`Temperature: ${form.temperature}`);
+    if (computedBmi !== null) parts.push(`BMI: ${computedBmi}`);
+    if (height.trim()) parts.push(`Height: ${height} cm`);
+    if (weight.trim()) parts.push(`Weight: ${weight} kg`);
+    if (diagnoses.data && diagnoses.data.length > 0) {
+      parts.push(
+        `Diagnoses: ${diagnoses.data.map((d: { description: string; icd10_code: string | null }) => `${d.description}${d.icd10_code ? ` (${d.icd10_code})` : ""}`).join("; ")}`,
+      );
+    }
+    if (encounterMeds.data && encounterMeds.data.length > 0) {
+      parts.push(
+        `Medications: ${encounterMeds.data.map((m: { medication_name: string; dosage: string | null; frequency: string | null }) => `${m.medication_name}${m.dosage ? ` ${m.dosage}` : ""}${m.frequency ? ` ${m.frequency}` : ""}`).join("; ")}`,
+      );
+    }
+    if (encounterLabs.data && encounterLabs.data.length > 0) {
+      parts.push(
+        `Labs: ${encounterLabs.data.map((l: { test_name: string; status: string }) => `${l.test_name} (${l.status})`).join("; ")}`,
+      );
+    }
+    if (encounterNotes.data && encounterNotes.data.length > 0) {
+      parts.push(
+        `Notes: ${encounterNotes.data.map((n: { note_type: string; subjective: string | null; objective: string | null; assessment: string | null; plan: string | null }) => `${n.note_type}: ${n.subjective ?? ""} ${n.objective ?? ""} ${n.assessment ?? ""}`).join(" | ")}`,
+      );
+    }
+    if (procedures.data && procedures.data.length > 0) {
+      parts.push(
+        `Procedures: ${procedures.data.map((p: { procedure_type: string; body_site: string | null }) => `${p.procedure_type}${p.body_site ? ` at ${p.body_site}` : ""}`).join("; ")}`,
+      );
+    }
+    if (form.follow_up_date) parts.push(`Follow-up: ${form.follow_up_date}`);
+    if (form.follow_up_advice) parts.push(`Follow-up Advice: ${form.follow_up_advice}`);
+    return parts.join("\n");
+  }
+
+  async function handleGenerateAISummary() {
+    setAiSummaryLoading(true);
+    setAiSummaryError(null);
+    setAiSummary(null);
+    try {
+      const provider = new DeepSeekProvider();
+      const aiService = new AIChatService(provider);
+      const context = buildEncounterContext();
+      const response = await aiService.chat(
+        `Generate a structured clinical summary from the following encounter data. Use markdown formatting with clear section headers (## Summary, ## History, ## Examination, ## Assessment, ## Plan). Be concise and clinical.\n\n${context}`,
+        {
+          systemPrompt: `You are a clinical AI assistant helping a doctor document an encounter. Generate a structured clinical summary from the provided encounter data. Format with markdown. Sections should include: Summary, History, Examination, Assessment, and Plan. Only reference data explicitly provided. Do not fabricate findings. Label all output as AI-generated.`,
+          history: [],
+        },
+      );
+      setAiSummary(response.message);
+    } catch (e) {
+      setAiSummaryError(e instanceof Error ? e.message : "Failed to generate AI summary");
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (encounter) {
@@ -994,26 +1075,64 @@ export function EncounterDetailPage() {
                 icon={<Sparkles className="h-4 w-4" />}
                 defaultOpen
               >
-                <div className="space-y-2">
-                  {[
-                    "Generate Visit Summary",
-                    "Suggest Differential Diagnosis",
-                    "Suggest Treatment",
-                    "Drug Interaction Check",
-                    "Generate Follow-up Instructions",
-                    "Generate Referral Letter",
-                    "Generate Patient Explanation",
-                  ].map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => {}}
-                      disabled
-                      className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleGenerateAISummary();
+                    }}
+                    disabled={aiSummaryLoading}
+                    className="flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {aiSummaryLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Brain className="h-4 w-4" />
+                    )}
+                    Generate AI Summary
+                  </button>
+
+                  {aiSummaryError && (
+                    <div className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+                      {aiSummaryError}
+                    </div>
+                  )}
+
+                  {aiSummary && (
+                    <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                      <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-purple-700">
+                        <Brain className="h-3.5 w-3.5" />
+                        AI-Generated Summary
+                      </div>
+                      <div className="prose prose-sm max-w-none text-sm text-gray-700">
+                        {aiSummary.split("\n").map((line, i) => {
+                          if (line.startsWith("## ")) {
+                            return (
+                              <h3 key={i} className="mt-3 mb-1 text-sm font-bold text-gray-900">
+                                {line.replace("## ", "")}
+                              </h3>
+                            );
+                          }
+                          if (line.startsWith("- ") || line.startsWith("* ")) {
+                            return (
+                              <li key={i} className="ml-4 text-gray-700">
+                                {line.replace(/^[-*] /, "")}
+                              </li>
+                            );
+                          }
+                          if (line.trim() === "") return <br key={i} />;
+                          return (
+                            <p key={i} className="text-gray-700">
+                              {line}
+                            </p>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-3 text-[11px] text-purple-500">
+                        AI output is advisory. Review before documenting.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
             )}

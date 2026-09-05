@@ -12,7 +12,6 @@ import {
   Calendar,
   Stethoscope,
   CheckCircle2,
-  UserPlus,
   Search,
   ArrowRight,
   Clock,
@@ -301,11 +300,11 @@ export function DashboardPage() {
               <div>
                 {[
                   {
-                    label: "Register Patient",
-                    desc: "Add a new patient record",
-                    icon: UserPlus,
-                    color: "bg-blue-50 text-blue-600",
-                    to: "/patients/new",
+                    label: "New Appointment",
+                    desc: "Book an appointment for a patient",
+                    icon: Calendar,
+                    color: "bg-brand-50 text-brand-600",
+                    to: "/appointments/new",
                   },
                   {
                     label: "Find Patient",
@@ -313,13 +312,6 @@ export function DashboardPage() {
                     icon: Search,
                     color: "bg-emerald-50 text-emerald-600",
                     to: "/patients",
-                  },
-                  {
-                    label: "New Appointment",
-                    desc: "Book an appointment",
-                    icon: Calendar,
-                    color: "bg-purple-50 text-purple-600",
-                    to: "/appointments/new",
                   },
                   {
                     label: "Start Consultation",
@@ -357,7 +349,7 @@ export function DashboardPage() {
                   <h2 className="text-xl font-bold text-gray-900">Recent Patients</h2>
                   <button
                     onClick={() => {
-                      void navigate("/patients/new");
+                      void navigate("/appointments/new");
                     }}
                     className="bg-brand-600 hover:bg-brand-700 inline-flex h-7 w-7 items-center justify-center rounded-full text-white transition-colors"
                     title="Add Patient"
@@ -398,11 +390,11 @@ export function DashboardPage() {
                   <p className="mt-4 text-sm font-bold text-gray-900">No patients yet</p>
                   <button
                     onClick={() => {
-                      void navigate("/patients/new");
+                      void navigate("/appointments/new");
                     }}
                     className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors"
                   >
-                    Register first patient
+                    Book first appointment
                   </button>
                 </div>
               ) : (

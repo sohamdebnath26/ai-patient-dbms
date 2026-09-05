@@ -113,3 +113,16 @@ export function useDeregisterPatient() {
     },
   });
 }
+
+export function useCreateQuickPatient() {
+  const queryClient = useQueryClient();
+  const auth = useCurrentAuth();
+
+  return useMutation({
+    mutationFn: (input: CreatePatientFormInput) => service.create(input, auth),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}

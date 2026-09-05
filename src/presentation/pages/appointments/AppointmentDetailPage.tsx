@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import {
   useAppointment,
   useCheckInAppointment,
@@ -16,7 +16,17 @@ import { useAuth } from "@presentation/hooks/useAuth";
 import { AppShell } from "@presentation/components/AppShell";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import { useState } from "react";
-import { ArrowLeft, Loader2, User, FileText, Play, XCircle, Calendar, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  User,
+  FileText,
+  Play,
+  XCircle,
+  Calendar,
+  Trash2,
+  Stethoscope,
+} from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: "bg-blue-50 text-blue-700",
@@ -30,6 +40,8 @@ const STATUS_COLORS: Record<string, string> = {
 export function AppointmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isNewAppointment = searchParams.get("new") === "true";
   const { user } = useAuth();
   const { profile } = useProfile();
   const { data: appt, isLoading } = useAppointment(id ?? "");
@@ -45,6 +57,7 @@ export function AppointmentDetailPage() {
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
 
   if (isLoading)
     return (
@@ -62,6 +75,80 @@ export function AppointmentDetailPage() {
     );
 
   const isDoctor = profile?.role === "doctor";
+
+  async function handleStartEncounterNow() {
+    if (!user || !id) return;
+    setIsStarting(true);
+    setActionError(null);
+    try {
+      await checkIn.mutateAsync({ id, userId: user.id });
+      const enc = await startEncounter.mutateAsync({ appointmentId: id, userId: user.id });
+      searchParams.delete("new");
+      setSearchParams(searchParams, { replace: true });
+      void navigate(`/encounters/${enc.id}`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to start encounter");
+      setIsStarting(false);
+    }
+  }
+
+  function handleScheduleLater() {
+    searchParams.delete("new");
+    setSearchParams(searchParams, { replace: true });
+    void navigate("/appointments");
+  }
+
+  // Post-appointment confirmation screen (shown immediately after creating a new appointment)
+  if (isNewAppointment && isDoctor) {
+    return (
+      <AppShell>
+        <div className="mx-auto max-w-lg space-y-6 py-8">
+          <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <Calendar className="h-6 w-6 text-green-600" />
+            </div>
+            <h2 className="text-lg font-bold text-green-800">Appointment Created</h2>
+            <p className="mt-1 text-sm text-green-700">
+              {appt.patient ? `${appt.patient.first_name} ${appt.patient.last_name}` : "Patient"}
+            </p>
+            <p className="text-xs text-green-600">
+              {appt.appointment_date} at {appt.appointment_time ?? "—"} · {appt.duration_minutes}{" "}
+              min
+            </p>
+          </div>
+
+          {actionError && (
+            <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{actionError}</div>
+          )}
+
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                void handleStartEncounterNow();
+              }}
+              disabled={isStarting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {isStarting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Stethoscope className="h-4 w-4" />
+              )}
+              Start Encounter Now
+            </button>
+            <button
+              onClick={handleScheduleLater}
+              disabled={isStarting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <Calendar className="h-4 w-4" />
+              Schedule / Continue Later
+            </button>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   async function handleCheckIn() {
     if (!user || !id) return;

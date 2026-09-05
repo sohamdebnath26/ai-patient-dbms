@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { AppShell } from "@presentation/components/AppShell";
-import { Search, Plus, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 
 export function PatientListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,11 +36,10 @@ export function PatientListPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
           <button
-            onClick={() => void navigate("/patients/new")}
-            className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors"
+            onClick={() => void navigate("/appointments/new")}
+            className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white"
           >
-            <Plus className="h-4 w-4" />
-            New Patient
+            New Appointment
           </button>
         </div>
 

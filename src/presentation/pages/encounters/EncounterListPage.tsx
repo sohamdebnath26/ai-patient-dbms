@@ -1,45 +1,18 @@
 import { useNavigate } from "react-router";
-import { useState } from "react";
 import { AppShell } from "@presentation/components/AppShell";
 import { useRecentEncounters } from "@presentation/hooks/useEncounters";
 import { formatDate } from "@presentation/components/patient/utils";
-import { Stethoscope, ChevronRight, Loader2, AlertCircle, Plus } from "lucide-react";
+import { Stethoscope, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 
 export function EncounterListPage() {
   const navigate = useNavigate();
   const { data: encounters, isLoading, isError, error } = useRecentEncounters();
-  const [newMenuOpen, setNewMenuOpen] = useState(false);
 
   return (
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Encounters</h1>
-          <div className="relative">
-            <button
-              onClick={() => {
-                setNewMenuOpen((v) => !v);
-              }}
-              className="inline-flex items-center gap-2 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
-            >
-              <Plus className="h-4 w-4" />
-              New Encounter
-            </button>
-            {newMenuOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                <button
-                  onClick={() => {
-                    setNewMenuOpen(false);
-                    void navigate("/patients/new?redirectToEncounter=true");
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Plus className="h-4 w-4 text-green-600" />
-                  Register Patient First
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
         {isLoading && (

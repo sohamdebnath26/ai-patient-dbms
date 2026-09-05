@@ -14,8 +14,10 @@ const NAVIGATION_PATTERNS: { pattern: RegExp; route: string }[] = [
   { pattern: /\b(dashboard|home)\b/i, route: "/dashboard" },
   { pattern: /\b(patients|patient list|all patients)\b/i, route: "/patients" },
   { pattern: /\b(appointments|schedule|calendar)\b/i, route: "/appointments" },
-  { pattern: /\b(new patient|register patient|add patient)\b/i, route: "/patients/new" },
-  { pattern: /\b(new appointment|book appointment)\b/i, route: "/appointments/new" },
+  {
+    pattern: /\b(new patient|register patient|add patient|new appointment|book appointment)\b/i,
+    route: "/appointments/new",
+  },
   { pattern: /\b(profile|account)\b/i, route: "/profile" },
 ];
 
