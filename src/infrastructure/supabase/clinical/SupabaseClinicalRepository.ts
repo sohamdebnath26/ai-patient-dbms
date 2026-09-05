@@ -182,8 +182,8 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
       dosage: input.dosage ?? "",
       frequency: input.frequency ?? "",
       duration: input.duration ?? null,
-      start_date: input.start_date ?? null,
-      end_date: input.end_date ?? null,
+      start_date: input.start_date || null,
+      end_date: input.end_date || null,
       prescribing_doctor: input.prescribing_doctor ?? null,
     });
 

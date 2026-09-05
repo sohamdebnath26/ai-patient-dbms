@@ -243,7 +243,7 @@ export class SupabasePatientRepository implements IPatientRepository {
         smoking_status: input.smoking_status ?? null,
         alcohol_consumption: input.alcohol_consumption ?? null,
         pregnancy_status: input.pregnancy_status ?? null,
-        date_of_onset: input.date_of_onset ?? null,
+        date_of_onset: input.date_of_onset || null,
         symptoms: input.symptoms ?? null,
         sun_exposure_history: input.sun_exposure_history ?? null,
         cosmetic_product_usage: input.cosmetic_product_usage ?? null,

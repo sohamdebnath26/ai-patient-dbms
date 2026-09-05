@@ -340,7 +340,7 @@ export class SupabaseEncounterRepository implements IEncounterRepository {
       procedure_type: input.procedure_type,
       body_site: input.body_site ?? null,
       notes: input.notes ?? null,
-      performed_date: input.performed_date ?? null,
+      performed_date: input.performed_date || null,
     });
     if (error) throw new Error(error.message);
   }
