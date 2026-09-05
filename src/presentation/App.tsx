@@ -11,7 +11,6 @@ import { DashboardPage } from "@presentation/pages/DashboardPage";
 import { ProfilePage } from "@presentation/pages/profile/ProfilePage";
 import { SettingsPage } from "@presentation/pages/settings/SettingsPage";
 import { PatientListPage } from "@presentation/pages/patients/PatientListPage";
-import { PatientCreatePage } from "@presentation/pages/patients/PatientCreatePage";
 import { PatientDetailPage } from "@presentation/pages/patients/PatientDetailPage";
 import { PatientEditPage } from "@presentation/pages/patients/PatientEditPage";
 import { AppointmentListPage } from "@presentation/pages/appointments/AppointmentListPage";
@@ -115,14 +114,6 @@ export function App() {
                 element={
                   <ProtectedRoute>
                     <PatientListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/patients/new"
-                element={
-                  <ProtectedRoute>
-                    <PatientCreatePage />
                   </ProtectedRoute>
                 }
               />

@@ -3,34 +3,25 @@ import { Toaster } from "@presentation/components/Toaster";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate, NavLink, useLocation } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
-import { useChat } from "@presentation/contexts/ChatContext";
 import { useLogout } from "@presentation/hooks/useLogout";
 import {
   LayoutDashboard,
   Users,
   Calendar,
   Stethoscope,
-  Image,
-  Sparkles,
-  FileText,
-  User,
-  LogOut,
+  Settings,
   Menu,
   Search,
   ChevronRight,
   Bell,
-  Settings,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, addAction: null },
-  { to: "/patients", label: "Patients", icon: Users, addAction: null },
   { to: "/appointments", label: "Appointments", icon: Calendar, addAction: "/appointments/new" },
+  { to: "/patients", label: "Patients", icon: Users, addAction: null },
   { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: false, addAction: null },
-  { to: "/images", label: "Medical Images", icon: Image, disabled: true, addAction: null },
-  { to: "/ai", label: "AI Assistant", icon: Sparkles, disabled: false, addAction: null },
-  { to: "/reports", label: "Reports", icon: FileText, disabled: true, addAction: null },
-  { to: "/profile", label: "Profile", icon: User, addAction: null },
   { to: "/settings", label: "Settings", icon: Settings, addAction: null },
 ];
 
@@ -108,7 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <ul className="space-y-0.5">
-              {navItems.slice(0, 3).map(({ to, label, icon: Icon }) => (
+              {navItems.slice(0, 4).map(({ to, label, icon: Icon, addAction }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
@@ -125,92 +116,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                     <span className="flex-1">{label}</span>
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-8 mb-3 px-2">
-              <p className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-                Clinical
-              </p>
-            </div>
-            <ul className="space-y-0.5">
-              {navItems.slice(3, 7).map(({ to, label, icon: Icon, disabled }) => {
-                if (label === "AI Assistant") {
-                  return (
-                    <li key={to}>
+                    {addAction && (
                       <button
-                        onClick={() => {
-                          setChatOpen(true);
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void navigate(addAction);
                         }}
-                        className="hover:bg-surface-50 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150 hover:text-gray-900"
+                        className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white"
+                        title={`Add ${label}`}
                       >
-                        <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                        {label}
+                        +
                       </button>
-                    </li>
-                  );
-                }
-                if (disabled) {
-                  return (
-                    <li key={to}>
-                      <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300">
-                        <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                        {label}
-                        <span className="bg-surface-100 ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold text-gray-400">
-                          Soon
-                        </span>
-                      </span>
-                    </li>
-                  );
-                }
-                return (
-                  <li key={to}>
-                    <NavLink
-                      to={to}
-                      onClick={() => {
-                        setSidebarOpen(false);
-                      }}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
-                          isActive
-                            ? "bg-brand-50 text-brand-700"
-                            : "hover:bg-surface-50 text-gray-700 hover:text-gray-900"
-                        }`
-                      }
-                    >
-                      <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                      {label}
-                    </NavLink>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="mt-8 mb-3 px-2">
-              <p className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-                Account
-              </p>
-            </div>
-            <ul className="space-y-0.5">
-              {navItems.slice(7).map(({ to, label, icon: Icon }) => (
-                <li key={to}>
-                  <NavLink
-                    to={to}
-                    onClick={() => {
-                      setSidebarOpen(false);
-                    }}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
-                        isActive
-                          ? "bg-brand-50 text-brand-700"
-                          : "hover:bg-surface-50 text-gray-700 hover:text-gray-900"
-                      }`
-                    }
-                  >
-                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                    {label}
+                    )}
                   </NavLink>
                 </li>
               ))}
