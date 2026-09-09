@@ -1,0 +1,130 @@
+-- 00019: Medication suggestion dataset for doctor-facing autocomplete.
+-- Reference-only table; 100 dermatology medications with exact dosage,
+-- frequency, and instructions. All authenticated users can read.
+
+BEGIN;
+
+CREATE TABLE public.medication_suggestions (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  medication  text NOT NULL,
+  dosage      text NOT NULL,
+  frequency   text NOT NULL,
+  instructions text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_medication_suggestions_lower_medication
+  ON public.medication_suggestions (lower(medication));
+
+ALTER TABLE public.medication_suggestions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can read medication suggestions"
+  ON public.medication_suggestions
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- 100 dermatology medications — exact values as supplied.
+INSERT INTO public.medication_suggestions (medication, dosage, frequency, instructions) VALUES
+('Doxycycline',                     '100 mg',                                    'Once daily',                            'Take with plenty of water; avoid lying down immediately afterward'),
+('Minocycline',                     '50–100 mg',                                 'Once/twice daily',                      'Take exactly as prescribed; monitor for adverse effects'),
+('Isotretinoin',                    '0.5–1 mg/kg/day',                           'Once/divided',                          'Take with food; strict pregnancy-prevention requirements'),
+('Spironolactone',                  '25–100 mg',                                 'Once daily',                            'Prescription use; monitor potassium/BP when indicated'),
+('Itraconazole',                    '100–200 mg',                                 'Once/twice daily',                      'Take according to formulation instructions; check interactions'),
+('Terbinafine',                     '250 mg',                                    'Once daily',                            'Oral prescription; assess liver/drug-interaction considerations'),
+('Fluconazole',                     '150–300 mg',                                'Weekly/regimen-dependent',              'Follow indication-specific regimen; review interactions'),
+('Griseofulvin',                    '500–1000 mg/day',                           'Once/divided',                          'Take with food; duration depends on infection/site'),
+('Prednisolone',                    'Weight/severity based',                     'Once daily',                            'Short-course clinician-directed therapy; taper when required'),
+('Cyclosporine',                    '2.5–5 mg/kg/day',                           'Divided twice daily',                   'Specialist use; BP and renal monitoring'),
+('Methotrexate',                    '7.5–25 mg/week',                            'Once weekly',                           'Never take daily; specialist monitoring required'),
+('Azathioprine',                    'Weight-based',                              'Once/divided',                          'Specialist use; blood-count/liver monitoring'),
+('Mycophenolate mofetil',           '500–1500 mg',                               'Twice daily',                           'Specialist use; pregnancy precautions and monitoring'),
+('Apremilast',                      '30 mg after titration',                     'Twice daily',                           'Follow initial dose-titration schedule'),
+('Cetirizine',                      '10 mg',                                     'Once daily',                            'May cause drowsiness in some patients'),
+('Levocetirizine',                  '5 mg',                                      'Once daily',                            'May cause drowsiness'),
+('Fexofenadine',                    '180 mg',                                    'Once daily',                            'Take with water; avoid certain fruit juices around dosing'),
+('Bilastine',                       '20 mg',                                     'Once daily',                            'Take on an empty stomach'),
+('Desloratadine',                   '5 mg',                                      'Once daily',                            'Oral antihistamine'),
+('Loratadine',                      '10 mg',                                     'Once daily',                            'Oral antihistamine'),
+('Ivermectin',                      '200 µg/kg',                                 'Regimen-dependent',                     'Weight-based; repeat dosing depends on indication'),
+('Cephalexin',                      '500 mg',                                    '3–4 times daily',                       'Complete prescribed antibiotic course'),
+('Amoxicillin + clavulanate',       '625 mg',                                    '2–3 times daily',                       'Take with food; complete prescribed course'),
+('Clindamycin',                     '300–450 mg',                                '3–4 times daily',                       'Complete course; monitor for significant diarrhea'),
+('Acyclovir',                       '800 mg',                                    '5 times daily',                         'Start early when indicated; renal adjustment may be required'),
+('Valacyclovir',                    '1 g',                                       '3 times daily',                         'Start early when indicated; renal adjustment may be required'),
+('Famciclovir',                     '500 mg',                                    '3 times daily',                         'Regimen depends on indication'),
+('Tranexamic acid',                 'Specialist regimen',                        'Once/twice daily',                      'Oral use in pigmentation requires clinician assessment'),
+('Finasteride',                     '1 mg',                                      'Once daily',                            'Long-term use; prescription/specialist assessment'),
+('Dutasteride',                     '0.5 mg',                                    'Once daily',                            'Specialist/off-label dermatology use in some settings'),
+('Rifampicin',                      '600 mg',                                    'Monthly in MDT',                        'Use only within appropriate multidrug regimen'),
+('Dapsone',                         '100 mg',                                    'Once daily',                            'Specialist/public-health regimen; monitor blood counts'),
+('Clofazimine',                     '50 mg daily + supervised dose per regimen', 'Daily/monthly',                         'Use within multidrug regimen; skin discoloration may occur'),
+('Ethambutol',                      'Indication/weight based',                   'Regimen-dependent',                     'Specialist infectious-disease use'),
+('Albendazole',                     '400 mg',                                    'Once/regimen-dependent',                'Indication-specific treatment'),
+('Diethylcarbamazine',              'Weight/indication based',                   'Divided doses',                         'Use according to specific parasitic indication'),
+('Miltefosine',                     'Weight-based',                              'Divided daily doses',                   'Specialist use; pregnancy precautions'),
+('Abrocitinib',                     '50–200 mg',                                 'Once daily',                            'Specialist use; screening/monitoring required'),
+('Adapalene',                       '0.1%',                                      'Once nightly',                          'Apply a small amount evenly to acne-prone skin; avoid eyes/lips'),
+('Tretinoin',                       '0.025–0.05%',                               'Once nightly',                          'Apply a small amount to dry skin; introduce gradually if irritated'),
+('Benzoyl peroxide',                '2.5–5%',                                    'Once daily',                            'Apply evenly; may bleach fabrics'),
+('Clindamycin topical',             '1%',                                        'Once/twice daily',                      'Apply to affected area; avoid prolonged antibiotic monotherapy'),
+('Clindamycin + benzoyl peroxide',  '1% + 2.5–5%',                               'Once daily',                            'Apply evenly to affected area'),
+('Azelaic acid',                    '15–20%',                                    'Once/twice daily',                      'Apply to clean, dry skin; reduce frequency if irritation occurs'),
+('Terbinafine cream',               '1%',                                        'Once/twice daily',                      'Apply to affected area and surrounding skin'),
+('Luliconazole',                    '1%',                                        'Once daily',                            'Apply to affected area and surrounding margin'),
+('Clotrimazole',                    '1%',                                        'Twice daily',                           'Apply to affected area and surrounding margin'),
+('Miconazole',                      '2%',                                        'Twice daily',                           'Apply evenly to affected skin'),
+('Econazole',                       '1%',                                        'Once/twice daily',                      'Apply evenly to affected area'),
+('Sertaconazole',                   '2%',                                        'Twice daily',                           'Apply to affected area and surrounding skin'),
+('Ketoconazole cream',              '2%',                                        'Once/twice daily',                      'Apply to affected area; avoid eyes'),
+('Ciclopirox cream',                '1%',                                        'Twice daily',                           'Apply to affected skin as directed'),
+('Naftifine',                       '1%',                                        'Once daily',                            'Apply to affected area and surrounding skin'),
+('Amorolfine nail lacquer',         '5%',                                        '1–2 times weekly',                      'Apply to affected nails according to product instructions'),
+('Ketoconazole shampoo',            '2%',                                        '2–3 times weekly',                      'Apply to scalp, lather, leave for several minutes, then rinse'),
+('Selenium sulfide shampoo/lotion', '2.5%',                                      '2–3 times weekly',                      'Apply to scalp/affected area and rinse thoroughly'),
+('Hydrocortisone',                  '1%',                                        'Once daily',                            'Apply a small amount to affected skin; short-course use'),
+('Desonide',                        '0.05%',                                     'Once daily',                            'Low-potency steroid; particularly useful on sensitive sites'),
+('Mometasone furoate',              '0.1%',                                      'Once daily',                            'Apply to affected area; avoid prolonged unsupervised use'),
+('Fluticasone propionate',          '0.05%',                                     'Once daily',                            'Apply to affected area; use appropriate duration'),
+('Betamethasone valerate',          '0.1%',                                      'Once daily',                            'Apply to affected area; site/duration dependent'),
+('Betamethasone dipropionate',      '0.05%',                                     'Once daily',                            'Potent steroid; clinician-directed duration'),
+('Clobetasol propionate',           '0.05%',                                     'Once daily',                            'Very potent steroid; short course and site restrictions'),
+('Halobetasol propionate',          '0.05%',                                     'Once daily',                            'Very potent steroid; short intermittent use'),
+('Fluocinolone acetonide',          '0.01%',                                     'Once/twice daily',                      'Apply to affected area for prescribed duration'),
+('Tacrolimus',                      '0.03% ointment',                            'Twice daily',                           'Apply to affected area; avoid eyes/mucosa'),
+('Tacrolimus',                      '0.1% ointment',                             'Twice daily',                           'Apply to affected area; specialist/age-specific use'),
+('Pimecrolimus',                    '1% cream',                                  'Twice daily',                           'Apply thin, even coverage to affected areas; avoid eyes'),
+('Crisaborole',                     '2% ointment',                               'Twice daily',                           'Apply to affected skin; avoid eyes'),
+('Calcipotriol',                    '0.005%',                                    'Once/twice daily',                      'Apply to affected plaques; follow maximum-use guidance'),
+('Calcipotriol + betamethasone',    'Fixed combination',                         'Once daily',                            'Apply to affected plaques; steroid duration limits apply'),
+('Coal tar',                        '2–10% preparation',                         'Once/twice daily',                      'Apply according to formulation; avoid eyes and irritated skin'),
+('Urea',                            '10–40%',                                    'Once/twice daily',                      'Apply to dry/thickened skin; avoid open wounds'),
+('Salicylic acid',                  '2–6%',                                      'Once/twice daily',                      'Apply only to intended area; avoid excessive use'),
+('Mupirocin',                       '2% ointment',                               '2–3 times daily',                       'Apply to localized lesions; use short course'),
+('Fusidic acid',                    '2% cream/ointment',                         '2–3 times daily',                       'Short course; antimicrobial stewardship'),
+('Retapamulin',                     '1% ointment',                               'Twice daily',                           'Apply to affected area for prescribed course'),
+('Ozenoxacin',                      '1% cream',                                  'Twice daily',                           'Apply to affected area for prescribed course'),
+('Acyclovir cream',                 '5%',                                        '5 times daily',                         'Apply early to affected area; avoid eyes'),
+('Metronidazole',                   '0.75–1%',                                   'Once/twice daily',                      'Apply evenly to affected facial areas; avoid eyes'),
+('Ivermectin cream',                '1%',                                        'Once daily',                            'Apply to affected facial areas; avoid eyes/lips'),
+('Brimonidine gel',                 '0.33%',                                     'Once daily',                            'Apply small amount evenly to affected facial areas'),
+('Oxymetazoline cream',             '1%',                                        'Once daily',                            'Apply to affected facial areas; avoid eyes'),
+('Hydroquinone',                    '2–4%',                                      'Once nightly',                          'Apply to pigmented areas only; strict photoprotection'),
+('Kojic acid',                      '1–2%',                                      'Once/twice daily',                      'Apply to pigmentation; discontinue if significant irritation'),
+('Niacinamide topical',             '4–5%',                                      'Once/twice daily',                      'Apply evenly to affected skin'),
+('Minoxidil solution',              '2%',                                        'Twice daily',                           'Apply to scalp; wash hands after application'),
+('Minoxidil solution/foam',         '5%',                                        'Once/twice daily',                      'Apply to scalp; use formulation-specific instructions'),
+('Ruxolitinib cream',               '1.5%',                                      'Twice daily',                           'Specialist/indication-specific use; apply to affected areas'),
+('Benzyl benzoate',                 '25%',                                       'Regimen-dependent',                     'Apply to instructed body areas; wash off according to regimen'),
+('Permethrin',                      '5% cream',                                  'Usually repeat after 7 days if needed', 'Apply to entire instructed body surface; leave for prescribed contact time'),
+('Crotamiton',                      '10%',                                       'Regimen-dependent',                     'Apply according to scabies treatment instructions'),
+('Sulfur ointment',                 '5–10%',                                     'Once daily/regimen-dependent',          'Apply according to age/site-specific instructions'),
+('Malathion',                       '0.5% lotion',                               'Regimen-dependent',                     'Apply to hair/scalp according to product instructions'),
+('Intralesional triamcinolone',     '2.5–10 mg/mL',                              'Every 4–6 weeks',                       'Injection by trained clinician only; dose/site dependent'),
+('Dupilumab',                       'Age/weight-based',                          'Usually every 2 weeks',                 'Subcutaneous injection; loading/maintenance regimen required'),
+('Omalizumab',                      'Indication-dependent',                      'Usually every 4 weeks',                 'Subcutaneous injection; specialist-administered'),
+('Amphotericin B',                  'Weight/indication based',                   'Regimen-dependent',                     'IV hospital therapy only; specialist monitoring'),
+('Sodium stibogluconate',           'Weight/indication based',                   'Regimen-dependent',                     'Parenteral specialist therapy only'),
+('Methoxsalen',                     'Protocol-dependent',                        'Before/with PUVA',                      'Phototherapy protocol; specialist supervision');
+
+COMMIT;

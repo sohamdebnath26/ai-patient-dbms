@@ -21,6 +21,7 @@ interface MedicationItemRow {
   medication_name: string;
   dosage: string;
   frequency: string;
+  route: string | null;
   duration: string | null;
   start_date: string | null;
   end_date: string | null;
@@ -109,6 +110,7 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
           medication_name: item.medication_name,
           dosage: item.dosage,
           frequency: item.frequency,
+          route: item.route ?? null,
           duration: item.duration,
           start_date: item.start_date,
           end_date: item.end_date,
@@ -141,6 +143,7 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
           medication_name: item.medication_name,
           dosage: item.dosage,
           frequency: item.frequency,
+          route: item.route ?? null,
           duration: item.duration,
           start_date: item.start_date,
           end_date: item.end_date,
@@ -181,6 +184,7 @@ export class SupabaseClinicalRepository implements IClinicalRepository {
       medication_name: input.medication_name,
       dosage: input.dosage ?? "",
       frequency: input.frequency ?? "",
+      route: input.route ?? null,
       duration: input.duration ?? null,
       start_date: input.start_date || null,
       end_date: input.end_date || null,

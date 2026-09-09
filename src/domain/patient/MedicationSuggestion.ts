@@ -29,6 +29,7 @@ export interface MedicationDetail {
   frequencyOptions: FrequencyOption[];
   routeOptions: RouteOption[];
   commonDuration?: string;
+  instructions?: string;
 }
 
 export interface MedicationSearchResult {

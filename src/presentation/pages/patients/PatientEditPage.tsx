@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +37,7 @@ import { MedicationSection } from "@presentation/components/patient/MedicationSe
 import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { computeAge } from "@presentation/components/patient/utils";
+import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
 import {
   ArrowLeft,
   Loader2,
@@ -162,6 +163,8 @@ export function PatientEditPage() {
   }, [updateMutation.isPending]);
 
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
+
+  const medicationSuggestionService = useMemo(() => new SupabaseMedicationSuggestionService(), []);
 
   const appointmentList = useMemo(() => clinical?.appointments ?? [], [clinical?.appointments]);
   const lastVisit = useMemo(() => {
@@ -448,6 +451,7 @@ export function PatientEditPage() {
                     onRemove={(itemId) => {
                       removeMedication.mutate(itemId);
                     }}
+                    suggestionService={medicationSuggestionService}
                   />
                 </div>
               )}

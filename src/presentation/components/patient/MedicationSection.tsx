@@ -71,6 +71,7 @@ export function MedicationSection({
   const [suggestions, setSuggestions] = useState<MedicationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [suggestionInstructions, setSuggestionInstructions] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<{
     dosages: DosageOption[];
     frequencies: FrequencyOption[];
@@ -113,6 +114,11 @@ export function MedicationSection({
     setDraft((p) => ({ ...p, medication_name: value }));
     if (detailCache && detailCache.loadedFor !== value) {
       setDetailCache(null);
+      setSuggestionInstructions(null);
+    }
+    if (!value) {
+      setSuggestionInstructions(null);
+      setDetailCache(null);
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -127,21 +133,45 @@ export function MedicationSection({
     }));
     setShowSuggestions(false);
     setSuggestions([]);
+    setSuggestionInstructions(null);
+    setDetailCache(null);
 
     if (suggestionService) {
       suggestionService
         .getDetail(suggestion.id)
         .then((detail) => {
           if (!detail) return;
+          const dosages: DosageOption[] = detail.dosageOptions;
+          const frequencies: FrequencyOption[] = detail.frequencyOptions;
+
+          setDraft((p) => {
+            const updated = { ...p };
+            if (dosages.length === 1) {
+              updated.dosage = dosages[0]?.value ?? p.dosage;
+            } else if (dosages.length > 1) {
+              updated.dosage = "";
+            }
+            if (frequencies.length === 1) {
+              updated.frequency = frequencies[0]?.value ?? p.frequency;
+            } else if (frequencies.length > 1) {
+              updated.frequency = "";
+            }
+            return updated;
+          });
+
           setDetailCache({
-            dosages: detail.dosageOptions,
-            frequencies: detail.frequencyOptions,
+            dosages,
+            frequencies,
             routes: detail.routeOptions,
             loadedFor: suggestion.id,
           });
+
+          if (detail.instructions) {
+            setSuggestionInstructions(detail.instructions);
+          }
         })
         .catch(() => {
-          /* ignore — detail lookup is best-effort */
+          /* ignore */
         });
     }
   }
@@ -191,6 +221,7 @@ export function MedicationSection({
     setDetailCache(null);
     setSuggestions([]);
     setShowSuggestions(false);
+    setSuggestionInstructions(null);
   }
 
   return (
@@ -498,6 +529,15 @@ export function MedicationSection({
               className={inputClass}
             />
           </div>
+
+          {suggestionInstructions && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 sm:col-span-3">
+              <p className="text-[11px] font-semibold tracking-wide text-blue-700 uppercase">
+                Instructions from dataset
+              </p>
+              <p className="mt-1 text-sm text-blue-800">{suggestionInstructions}</p>
+            </div>
+          )}
 
           <div className="flex items-end">
             <button
