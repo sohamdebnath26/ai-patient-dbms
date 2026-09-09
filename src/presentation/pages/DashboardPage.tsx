@@ -6,16 +6,16 @@ import { resolveAuthScope } from "@domain/patient";
 import type { AuthorizationContext } from "@domain/patient";
 import { useNavigate } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
-import { StatCard } from "@presentation/components/StatCard";
 import {
   Users,
   Calendar,
   Stethoscope,
-  CheckCircle2,
-  Search,
-  ArrowRight,
   Clock,
   ChevronRight,
+  ArrowRight,
+  Loader2,
+  AlertTriangle,
+  Plus,
 } from "lucide-react";
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 
@@ -42,6 +42,7 @@ function useDashboardSummary(auth: AuthorizationContext) {
           .from("patients")
           .select("*", { count: "exact", head: true })
           .eq("status", "active")
+          .neq("status", "deregistered")
           .eq(scope.column, scope.value)
           .then((r: unknown) => (r as { count: number }).count),
         client
@@ -73,35 +74,41 @@ function useDashboardSummary(auth: AuthorizationContext) {
         completedToday: completedCount,
       };
     },
+    staleTime: 30_000,
   });
 }
 
-function useTodaySchedule(auth: AuthorizationContext) {
+function useTodayAppointments(auth: AuthorizationContext) {
   const scope = resolveAuthScope(auth);
   return useQuery({
     queryKey: ["dashboard", "schedule", scope.column, scope.value],
     queryFn: async () => {
       const client = getSupabaseClient();
       const today = new Date().toISOString().split("T")[0];
-      const { data } = (await client
+      const { data, error } = (await client
         .from("appointments")
-        .select("id,appointment_time,status,patient:patients(first_name,last_name,mrn)")
+        .select("id,appointment_time,status,reason,type,patient:patients(first_name,last_name,mrn)")
         .eq("appointment_date", today)
         .not("status", "in", '("cancelled","no_show")')
         .eq(scope.column, scope.value)
         .order("appointment_time", { ascending: true })
-        .limit(8)) as unknown as {
+        .limit(10)) as unknown as {
         data:
           | {
               id: string;
               appointment_time: string | null;
               status: string;
+              reason: string | null;
+              type: string;
               patient: { first_name: string; last_name: string; mrn: string }[] | null;
             }[]
           | null;
+        error: { message: string } | null;
       };
+      if (error) throw new Error(error.message);
       return data ?? [];
     },
+    staleTime: 30_000,
   });
 }
 
@@ -111,12 +118,12 @@ function useRecentPatients(auth: AuthorizationContext) {
     queryKey: ["dashboard", "recentPatients", scope.column, scope.value],
     queryFn: async () => {
       const client = getSupabaseClient();
-      const { data } = (await client
+      const { data, error } = (await client
         .from("patients")
-        .select("id,first_name,last_name,mrn,dob,gender,created_at")
+        .select("id,first_name,last_name,mrn,dob,gender")
         .neq("status", "deregistered")
         .eq(scope.column, scope.value)
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(5)) as unknown as {
         data:
           | {
@@ -126,12 +133,14 @@ function useRecentPatients(auth: AuthorizationContext) {
               mrn: string;
               dob: string | null;
               gender: string | null;
-              created_at: string;
             }[]
           | null;
+        error: { message: string } | null;
       };
+      if (error) throw new Error(error.message);
       return data ?? [];
     },
+    staleTime: 30_000,
   });
 }
 
@@ -142,10 +151,64 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-function calculateAge(dob: string | null): string {
+function computeAge(dob: string | null): string {
   if (!dob) return "—";
   const diff = Date.now() - new Date(dob).getTime();
   return `${Math.floor(diff / 31557600000)} yrs`;
+}
+
+function StatCardDisplay({
+  label,
+  value,
+  loading,
+  icon: Icon,
+  color,
+}: {
+  label: string;
+  value: number | undefined;
+  loading: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase">{label}</p>
+          <div className="mt-4 min-h-[44px]">
+            {loading ? (
+              <Loader2 className="h-7 w-7 animate-spin text-gray-300" />
+            ) : (
+              <p className="text-[44px] leading-none font-extrabold tracking-tight text-gray-900">
+                {value?.toLocaleString() ?? 0}
+              </p>
+            )}
+          </div>
+        </div>
+        <div
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${color}`}
+        >
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center py-10 text-center">
+      <AlertTriangle className="h-8 w-8 text-red-400" />
+      <p className="mt-3 text-sm font-medium text-red-600">Unable to load</p>
+      <p className="mt-1 text-xs text-gray-500">{message}</p>
+      <button
+        onClick={onRetry}
+        className="mt-4 rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        Try again
+      </button>
+    </div>
+  );
 }
 
 export function DashboardPage() {
@@ -154,73 +217,73 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const auth = useAuthContext();
   const summary = useDashboardSummary(auth);
-  const schedule = useTodaySchedule(auth);
+  const schedule = useTodayAppointments(auth);
   const recentPatients = useRecentPatients(auth);
 
   const s = summary.data;
 
+  const displayName = profile?.firstName
+    ? `Dr. ${profile.firstName} ${profile.lastName}`
+    : user
+      ? user.email.split("@")[0] || "User"
+      : "User";
+
   return (
     <AppShell>
       <div className="space-y-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
-              {getGreeting()}
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
-              Dr.{" "}
-              {profile?.firstName
-                ? `${profile.firstName} ${profile.lastName}`
-                : (user?.email ?? "User")}
-            </h1>
-            <p className="mt-1 text-sm font-medium text-gray-500">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
+        <div>
+          <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+            {getGreeting()}, {displayName}
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
+            Here&apos;s what&apos;s happening in your clinic today.
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Total Patients"
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCardDisplay
+            label="Active Patients"
             value={s?.totalPatients}
+            loading={summary.isLoading}
             icon={Users}
             color="bg-blue-50 text-blue-600"
-            loading={summary.isLoading}
           />
-          <StatCard
+          <StatCardDisplay
             label="Today's Appointments"
             value={s?.todayAppointments}
-            secondary={s?.todayAppointments ? `${s.completedToday} completed` : undefined}
+            loading={summary.isLoading}
             icon={Calendar}
             color="bg-emerald-50 text-emerald-600"
-            loading={summary.isLoading}
           />
-          <StatCard
-            label="Active Encounters"
+          <StatCardDisplay
+            label="Active Consultations"
             value={s?.activeEncounters}
+            loading={summary.isLoading}
             icon={Stethoscope}
             color="bg-purple-50 text-purple-600"
-            loading={summary.isLoading}
           />
-          <StatCard
+          <StatCardDisplay
             label="Completed Today"
             value={s?.completedToday}
-            icon={CheckCircle2}
-            color="bg-amber-50 text-amber-600"
             loading={summary.isLoading}
+            icon={Calendar}
+            color="bg-amber-50 text-amber-600"
           />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="lg:col-span-2">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Today&apos;s Schedule</h2>
+                <h2 className="text-xl font-bold text-gray-900">Today&apos;s Appointments</h2>
                 <button
                   onClick={() => {
                     void navigate("/appointments");
@@ -236,19 +299,26 @@ export function DashboardPage() {
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="bg-surface-50 flex animate-pulse items-center gap-4 rounded-lg p-3"
+                      className="flex animate-pulse items-center gap-4 rounded-lg bg-gray-50 p-3"
                     >
-                      <div className="bg-surface-200 h-10 w-14 rounded-md" />
+                      <div className="h-10 w-14 rounded-md bg-gray-200" />
                       <div className="flex-1 space-y-1.5">
-                        <div className="bg-surface-200 h-3 w-32 rounded" />
-                        <div className="bg-surface-200 h-2.5 w-24 rounded" />
+                        <div className="h-3 w-32 rounded bg-gray-200" />
+                        <div className="h-2.5 w-24 rounded bg-gray-200" />
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : schedule.data && schedule.data.length === 0 ? (
-                <div className="flex flex-col items-center py-14 text-center">
-                  <div className="bg-surface-50 flex h-16 w-16 items-center justify-center rounded-full">
+              ) : schedule.isError ? (
+                <SectionError
+                  message={schedule.error.message}
+                  onRetry={() => {
+                    void schedule.refetch();
+                  }}
+                />
+              ) : (schedule.data?.length ?? 0) === 0 ? (
+                <div className="flex flex-col items-center py-12 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50">
                     <Calendar className="h-7 w-7 text-gray-400" />
                   </div>
                   <p className="mt-4 text-sm font-bold text-gray-900">No appointments today</p>
@@ -257,22 +327,22 @@ export function DashboardPage() {
                     onClick={() => {
                       void navigate("/appointments/new");
                     }}
-                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors"
+                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-xl px-5 py-2 text-sm font-semibold text-white"
                   >
-                    Book first appointment
+                    Book appointment
                   </button>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {schedule.data?.map((a) => (
-                    <div
+                  {schedule.data.map((a) => (
+                    <button
                       key={a.id}
                       onClick={() => {
                         void navigate(`/appointments/${a.id}`);
                       }}
-                      className="flex cursor-pointer items-center gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-gray-50"
+                      className="flex w-full items-center gap-4 rounded-lg px-3 py-3 text-left transition-colors hover:bg-gray-50"
                     >
-                      <div className="bg-surface-50 flex h-12 w-16 flex-shrink-0 flex-col items-center justify-center rounded-lg">
+                      <div className="flex h-12 w-16 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-gray-50">
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
                         <span className="mt-0.5 text-sm font-bold text-gray-800">
                           {a.appointment_time?.slice(0, 5) ?? "—"}
@@ -280,14 +350,17 @@ export function DashboardPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-gray-900">
-                          {a.patient?.[0]?.first_name ?? "—"} {a.patient?.[0]?.last_name ?? ""}
+                          {a.patient?.[0]
+                            ? `${a.patient[0].first_name} ${a.patient[0].last_name}`
+                            : "Patient"}
                         </p>
-                        <p className="text-xs font-medium text-gray-500">
-                          MRN: {a.patient?.[0]?.mrn ?? "—"} · {a.status.replace("_", " ")}
+                        <p className="text-xs text-gray-500">
+                          {a.patient?.[0].mrn ? `MRN: ${a.patient[0].mrn} · ` : ""}
+                          {a.reason || a.type.replace("_", " ")} · {a.status.replace("_", " ")}
                         </p>
                       </div>
                       <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -295,68 +368,9 @@ export function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
-              <h2 className="mb-6 text-xl font-bold text-gray-900">Quick Actions</h2>
-              <div>
-                {[
-                  {
-                    label: "New Appointment",
-                    desc: "Book an appointment for a patient",
-                    icon: Calendar,
-                    color: "bg-brand-50 text-brand-600",
-                    to: "/appointments/new",
-                  },
-                  {
-                    label: "Find Patient",
-                    desc: "Search patient records",
-                    icon: Search,
-                    color: "bg-emerald-50 text-emerald-600",
-                    to: "/patients",
-                  },
-                  {
-                    label: "Start Consultation",
-                    desc: "View clinical encounters",
-                    icon: Stethoscope,
-                    color: "bg-amber-50 text-amber-600",
-                    to: "/encounters",
-                  },
-                ].map(({ label, desc, icon: Icon, color, to }) => (
-                  <button
-                    key={to}
-                    onClick={() => {
-                      void navigate(to);
-                    }}
-                    className="group flex w-full cursor-pointer items-center gap-4 rounded-xl border-b border-gray-200 px-2 py-5 text-left transition last:border-b-0 hover:bg-gray-50"
-                  >
-                    <div
-                      className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${color}`}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-base font-bold text-gray-900">{label}</p>
-                      <p className="mt-0.5 text-sm font-medium text-gray-500">{desc}</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 flex-shrink-0 text-gray-400 transition-transform group-hover:translate-x-1 group-hover:text-gray-600" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-surface-200 rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-gray-900">Recent Patients</h2>
-                  <button
-                    onClick={() => {
-                      void navigate("/appointments/new");
-                    }}
-                    className="bg-brand-600 hover:bg-brand-700 inline-flex h-7 w-7 items-center justify-center rounded-full text-white transition-colors"
-                    title="Add Patient"
-                  >
-                    <span className="text-lg leading-none">+</span>
-                  </button>
-                </div>
+                <h2 className="text-xl font-bold text-gray-900">Recent Patients</h2>
                 <button
                   onClick={() => {
                     void navigate("/patients");
@@ -372,40 +386,40 @@ export function DashboardPage() {
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="bg-surface-50 flex animate-pulse items-center gap-3 rounded-lg p-2.5"
+                      className="flex animate-pulse items-center gap-3 rounded-lg bg-gray-50 p-2.5"
                     >
-                      <div className="bg-surface-200 h-9 w-9 rounded-full" />
+                      <div className="h-9 w-9 rounded-full bg-gray-200" />
                       <div className="flex-1 space-y-1.5">
-                        <div className="bg-surface-200 h-3 w-28 rounded" />
-                        <div className="bg-surface-200 h-2.5 w-16 rounded" />
+                        <div className="h-3 w-28 rounded bg-gray-200" />
+                        <div className="h-2.5 w-16 rounded bg-gray-200" />
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : recentPatients.data && recentPatients.data.length === 0 ? (
-                <div className="flex flex-col items-center py-12 text-center">
-                  <div className="bg-surface-50 flex h-16 w-16 items-center justify-center rounded-full">
+              ) : recentPatients.isError ? (
+                <SectionError
+                  message={recentPatients.error.message}
+                  onRetry={() => {
+                    void recentPatients.refetch();
+                  }}
+                />
+              ) : (recentPatients.data?.length ?? 0) === 0 ? (
+                <div className="flex flex-col items-center py-10 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50">
                     <Users className="h-7 w-7 text-gray-400" />
                   </div>
                   <p className="mt-4 text-sm font-bold text-gray-900">No patients yet</p>
-                  <button
-                    onClick={() => {
-                      void navigate("/appointments/new");
-                    }}
-                    className="bg-brand-600 hover:bg-brand-700 mt-5 rounded-xl px-5 py-2 text-sm font-semibold text-white transition-colors"
-                  >
-                    Book first appointment
-                  </button>
+                  <p className="mt-1 text-sm text-gray-500">Start by booking an appointment</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
-                  {recentPatients.data?.map((p) => (
-                    <div
+                <div className="divide-y divide-gray-100">
+                  {recentPatients.data.map((p) => (
+                    <button
                       key={p.id}
                       onClick={() => {
                         void navigate(`/patients/${p.id}`);
                       }}
-                      className="flex cursor-pointer items-center gap-3 py-5 transition-colors first:pt-0 last:pb-0 hover:bg-gray-50"
+                      className="flex w-full items-center gap-3 py-4 text-left first:pt-0 last:pb-0 hover:bg-gray-50"
                     >
                       <div className="bg-brand-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
                         <span className="text-brand-600 text-sm font-bold">
@@ -417,15 +431,48 @@ export function DashboardPage() {
                         <p className="truncate text-sm font-bold text-gray-900">
                           {p.first_name} {p.last_name}
                         </p>
-                        <p className="text-xs font-medium text-gray-500">
-                          {calculateAge(p.dob)} · {p.gender ?? "—"} · MRN: {p.mrn}
+                        <p className="text-xs text-gray-500">
+                          {computeAge(p.dob)} · {p.gender ?? "—"} · MRN: {p.mrn}
                         </p>
                       </div>
                       <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-5 text-lg font-bold text-gray-900">Quick Actions</h2>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    void navigate("/appointments/new");
+                  }}
+                  className="bg-brand-600 hover:bg-brand-700 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-white"
+                >
+                  <Plus className="h-5 w-5" />
+                  New Appointment
+                </button>
+                <button
+                  onClick={() => {
+                    void navigate("/patients");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <Users className="h-5 w-5 text-gray-400" />
+                  Find Patient
+                </button>
+                <button
+                  onClick={() => {
+                    void navigate("/encounters");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <Stethoscope className="h-5 w-5 text-gray-400" />
+                  View Consultations
+                </button>
+              </div>
             </div>
           </div>
         </div>

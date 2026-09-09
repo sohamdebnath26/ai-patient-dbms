@@ -40,8 +40,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     query: searchFocused ? searchQuery : undefined,
   });
 
-  const { setOpen: setChatOpen } = useChat();
-
   const avatarLetter = useMemo(() => {
     if (profile?.firstName) return profile.firstName.charAt(0).toUpperCase();
     if (profile?.email) return profile.email.charAt(0).toUpperCase();
@@ -123,7 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           e.stopPropagation();
                           void navigate(addAction);
                         }}
-                        className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white"
+                        className="bg-brand-600 ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white"
                         title={`Add ${label}`}
                       >
                         +
