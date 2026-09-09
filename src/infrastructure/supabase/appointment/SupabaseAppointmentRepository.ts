@@ -26,15 +26,18 @@ interface AppointmentRow {
   created_by: string;
   created_at: string;
   updated_at: string;
-  patient?: { first_name: string; last_name: string; mrn: string }[] | null;
+  patient: { first_name: string; last_name: string; mrn: string } | null;
 }
 
 function mapToAppointment(raw: AppointmentRow): Appointment {
-  const patientArr = raw.patient && raw.patient.length > 0 ? raw.patient[0] : undefined;
   return AppointmentSchema.parse({
     ...raw,
-    patient: patientArr
-      ? { first_name: patientArr.first_name, last_name: patientArr.last_name, mrn: patientArr.mrn }
+    patient: raw.patient
+      ? {
+          first_name: raw.patient.first_name,
+          last_name: raw.patient.last_name,
+          mrn: raw.patient.mrn,
+        }
       : undefined,
   });
 }

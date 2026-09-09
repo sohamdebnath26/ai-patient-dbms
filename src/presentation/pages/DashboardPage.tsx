@@ -100,7 +100,7 @@ function useTodayAppointments(auth: AuthorizationContext) {
               status: string;
               reason: string | null;
               type: string;
-              patient: { first_name: string; last_name: string; mrn: string }[] | null;
+              patient: { first_name: string; last_name: string; mrn: string } | null;
             }[]
           | null;
         error: { message: string } | null;
@@ -350,12 +350,10 @@ export function DashboardPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-gray-900">
-                          {a.patient?.[0]
-                            ? `${a.patient[0].first_name} ${a.patient[0].last_name}`
-                            : "Patient"}
+                          {a.patient ? `${a.patient.first_name} ${a.patient.last_name}` : "Patient"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {a.patient?.[0]?.mrn ? `MRN: ${a.patient[0].mrn} · ` : ""}
+                          {a.patient?.mrn ? `MRN: ${a.patient.mrn} · ` : ""}
                           {a.reason || a.type.replace("_", " ")} · {a.status.replace("_", " ")}
                         </p>
                       </div>
