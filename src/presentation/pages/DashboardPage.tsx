@@ -355,7 +355,7 @@ export function DashboardPage() {
                             : "Patient"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {a.patient?.[0].mrn ? `MRN: ${a.patient[0].mrn} · ` : ""}
+                          {a.patient?.[0]?.mrn ? `MRN: ${a.patient[0].mrn} · ` : ""}
                           {a.reason || a.type.replace("_", " ")} · {a.status.replace("_", " ")}
                         </p>
                       </div>
