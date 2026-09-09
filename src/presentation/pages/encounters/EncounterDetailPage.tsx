@@ -368,7 +368,11 @@ export function EncounterDetailPage() {
         await completeApptMutation.mutateAsync({ id: encounter.appointment_id, userId: user.id });
       }
       toast.success("Encounter completed.");
-      void navigate("/encounters");
+      if (encounter?.appointment_id) {
+        void navigate(`/appointments/${encounter.appointment_id}`);
+      } else {
+        void navigate(`/patients/${encounter.patient_id}`);
+      }
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to complete encounter");
     }
