@@ -63,7 +63,7 @@ export function AIChatbot() {
   const { data: patients } = usePatientList({
     page: 1,
     limit: 20,
-    query: patientQuery || undefined,
+    query: isAuthenticated && showPatientPicker ? patientQuery || undefined : undefined,
   });
 
   useEffect(() => {
@@ -243,7 +243,7 @@ export function AIChatbot() {
             autoFocus
           />
           <div className="max-h-40 overflow-y-auto">
-            {patients?.patients.map((p) => (
+            {(patients?.patients ?? []).map((p) => (
               <button
                 key={p.id}
                 onClick={() => {
