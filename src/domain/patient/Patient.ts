@@ -269,7 +269,7 @@ export const PatientFormSchema = z
     duration: z.string().optional(),
     current_flare: z.boolean().optional(),
     previous_skin_cancer: z.boolean().optional(),
-    current_treatment: z.string().min(1, "Current treatment plan is required"),
+    current_treatment: z.string().optional(),
     medical_notes: z.string().optional(),
     chief_complaint: z.string().min(1, "Chief complaint is required"),
     present_illness: z.string().min(1, "Present illness is required"),
