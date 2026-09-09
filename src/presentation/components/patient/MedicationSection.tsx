@@ -101,7 +101,8 @@ export function MedicationSection({
           setHighlightIdx(0);
           setShowSuggestions(results.length > 0);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          console.error("Medication suggestion error:", err);
           setSuggestions([]);
           setShowSuggestions(false);
         })
