@@ -376,7 +376,7 @@ export function DermatologySection() {
             onChange={(v) => {
               setValue("symptoms", v, { shouldValidate: true });
             }}
-            placeholder="Search symptoms..."
+            placeholder="e.g. itching, burning, pain, tenderness"
             suggestions={SYMPTOM_OPTIONS}
           />
           <FieldError message={errors.symptoms?.message} />
@@ -388,7 +388,7 @@ export function DermatologySection() {
           onChange={(v) => {
             setValue("secondary_diagnosis", v, { shouldValidate: false });
           }}
-          placeholder="Search morphology..."
+          placeholder="e.g. papules, plaques, vesicles, scales"
           suggestions={MORPHOLOGY_OPTIONS}
         />
 
@@ -398,7 +398,7 @@ export function DermatologySection() {
           onChange={(v) => {
             setValue("sun_exposure_history", v, { shouldValidate: false });
           }}
-          placeholder="Search distribution..."
+          placeholder="e.g. localized, bilateral, flexural, generalized"
           suggestions={DISTRIBUTION_OPTIONS}
         />
       </div>
