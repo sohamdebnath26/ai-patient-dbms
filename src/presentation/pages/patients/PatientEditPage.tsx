@@ -19,6 +19,7 @@ import {
   useAddClinicalNote,
 } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
@@ -77,6 +78,7 @@ export function PatientEditPage() {
   const addMedication = useAddMedication(id ?? "");
   const removeMedication = useRemoveMedication(id ?? "");
   const addNote = useAddClinicalNote(id ?? "");
+  const toast = useToast();
 
   const isReceptionist = profile?.role === "receptionist";
   const [deregisterOpen, setDeregisterOpen] = useState(false);
@@ -150,6 +152,18 @@ export function PatientEditPage() {
     }
   }, [patient, reset]);
 
+  useEffect(() => {
+    if (updateMutation.isPending) {
+      const handler = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+      };
+      window.addEventListener("beforeunload", handler);
+      return () => {
+        window.removeEventListener("beforeunload", handler);
+      };
+    }
+  }, [updateMutation.isPending]);
+
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
   const symptomsValue = watch("symptoms");
   const genderValue = watch("gender");
@@ -214,7 +228,8 @@ export function PatientEditPage() {
       { id, input: payload },
       {
         onSuccess: () => {
-          void navigate(`/patients/${id}`);
+          toast.success("Patient saved successfully.");
+          void navigate("/patients");
         },
       },
     );
