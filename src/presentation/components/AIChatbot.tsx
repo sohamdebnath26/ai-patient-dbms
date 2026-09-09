@@ -58,6 +58,8 @@ export function AIChatbot() {
   );
   const [size, setSize] = useState<Size>({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
 
+  const { isAuthenticated } = useAuth();
+
   const { data: patients } = usePatientList({
     page: 1,
     limit: 20,
@@ -161,7 +163,7 @@ export function AIChatbot() {
     setShowPatientPicker(false);
   }
 
-  if (!isOpen) return null;
+  if (!isOpen || !isAuthenticated) return null;
 
   const scale = clamp(size.width / DEFAULT_WIDTH, 0.9, 1.6);
   const baseFontSize = Math.round(14 * scale);
