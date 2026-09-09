@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   EditPatientFormSchema,
@@ -62,6 +62,26 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
+const FIELD_TAB_MAP: Record<string, { tab: TabKey; label: string }> = {
+  first_name: { tab: "overview", label: "First Name" },
+  last_name: { tab: "overview", label: "Last Name" },
+  dob: { tab: "overview", label: "Date of Birth" },
+  gender: { tab: "overview", label: "Gender" },
+  mrn: { tab: "overview", label: "MRN" },
+  phone: { tab: "overview", label: "Phone" },
+  address_line1: { tab: "overview", label: "Address Line 1" },
+  city: { tab: "overview", label: "City" },
+  state: { tab: "overview", label: "State" },
+  country: { tab: "overview", label: "Country" },
+  postal_code: { tab: "overview", label: "Postal Code" },
+  chief_complaint: { tab: "medical-history", label: "Chief Complaint" },
+  present_illness: { tab: "medical-history", label: "Present Illness" },
+  primary_diagnosis: { tab: "dermatology", label: "Primary Diagnosis" },
+  current_treatment: { tab: "dermatology", label: "Current Treatment" },
+  date_of_onset: { tab: "dermatology", label: "Date of Onset" },
+  symptoms: { tab: "dermatology", label: "Symptoms" },
+};
+
 export function PatientEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,6 +98,7 @@ export function PatientEditPage() {
   const isReceptionist = profile?.role === "receptionist";
   const [deregisterOpen, setDeregisterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [validationBanner, setValidationBanner] = useState<string[] | null>(null);
 
   const methods = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
@@ -162,6 +183,23 @@ export function PatientEditPage() {
     }
   }, [updateMutation.isPending]);
 
+  function onValidationFailed(errs: FieldErrors<EditPatientFormInput>) {
+    const missing: { label: string; tab: TabKey }[] = [];
+    for (const field of Object.keys(FIELD_TAB_MAP)) {
+      if (errs[field as keyof EditPatientFormInput]) {
+        missing.push({
+          label: FIELD_TAB_MAP[field].label,
+          tab: FIELD_TAB_MAP[field].tab,
+        });
+      }
+    }
+    if (missing.length > 0) {
+      setValidationBanner(missing.map((m) => m.label));
+      if (!FIELD_TAB_MAP[Object.keys(errs)[0] as keyof EditPatientFormInput]) return;
+      setActiveTab(missing[0].tab);
+    }
+  }
+
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
 
   const medicationSuggestionService = useMemo(() => new SupabaseMedicationSuggestionService(), []);
@@ -197,6 +235,7 @@ export function PatientEditPage() {
   }
 
   function onSubmit(data: EditPatientFormInput) {
+    setValidationBanner(null);
     if (!id) return;
     const payload: UpdatePatientInput = isReceptionist
       ? {
@@ -312,6 +351,19 @@ export function PatientEditPage() {
           </div>
         )}
 
+        {validationBanner && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm">
+            <p className="font-semibold text-red-800">
+              Please complete all required fields before saving.
+            </p>
+            <ul className="mt-1 list-disc pl-5 text-red-600">
+              {validationBanner.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <FormProvider {...methods}>
           <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-100 p-1">
             <div className="flex gap-0.5">
@@ -335,7 +387,7 @@ export function PatientEditPage() {
           </div>
 
           {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
-          <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit)}>
+          <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit, onValidationFailed)}>
             <div className="animate-fade-in rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               {activeTab === "overview" && (
                 <div className="space-y-6">
