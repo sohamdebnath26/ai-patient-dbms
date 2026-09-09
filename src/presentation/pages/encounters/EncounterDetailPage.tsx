@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,8 +16,6 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 import { AppShell } from "@presentation/components/AppShell";
-import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
-import { EncounterTimeline } from "@presentation/components/encounter/EncounterTimeline";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
@@ -27,6 +25,7 @@ import {
   type PatientHeaderData,
 } from "@presentation/components/patient/PatientHeader";
 import { TextAreaField, TextField, LoadingButton } from "@presentation/components/patient/helpers";
+import { formatDate } from "@presentation/components/patient/utils";
 import { type ClinicalImage } from "@presentation/components/patient/utils";
 import {
   useEncounterDiagnoses,
@@ -46,23 +45,26 @@ import { useToast } from "@presentation/hooks/useToast";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import type { DiagnosisInput } from "@domain/patient";
 import type { ProcedureInput, ProcedureType } from "@domain/encounter";
-import {
-  ArrowLeft,
-  Loader2,
-  Stethoscope,
-  Edit3,
-  Activity,
-  Sparkles,
-  Plus,
-  Trash2,
-  CheckCircle,
-  FileText,
-  Ruler,
-  Save,
-  Brain,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, CheckCircle, Save, Brain, History } from "lucide-react";
 import { DeepSeekProvider } from "@infrastructure/ai/DeepSeekProvider";
 import { AIChatService } from "@application/ai/ChatService";
+
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "history", label: "History & Symptoms" },
+  { key: "examination", label: "Examination" },
+  { key: "measurements", label: "Measurements" },
+  { key: "diagnosis", label: "Diagnosis & Treatment" },
+  { key: "procedures", label: "Procedures" },
+  { key: "lab-reports", label: "Lab Reports" },
+  { key: "clinical-images", label: "Clinical Images" },
+  { key: "soap-notes", label: "SOAP Notes" },
+  { key: "follow-up", label: "Follow-up" },
+  { key: "ai-assistant", label: "AI Assistant" },
+  { key: "timeline", label: "Timeline" },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
 
 const emptyEncounterForm = {
   chief_complaint: "",
@@ -99,9 +101,21 @@ const PROCEDURE_TYPES: { value: ProcedureType; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
+function TabContentWrapper({ children, tabKey }: { children: React.ReactNode; tabKey: TabKey }) {
+  return (
+    <div
+      key={tabKey}
+      className="animate-fade-in rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+    >
+      {children}
+    </div>
+  );
+}
+
 export function EncounterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { data: encounter, isLoading } = useEncounter(id ?? "");
   const { data: patient } = usePatient(encounter?.patient_id ?? "");
@@ -127,6 +141,10 @@ export function EncounterDetailPage() {
   const addEncounterNote = useAddEncounterNote(id ?? "", encounter?.patient_id ?? "");
   const qc = useQueryClient();
   const { selectedOrganizationId, selectedClinicId } = useSelectedOrganizationStore();
+
+  const tabParam = searchParams.get("tab");
+  const activeTab: TabKey =
+    tabParam && TABS.some((t) => t.key === tabParam) ? (tabParam as TabKey) : "overview";
 
   const { data: vital } = useQuery({
     queryKey: ["encounters", id, "vitals"],
@@ -219,10 +237,8 @@ export function EncounterDetailPage() {
     diagnosis_type: "primary",
     severity: "",
   });
-  const [showAi, setShowAi] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // AI Summary
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const [aiSummaryError, setAiSummaryError] = useState<string | null>(null);
@@ -395,6 +411,12 @@ export function EncounterDetailPage() {
     }
   }
 
+  function setTab(key: TabKey) {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  }
+
   if (isLoading || !encounter) {
     return (
       <AppShell>
@@ -424,6 +446,8 @@ export function EncounterDetailPage() {
           : undefined,
       }
     : null;
+
+  const previousEncounters = (encounters.data ?? []).filter((e) => e.id !== encounter.id);
 
   return (
     <AppShell>
@@ -468,15 +492,6 @@ export function EncounterDetailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowAi((v) => !v);
-                }}
-                className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium ${showAi ? "bg-purple-100 text-purple-700" : "border border-gray-300 text-gray-700 hover:bg-gray-50"}`}
-              >
-                <Sparkles className="h-4 w-4" /> AI
-              </button>
-              <button
-                type="button"
-                onClick={() => {
                   setDeleteOpen(true);
                 }}
                 className="rounded-md p-1.5 text-gray-400 hover:text-red-500"
@@ -491,14 +506,155 @@ export function EncounterDetailPage() {
           <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{actionError}</div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            <CollapsibleSection
-              title="Current Visit"
-              icon={<Stethoscope className="h-4 w-4" />}
-              defaultOpen
-            >
-              <div className="grid grid-cols-2 gap-3">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-100 p-1">
+          <div className="flex gap-0.5">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setTab(tab.key);
+                }}
+                className={`flex-shrink-0 rounded-md px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
+                  activeTab === tab.key
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          {activeTab === "overview" && (
+            <TabContentWrapper tabKey="overview">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <h2 className="text-base font-semibold text-gray-900">Encounter Summary</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Status</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900 capitalize">
+                        {encounter.status.replace("_", " ")}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Encounter Date</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                        {formatDate(encounter.encounter_date)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Encounter #</p>
+                      <p className="mt-1 font-mono text-sm font-semibold text-gray-900">
+                        {encounter.encounter_number ?? "#" + encounter.id.slice(0, 8)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Doctor</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                        {profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {encounter.chief_complaint && (
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Chief Complaint</p>
+                      <p className="mt-1 text-sm text-gray-900">{encounter.chief_complaint}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-base font-semibold text-gray-900">Quick Stats</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Diagnoses</p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {diagnoses.data?.length ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Procedures</p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {procedures.data?.length ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Medications</p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {encounterMeds.data?.length ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Lab Reports</p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {encounterLabs.data?.length ?? 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  {computedBmi !== null && (
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">BMI</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                        {computedBmi}
+                        <span
+                          className={`ml-2 text-xs font-medium ${
+                            computedBmi < 18.5
+                              ? "text-yellow-600"
+                              : computedBmi < 25
+                                ? "text-green-600"
+                                : computedBmi < 30
+                                  ? "text-orange-600"
+                                  : "text-red-600"
+                          }`}
+                        >
+                          {computedBmi < 18.5
+                            ? "Underweight"
+                            : computedBmi < 25
+                              ? "Normal"
+                              : computedBmi < 30
+                                ? "Overweight"
+                                : "Obese"}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+
+                  {encounter.follow_up_date && (
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs text-gray-500">Follow-up</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                        {formatDate(encounter.follow_up_date)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {aiSummary && (
+                <div className="mt-5 rounded-lg border border-purple-200 bg-purple-50 p-4">
+                  <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-purple-700">
+                    <Brain className="h-3.5 w-3.5" />
+                    AI-Generated Summary Preview
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    {aiSummary.split("\n").slice(0, 6).join("\n")}
+                    {aiSummary.split("\n").length > 6 && "..."}
+                  </div>
+                </div>
+              )}
+            </TabContentWrapper>
+          )}
+
+          {activeTab === "history" && (
+            <TabContentWrapper tabKey="history">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">History &amp; Symptoms</h2>
+              <div className="grid grid-cols-2 gap-4">
                 <TextAreaField
                   label="Chief Complaint"
                   value={form.chief_complaint}
@@ -541,14 +697,20 @@ export function EncounterDetailPage() {
                   span="full"
                 />
               </div>
-            </CollapsibleSection>
+              {!form.chief_complaint &&
+                !form.present_illness &&
+                !form.duration_ &&
+                !form.symptoms &&
+                !form.associated_symptoms && (
+                  <p className="mt-4 text-sm text-gray-400">No history or symptoms recorded.</p>
+                )}
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection
-              title="Examination"
-              icon={<Activity className="h-4 w-4" />}
-              defaultOpen
-            >
-              <div className="grid gap-3">
+          {activeTab === "examination" && (
+            <TabContentWrapper tabKey="examination">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Examination</h2>
+              <div className="grid gap-4">
                 <TextAreaField
                   label="General Examination"
                   value={form.general_examination}
@@ -567,7 +729,7 @@ export function EncounterDetailPage() {
                   disabled={!isActive}
                   span="full"
                 />
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-4">
                   <TextField
                     label="Body Site"
                     value={form.body_site}
@@ -593,7 +755,7 @@ export function EncounterDetailPage() {
                     disabled={!isActive}
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-4">
                   <TextField
                     label="Distribution"
                     value={form.distribution}
@@ -619,7 +781,7 @@ export function EncounterDetailPage() {
                     disabled={!isActive}
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-4">
                   <TextField
                     label="Texture"
                     value={form.texture}
@@ -645,7 +807,7 @@ export function EncounterDetailPage() {
                     disabled={!isActive}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <TextField
                     label="Tenderness"
                     value={form.tenderness}
@@ -664,10 +826,28 @@ export function EncounterDetailPage() {
                   />
                 </div>
               </div>
-            </CollapsibleSection>
+              {!form.general_examination &&
+                !form.local_skin_examination &&
+                !form.body_site &&
+                !form.lesion_description &&
+                !form.morphology &&
+                !form.distribution &&
+                !form.color &&
+                !form.borders &&
+                !form.texture &&
+                !form.scaling &&
+                !form.pigmentation &&
+                !form.tenderness &&
+                !form.temperature && (
+                  <p className="mt-4 text-sm text-gray-400">No examination findings recorded.</p>
+                )}
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection title="Measurements" icon={<Ruler className="h-4 w-4" />}>
-              <div className="grid grid-cols-3 gap-3">
+          {activeTab === "measurements" && (
+            <TabContentWrapper tabKey="measurements">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Measurements</h2>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600">Height (cm)</label>
                   <input
@@ -698,7 +878,15 @@ export function EncounterDetailPage() {
                     {computedBmi ?? "—"}
                     {computedBmi != null && (
                       <span
-                        className={`ml-2 text-xs font-medium ${computedBmi < 18.5 ? "text-yellow-600" : computedBmi < 25 ? "text-green-600" : computedBmi < 30 ? "text-orange-600" : "text-red-600"}`}
+                        className={`ml-2 text-xs font-medium ${
+                          computedBmi < 18.5
+                            ? "text-yellow-600"
+                            : computedBmi < 25
+                              ? "text-green-600"
+                              : computedBmi < 30
+                                ? "text-orange-600"
+                                : "text-red-600"
+                        }`}
                       >
                         {computedBmi < 18.5
                           ? "Underweight"
@@ -713,29 +901,28 @@ export function EncounterDetailPage() {
                 </div>
               </div>
               {isActive && (
-                <LoadingButton
-                  onClick={() => {
-                    void saveVitals.mutateAsync();
-                  }}
-                  loading={saveVitals.isPending}
-                  disabled={!height.trim() && !weight.trim()}
-                  icon={null}
-                  label="Save Measurements"
-                  variant="secondary"
-                />
+                <div className="mt-4">
+                  <LoadingButton
+                    onClick={() => {
+                      void saveVitals.mutateAsync();
+                    }}
+                    loading={saveVitals.isPending}
+                    disabled={!height.trim() && !weight.trim()}
+                    icon={null}
+                    label="Save Measurements"
+                    variant="secondary"
+                  />
+                </div>
               )}
-            </CollapsibleSection>
+              {!height.trim() && !weight.trim() && (
+                <p className="mt-4 text-sm text-gray-400">No measurements recorded.</p>
+              )}
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection
-              title="Diagnosis"
-              icon={<FileText className="h-4 w-4" />}
-              badge={
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                  {diagnoses.data?.length ?? 0}
-                </span>
-              }
-              defaultOpen
-            >
+          {activeTab === "diagnosis" && (
+            <TabContentWrapper tabKey="diagnosis">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Diagnosis</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -744,13 +931,16 @@ export function EncounterDetailPage() {
                       <th className="px-2 py-2 font-medium">ICD-10</th>
                       <th className="px-2 py-2 font-medium">Type</th>
                       <th className="px-2 py-2 font-medium">Severity</th>
-                      <th className="px-2 py-2 font-medium" />
+                      {isActive && <th className="px-2 py-2 font-medium" />}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {(diagnoses.data ?? []).length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-2 py-4 text-center text-gray-400">
+                        <td
+                          colSpan={isActive ? 5 : 4}
+                          className="px-2 py-6 text-center text-gray-400"
+                        >
                           No diagnoses recorded.
                         </td>
                       </tr>
@@ -767,8 +957,8 @@ export function EncounterDetailPage() {
                           </span>
                         </td>
                         <td className="px-2 py-2 text-gray-600 capitalize">{d.severity || "—"}</td>
-                        <td className="px-2 py-2 text-right">
-                          {isActive && (
+                        {isActive && (
+                          <td className="px-2 py-2 text-right">
                             <button
                               type="button"
                               onClick={() => {
@@ -778,15 +968,15 @@ export function EncounterDetailPage() {
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                          )}
-                        </td>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               {isActive && (
-                <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3">
+                <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3">
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600">Description</label>
                     <input
@@ -809,7 +999,10 @@ export function EncounterDetailPage() {
                     <select
                       value={diagnosisDraft.diagnosis_type}
                       onChange={(e) => {
-                        setDiagnosisDraft((prev) => ({ ...prev, diagnosis_type: e.target.value }));
+                        setDiagnosisDraft((prev) => ({
+                          ...prev,
+                          diagnosis_type: e.target.value,
+                        }));
                       }}
                       className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:ring-1 focus:outline-none"
                     >
@@ -855,18 +1048,26 @@ export function EncounterDetailPage() {
                   </div>
                 </div>
               )}
-            </CollapsibleSection>
 
-            <CollapsibleSection
-              title="Procedures"
-              icon={<Edit3 className="h-4 w-4" />}
-              badge={
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                  {procedures.data?.length ?? 0}
-                </span>
-              }
-              defaultOpen
-            >
+              <div className="mt-6 border-t border-gray-200 pt-6">
+                <h3 className="mb-4 text-base font-semibold text-gray-900">Medications</h3>
+                <MedicationSection
+                  medications={encounterMeds.data ?? []}
+                  adding={addEncounterMed.isPending}
+                  onAdd={(input) => {
+                    addEncounterMed.mutate(input);
+                  }}
+                  onRemove={(itemId) => {
+                    removeEncounterMed.mutate(itemId);
+                  }}
+                />
+              </div>
+            </TabContentWrapper>
+          )}
+
+          {activeTab === "procedures" && (
+            <TabContentWrapper tabKey="procedures">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Procedures</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -874,13 +1075,16 @@ export function EncounterDetailPage() {
                       <th className="px-2 py-2 font-medium">Procedure</th>
                       <th className="px-2 py-2 font-medium">Body Site</th>
                       <th className="px-2 py-2 font-medium">Notes</th>
-                      <th className="px-2 py-2 font-medium" />
+                      {isActive && <th className="px-2 py-2 font-medium" />}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {(procedures.data ?? []).length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-2 py-4 text-center text-gray-400">
+                        <td
+                          colSpan={isActive ? 4 : 3}
+                          className="px-2 py-6 text-center text-gray-400"
+                        >
                           No procedures recorded.
                         </td>
                       </tr>
@@ -891,11 +1095,11 @@ export function EncounterDetailPage() {
                           {p.procedure_type.replace(/_/g, " ")}
                         </td>
                         <td className="px-2 py-2 text-gray-600">{p.body_site || "—"}</td>
-                        <td className="max-w-[150px] truncate px-2 py-2 text-gray-600">
+                        <td className="max-w-[200px] truncate px-2 py-2 text-gray-600">
                           {p.notes || "—"}
                         </td>
-                        <td className="px-2 py-2 text-right">
-                          {isActive && (
+                        {isActive && (
+                          <td className="px-2 py-2 text-right">
                             <button
                               type="button"
                               onClick={() => {
@@ -905,15 +1109,15 @@ export function EncounterDetailPage() {
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                          )}
-                        </td>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               {isActive && (
-                <div className="mt-3 grid gap-2 rounded-lg bg-gray-50 p-3">
+                <div className="mt-4 grid gap-2 rounded-lg bg-gray-50 p-3">
                   <div className="flex flex-wrap gap-2">
                     {PROCEDURE_TYPES.map((pt) => (
                       <button
@@ -922,7 +1126,11 @@ export function EncounterDetailPage() {
                         onClick={() => {
                           setProcedureDraft((prev) => ({ ...prev, procedure_type: pt.value }));
                         }}
-                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${procedureDraft.procedure_type === pt.value ? "bg-brand-600 text-white" : "hover:border-brand-300 border border-gray-200 bg-white text-gray-700"}`}
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          procedureDraft.procedure_type === pt.value
+                            ? "bg-brand-600 text-white"
+                            : "border border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                        }`}
                       >
                         {pt.label}
                       </button>
@@ -969,26 +1177,12 @@ export function EncounterDetailPage() {
                   />
                 </div>
               )}
-            </CollapsibleSection>
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection
-              title="Medications"
-              icon={<Activity className="h-4 w-4" />}
-              defaultOpen
-            >
-              <MedicationSection
-                medications={encounterMeds.data ?? []}
-                adding={addEncounterMed.isPending}
-                onAdd={(input) => {
-                  addEncounterMed.mutate(input);
-                }}
-                onRemove={(itemId) => {
-                  removeEncounterMed.mutate(itemId);
-                }}
-              />
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Laboratory Reports" icon={<FileText className="h-4 w-4" />}>
+          {activeTab === "lab-reports" && (
+            <TabContentWrapper tabKey="lab-reports">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Lab Reports</h2>
               <LabReportsSection
                 reports={encounterLabs.data ?? []}
                 onAdd={
@@ -999,9 +1193,12 @@ export function EncounterDetailPage() {
                     : undefined
                 }
               />
-            </CollapsibleSection>
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection title="Clinical Images" icon={<Sparkles className="h-4 w-4" />}>
+          {activeTab === "clinical-images" && (
+            <TabContentWrapper tabKey="clinical-images">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Clinical Images</h2>
               <ClinicalImagesSection
                 images={images}
                 onAdd={(file) => {
@@ -1022,9 +1219,12 @@ export function EncounterDetailPage() {
                   setImages((prev) => prev.filter((i) => i.id !== imgId));
                 }}
               />
-            </CollapsibleSection>
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection title="Clinical Notes" icon={<FileText className="h-4 w-4" />}>
+          {activeTab === "soap-notes" && (
+            <TabContentWrapper tabKey="soap-notes">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">SOAP Notes</h2>
               <ClinicalNotesSection
                 notes={encounterNotes.data ?? []}
                 adding={addEncounterNote.isPending}
@@ -1036,10 +1236,13 @@ export function EncounterDetailPage() {
                     : () => {}
                 }
               />
-            </CollapsibleSection>
+            </TabContentWrapper>
+          )}
 
-            <CollapsibleSection title="Follow-up" icon={<Activity className="h-4 w-4" />}>
-              <div className="grid grid-cols-2 gap-3">
+          {activeTab === "follow-up" && (
+            <TabContentWrapper tabKey="follow-up">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Follow-up</h2>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600">Follow-up Date</label>
                   <input
@@ -1079,85 +1282,150 @@ export function EncounterDetailPage() {
                   span="full"
                 />
               </div>
-            </CollapsibleSection>
-          </div>
+              {!form.follow_up_date &&
+                !form.follow_up_advice &&
+                !form.follow_up_warnings &&
+                !form.follow_up_lifestyle_advice && (
+                  <p className="mt-4 text-sm text-gray-400">No follow-up instructions recorded.</p>
+                )}
+            </TabContentWrapper>
+          )}
 
-          <div className="space-y-4">
-            {showAi && (
-              <CollapsibleSection
-                title="AI Assistant"
-                icon={<Sparkles className="h-4 w-4" />}
-                defaultOpen
-              >
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleGenerateAISummary();
-                    }}
-                    disabled={aiSummaryLoading}
-                    className="flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
-                  >
-                    {aiSummaryLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Brain className="h-4 w-4" />
-                    )}
-                    Generate AI Summary
-                  </button>
-
-                  {aiSummaryError && (
-                    <div className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
-                      {aiSummaryError}
-                    </div>
+          {activeTab === "ai-assistant" && (
+            <TabContentWrapper tabKey="ai-assistant">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">AI Assistant</h2>
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleGenerateAISummary();
+                  }}
+                  disabled={aiSummaryLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-3 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {aiSummaryLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Brain className="h-4 w-4" />
                   )}
+                  Generate AI Summary
+                </button>
 
-                  {aiSummary && (
-                    <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                      <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-purple-700">
-                        <Brain className="h-3.5 w-3.5" />
-                        AI-Generated Summary
-                      </div>
-                      <div className="prose prose-sm max-w-none text-sm text-gray-700">
-                        {aiSummary.split("\n").map((line, i) => {
-                          if (line.startsWith("## ")) {
-                            return (
-                              <h3 key={i} className="mt-3 mb-1 text-sm font-bold text-gray-900">
-                                {line.replace("## ", "")}
-                              </h3>
-                            );
-                          }
-                          if (line.startsWith("- ") || line.startsWith("* ")) {
-                            return (
-                              <li key={i} className="ml-4 text-gray-700">
-                                {line.replace(/^[-*] /, "")}
-                              </li>
-                            );
-                          }
-                          if (line.trim() === "") return <br key={i} />;
+                {aiSummaryError && (
+                  <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {aiSummaryError}
+                  </div>
+                )}
+
+                {!aiSummary && !aiSummaryLoading && !aiSummaryError && (
+                  <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+                    <Brain className="mx-auto h-8 w-8 text-purple-300" />
+                    <p className="mt-3 text-sm font-medium text-gray-600">Generate an AI Summary</p>
+                    <p className="mt-1 text-sm text-gray-400">
+                      Click the button above to create a structured clinical summary from the
+                      encounter data.
+                    </p>
+                  </div>
+                )}
+
+                {aiSummary && (
+                  <div className="rounded-lg border border-purple-200 bg-purple-50 p-5">
+                    <div className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-purple-700">
+                      <Brain className="h-3.5 w-3.5" />
+                      AI-Generated Summary
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-700">
+                      {aiSummary.split("\n").map((line, i) => {
+                        if (line.startsWith("## ")) {
                           return (
-                            <p key={i} className="text-gray-700">
-                              {line}
-                            </p>
+                            <h3 key={i} className="mt-3 mb-1 text-sm font-bold text-gray-900">
+                              {line.replace("## ", "")}
+                            </h3>
                           );
-                        })}
-                      </div>
-                      <p className="mt-3 text-[11px] text-purple-500">
-                        AI output is advisory. Review before documenting.
-                      </p>
+                        }
+                        if (line.startsWith("- ") || line.startsWith("* ")) {
+                          return (
+                            <li key={i} className="ml-4 text-gray-700">
+                              {line.replace(/^[-*] /, "")}
+                            </li>
+                          );
+                        }
+                        if (line.trim() === "") return <br key={i} />;
+                        return (
+                          <p key={i} className="text-gray-700">
+                            {line}
+                          </p>
+                        );
+                      })}
                     </div>
-                  )}
+                    <p className="mt-4 text-xs text-purple-500">
+                      AI output is advisory. Review before documenting.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabContentWrapper>
+          )}
+
+          {activeTab === "timeline" && (
+            <TabContentWrapper tabKey="timeline">
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Encounter Timeline</h2>
+              {previousEncounters.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+                  <History className="mx-auto h-8 w-8 text-gray-300" />
+                  <p className="mt-3 text-sm font-medium text-gray-600">No previous encounters</p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Previous encounters for this patient will appear here.
+                  </p>
                 </div>
-              </CollapsibleSection>
-            )}
-            <CollapsibleSection
-              title="Encounter History"
-              icon={<Activity className="h-4 w-4" />}
-              defaultOpen
-            >
-              <EncounterTimeline encounters={encounters.data ?? []} />
-            </CollapsibleSection>
-          </div>
+              ) : (
+                <div className="space-y-3">
+                  {previousEncounters
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime(),
+                    )
+                    .map((enc) => (
+                      <button
+                        key={enc.id}
+                        type="button"
+                        onClick={() => {
+                          void navigate(`/encounters/${enc.id}`);
+                        }}
+                        className="w-full rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            {enc.encounter_number ?? "Encounter"}
+                          </span>
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              enc.status === "completed"
+                                ? "bg-gray-100 text-gray-600"
+                                : enc.status === "in_progress"
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-yellow-50 text-yellow-700"
+                            }`}
+                          >
+                            {enc.status.replace("_", " ")}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-500">
+                          <span>{formatDate(enc.encounter_date)}</span>
+                          {enc.chief_complaint && (
+                            <span>
+                              {enc.chief_complaint.slice(0, 60)}
+                              {enc.chief_complaint.length > 60 ? "..." : ""}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              )}
+            </TabContentWrapper>
+          )}
         </div>
 
         <ConfirmDialog
