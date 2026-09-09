@@ -20,6 +20,7 @@ import { EncounterDetailPage } from "@presentation/pages/encounters/EncounterDet
 import { EncounterListPage } from "@presentation/pages/encounters/EncounterListPage";
 import { ChatProvider } from "@presentation/contexts/ChatProvider";
 import { AIChatbot, ChatLauncher } from "@presentation/components/AIChatbot";
+import { ErrorBoundary } from "@presentation/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,106 +78,108 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <ChatProvider>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/auth/login" element={<LoginPage />} />
-              <Route path="/auth/signup" element={<SignupPage />} />
-              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/system/health" element={<HealthPage />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <SettingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/patients"
-                element={
-                  <ProtectedRoute>
-                    <PatientListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/patients/:id"
-                element={
-                  <ProtectedRoute>
-                    <PatientDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/patients/:id/edit"
-                element={
-                  <ProtectedRoute>
-                    <PatientEditPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/appointments"
-                element={
-                  <ProtectedRoute>
-                    <AppointmentListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/appointments/new"
-                element={
-                  <ProtectedRoute>
-                    <AppointmentCreatePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/appointments/:id"
-                element={
-                  <ProtectedRoute>
-                    <AppointmentDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/encounters"
-                element={
-                  <ProtectedRoute>
-                    <EncounterListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/encounters/:id"
-                element={
-                  <ProtectedRoute>
-                    <EncounterDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-            <ChatLauncher />
-            <AIChatbot />
-          </ChatProvider>
+          <ErrorBoundary>
+            <ChatProvider>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/auth/login" element={<LoginPage />} />
+                <Route path="/auth/signup" element={<SignupPage />} />
+                <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/system/health" element={<HealthPage />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/patients"
+                  element={
+                    <ProtectedRoute>
+                      <PatientListPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/patients/:id"
+                  element={
+                    <ProtectedRoute>
+                      <PatientDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/patients/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <PatientEditPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/appointments"
+                  element={
+                    <ProtectedRoute>
+                      <AppointmentListPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/appointments/new"
+                  element={
+                    <ProtectedRoute>
+                      <AppointmentCreatePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/appointments/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppointmentDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/encounters"
+                  element={
+                    <ProtectedRoute>
+                      <EncounterListPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/encounters/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EncounterDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+              <ChatLauncher />
+              <AIChatbot />
+            </ChatProvider>
+          </ErrorBoundary>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

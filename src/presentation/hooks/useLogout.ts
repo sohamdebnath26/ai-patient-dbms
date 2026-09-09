@@ -2,17 +2,25 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@presentation/hooks/useAuth";
-import { useChat } from "@presentation/contexts/ChatContext";
+import { useContext } from "react";
+import { ChatContext } from "@presentation/contexts/ChatContext";
 
 export function useLogout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { logout } = useAuth();
-  const { clearChat, setOpen: setChatOpen } = useChat();
+
+  const chatCtx = useContext(ChatContext);
+  const setChatOpen = chatCtx?.setOpen;
+  const clearChat = chatCtx?.clearChat;
 
   return useCallback(async () => {
-    setChatOpen(false);
-    clearChat();
+    try {
+      setChatOpen?.(false);
+      clearChat?.();
+    } catch {
+      // chat context cleanup is optional
+    }
     queryClient.clear();
     await logout();
     void navigate("/auth/login", { replace: true });
