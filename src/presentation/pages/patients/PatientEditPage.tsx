@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   EditPatientFormSchema,
@@ -21,7 +21,6 @@ import {
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
-import { CollapsibleSection } from "@presentation/components/CollapsibleSection";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import {
   PatientHeader,
@@ -34,15 +33,10 @@ import { MedicalHistorySection } from "@presentation/components/patient/MedicalH
 import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
 import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
-import { CurrentTreatmentSection } from "@presentation/components/patient/CurrentTreatmentSection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
-import { LabReportsSection } from "@presentation/components/patient/LabReportsSection";
-import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
-import { VisitSummarySection } from "@presentation/components/patient/VisitSummarySection";
-import { PatientAuditSection } from "@presentation/components/patient/PatientAuditSection";
-import { computeAge, type ClinicalImage } from "@presentation/components/patient/utils";
+import { computeAge } from "@presentation/components/patient/utils";
 import {
   ArrowLeft,
   Loader2,
@@ -50,22 +44,22 @@ import {
   UserRoundX,
   User,
   HeartPulse,
-  Stethoscope,
   Activity,
   Pill,
-  ClipboardList,
   Sparkles,
-  Clock,
+  Sun,
 } from "lucide-react";
 
-type EditTab = "overview" | "demographics" | "medical" | "clinical";
+const TABS = [
+  { key: "overview", label: "Patient Overview" },
+  { key: "medical-history", label: "Medical History" },
+  { key: "dermatology", label: "Dermatology" },
+  { key: "medications", label: "Medications" },
+  { key: "alerts", label: "Alerts & Notes" },
+  { key: "lifestyle", label: "Lifestyle" },
+] as const;
 
-const TABS: { key: EditTab; label: string; icon: React.ReactNode }[] = [
-  { key: "overview", label: "Overview", icon: <HeartPulse className="h-4 w-4" /> },
-  { key: "demographics", label: "Demographics", icon: <User className="h-4 w-4" /> },
-  { key: "medical", label: "History & Lifestyle", icon: <Stethoscope className="h-4 w-4" /> },
-  { key: "clinical", label: "Clinical Record", icon: <ClipboardList className="h-4 w-4" /> },
-];
+type TabKey = (typeof TABS)[number]["key"];
 
 export function PatientEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -82,8 +76,12 @@ export function PatientEditPage() {
 
   const isReceptionist = profile?.role === "receptionist";
   const [deregisterOpen, setDeregisterOpen] = useState(false);
-  const [images, setImages] = useState<ClinicalImage[]>([]);
-  const [activeTab, setActiveTab] = useState<EditTab>("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+
+  const methods = useForm<EditPatientFormInput>({
+    resolver: zodResolver(EditPatientFormSchema),
+    defaultValues: { gender: "", symptoms: "", primary_diagnosis: "" },
+  });
 
   const {
     register,
@@ -92,12 +90,11 @@ export function PatientEditPage() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<EditPatientFormInput>({
-    resolver: zodResolver(EditPatientFormSchema),
-    defaultValues: { gender: "", symptoms: "", primary_diagnosis: "" },
-  });
+  } = methods;
 
   const dobValue = watch("dob");
+  const genderValue = watch("gender");
+  const primaryDiagnosisValue = watch("primary_diagnosis");
 
   useEffect(() => {
     if (patient) {
@@ -165,9 +162,6 @@ export function PatientEditPage() {
   }, [updateMutation.isPending]);
 
   const age = useMemo(() => computeAge(dobValue), [dobValue]);
-  const symptomsValue = watch("symptoms");
-  const genderValue = watch("gender");
-  const diagnosisValue = watch("primary_diagnosis");
 
   const appointmentList = useMemo(() => clinical?.appointments ?? [], [clinical?.appointments]);
   const lastVisit = useMemo(() => {
@@ -176,7 +170,6 @@ export function PatientEditPage() {
     )[0];
     return latest ?? null;
   }, [appointmentList]);
-  const totalVisits = appointmentList.filter((a) => a.status === "completed").length;
   const upcomingAppointment = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     return appointmentList.find((a) => a.appointment_date >= today) ?? null;
@@ -252,18 +245,17 @@ export function PatientEditPage() {
   const allergyList = (clinical?.alerts ?? [])
     .filter((a) => a.category === "allergy")
     .map((a) => a.label);
-
   const medList = (clinical?.medications ?? []).map((m) => m.medication_name);
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-4xl space-y-4">
+      <div className="mx-auto max-w-6xl space-y-4">
         <button
           type="button"
           onClick={() => {
             void navigate(`/patients/${id}`);
           }}
-          className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          className="inline-flex items-center gap-1 text-base text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Patient
         </button>
@@ -295,7 +287,7 @@ export function PatientEditPage() {
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              Save
+              Save Patient
             </button>
             {patient.status !== "deregistered" && profile?.role === "doctor" && (
               <button
@@ -317,79 +309,136 @@ export function PatientEditPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1.5">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
-              }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                activeTab === tab.key
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
-        <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {activeTab === "overview" && (
-            <>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <CollapsibleSection
-                  title="Current Condition"
-                  icon={<Activity className="h-4 w-4" />}
-                  defaultOpen
+        <FormProvider {...methods}>
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-100 p-1">
+            <div className="flex gap-0.5">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                  }}
+                  className={`flex-shrink-0 rounded-md px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
+                    activeTab === tab.key
+                      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                      : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+                  }`}
                 >
-                  <CurrentTreatmentSection
-                    register={register}
-                    errors={errors}
-                    currentDiagnosis={diagnosisValue}
-                    prescriptionAvailable={(clinical?.medications.length ?? 0) > 0}
-                    reportGenerated={(clinical?.labReports.length ?? 0) > 0}
-                  />
-                </CollapsibleSection>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                <CollapsibleSection
-                  title="Visit Summary"
-                  icon={<Clock className="h-4 w-4" />}
-                  defaultOpen
-                >
-                  <VisitSummarySection
-                    lastVisitDate={lastVisit?.appointment_date ?? null}
-                    nextFollowUpDate={upcomingAppointment?.appointment_date ?? null}
-                    totalVisits={totalVisits}
-                    assignedDoctor={assignedDoctor}
-                  />
-                </CollapsibleSection>
-              </div>
-
-              <CollapsibleSection
-                title="Medical Alerts"
-                icon={<Activity className="h-4 w-4" />}
-                defaultOpen
-              >
-                <MedicalAlertsSection
-                  register={register}
-                  errors={errors}
-                  alerts={clinical?.alerts ?? []}
-                  pendingAlerts={[]}
-                  chronicConditions={patient.chronic_conditions ?? ""}
-                />
-              </CollapsibleSection>
-
-              <CollapsibleSection
-                title="Clinical Data"
-                icon={<ClipboardList className="h-4 w-4" />}
-                defaultOpen
-              >
+          {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
+          <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit)}>
+            <div className="animate-fade-in rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              {activeTab === "overview" && (
                 <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <User className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">Patient Overview</h2>
+                  </div>
+
+                  <PatientPersonalSection register={register} errors={errors} age={age} />
+
+                  <div className="border-t border-gray-100 pt-6">
+                    <PatientContactSection register={register} errors={errors} />
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-6">
+                    <PatientAddressSection
+                      register={register}
+                      errors={errors}
+                      setValue={setValue}
+                      watch={watch}
+                    />
+                  </div>
+
+                  {!isReceptionist && (
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <div className="flex items-center gap-2">
+                        <Pill className="text-brand-600 h-4 w-4" />
+                        <h3 className="text-sm font-medium text-gray-700">Current Medications</h3>
+                        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                          {(clinical?.medications ?? []).length}
+                        </span>
+                      </div>
+                      {(clinical?.medications ?? []).length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {clinical?.medications.map((m) => (
+                            <span
+                              key={m.id}
+                              className="inline-flex rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700"
+                            >
+                              {m.medication_name}
+                              {m.dosage ? ` ${m.dosage}` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-gray-400">
+                          No medications recorded. Add them in the Medications tab.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {!isReceptionist && (
+                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                      <div className="flex items-center gap-2">
+                        <Activity className="text-brand-600 h-4 w-4" />
+                        <h3 className="text-sm font-medium text-gray-700">Current Conditions</h3>
+                        {primaryDiagnosisValue && (
+                          <span className="bg-brand-50 text-brand-700 rounded-full px-2 py-0.5 text-xs">
+                            {primaryDiagnosisValue}
+                          </span>
+                        )}
+                      </div>
+                      {!primaryDiagnosisValue && (
+                        <p className="mt-2 text-xs text-gray-400">
+                          Primary diagnosis not set. Set it in the Dermatology tab.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "medical-history" && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <HeartPulse className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">Medical History</h2>
+                  </div>
+
+                  <MedicalHistorySection />
+
+                  <div className="border-t border-gray-100 pt-6">
+                    <FamilyHistorySection />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "dermatology" && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Sun className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">Dermatology</h2>
+                  </div>
+
+                  <DermatologySection />
+                </div>
+              )}
+
+              {activeTab === "medications" && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Pill className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">Medications</h2>
+                  </div>
+
                   <MedicationSection
                     medications={clinical?.medications ?? []}
                     adding={addMedication.isPending}
@@ -400,179 +449,50 @@ export function PatientEditPage() {
                       removeMedication.mutate(itemId);
                     }}
                   />
-                  <div className="border-t border-gray-100 pt-6">
-                    <LabReportsSection reports={clinical?.labReports ?? []} />
+                </div>
+              )}
+
+              {activeTab === "alerts" && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">Alerts & Notes</h2>
                   </div>
-                  <div className="border-t border-gray-100 pt-6">
-                    <ClinicalNotesSection
-                      notes={clinical?.clinicalNotes ?? []}
-                      adding={addNote.isPending}
-                      onAdd={(input) => {
-                        addNote.mutate(input);
-                      }}
+
+                  <div className="space-y-6">
+                    <MedicalAlertsSection
+                      register={register}
+                      errors={errors}
+                      alerts={clinical?.alerts ?? []}
+                      pendingAlerts={[]}
+                      chronicConditions={patient.chronic_conditions ?? ""}
                     />
+                    <div className="border-t border-gray-100 pt-6">
+                      <ClinicalNotesSection
+                        notes={clinical?.clinicalNotes ?? []}
+                        adding={addNote.isPending}
+                        onAdd={(input) => {
+                          addNote.mutate(input);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </CollapsibleSection>
+              )}
 
-              <CollapsibleSection title="Images" icon={<Sparkles className="h-4 w-4" />}>
-                <ClinicalImagesSection
-                  images={images}
-                  onAdd={(file) => {
-                    setImages((prev) => [
-                      ...prev,
-                      {
-                        id: crypto.randomUUID(),
-                        url: URL.createObjectURL(file),
-                        name: file.name,
-                        uploadedAt: new Date().toISOString(),
-                        bodyArea: "",
-                        diagnosis: "",
-                        notes: "",
-                      },
-                    ]);
-                  }}
-                  onRemove={(imgId) => {
-                    setImages((prev) => prev.filter((i) => i.id !== imgId));
-                  }}
-                />
-              </CollapsibleSection>
-            </>
-          )}
-
-          {activeTab === "demographics" && (
-            <>
-              <CollapsibleSection
-                title="Personal Information"
-                icon={<User className="h-4 w-4" />}
-                defaultOpen
-              >
-                <PatientPersonalSection register={register} errors={errors} age={age} />
-              </CollapsibleSection>
-              <CollapsibleSection title="Address" icon={<User className="h-4 w-4" />} defaultOpen>
-                <div className="space-y-8">
-                  <PatientAddressSection
-                    register={register}
-                    errors={errors}
-                    setValue={setValue}
-                    watch={watch}
-                  />
-                  <div className="border-t border-gray-100 pt-6">
-                    <PatientContactSection register={register} errors={errors} />
+              {activeTab === "lifestyle" && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Activity className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">Lifestyle</h2>
                   </div>
+
+                  <LifestyleSection register={register} gender={genderValue} />
                 </div>
-              </CollapsibleSection>
-            </>
-          )}
-
-          {activeTab === "medical" && (
-            <>
-              <CollapsibleSection
-                title="Medical History"
-                icon={<Stethoscope className="h-4 w-4" />}
-                defaultOpen
-              >
-                <div className="space-y-8">
-                  <MedicalHistorySection register={register} errors={errors} />
-                  <FamilyHistorySection register={register} />
-                </div>
-              </CollapsibleSection>
-              <CollapsibleSection
-                title="Lifestyle"
-                icon={<HeartPulse className="h-4 w-4" />}
-                defaultOpen
-              >
-                <LifestyleSection register={register} gender={genderValue} />
-              </CollapsibleSection>
-              <CollapsibleSection
-                title="Dermatology Profile"
-                icon={<Activity className="h-4 w-4" />}
-                defaultOpen
-              >
-                <DermatologySection
-                  register={register}
-                  errors={errors}
-                  symptoms={symptomsValue}
-                  onSymptomsChange={(v) => {
-                    setValue("symptoms", v);
-                  }}
-                />
-              </CollapsibleSection>
-            </>
-          )}
-
-          {activeTab === "clinical" && (
-            <>
-              <CollapsibleSection
-                title="Treatment & Diagnosis"
-                icon={<Pill className="h-4 w-4" />}
-                defaultOpen
-              >
-                <CurrentTreatmentSection
-                  register={register}
-                  errors={errors}
-                  currentDiagnosis={diagnosisValue}
-                  prescriptionAvailable={(clinical?.medications.length ?? 0) > 0}
-                  reportGenerated={(clinical?.labReports.length ?? 0) > 0}
-                />
-              </CollapsibleSection>
-              <CollapsibleSection
-                title="Dermatology"
-                icon={<Activity className="h-4 w-4" />}
-                defaultOpen
-              >
-                <DermatologySection
-                  register={register}
-                  errors={errors}
-                  symptoms={symptomsValue}
-                  onSymptomsChange={(v) => {
-                    setValue("symptoms", v);
-                  }}
-                />
-              </CollapsibleSection>
-              <CollapsibleSection
-                title="Medications"
-                icon={<Pill className="h-4 w-4" />}
-                defaultOpen
-              >
-                <MedicationSection
-                  medications={clinical?.medications ?? []}
-                  adding={addMedication.isPending}
-                  onAdd={(input) => {
-                    addMedication.mutate(input);
-                  }}
-                  onRemove={(itemId) => {
-                    removeMedication.mutate(itemId);
-                  }}
-                />
-              </CollapsibleSection>
-              <CollapsibleSection title="Lab Reports" icon={<Activity className="h-4 w-4" />}>
-                <LabReportsSection reports={clinical?.labReports ?? []} />
-              </CollapsibleSection>
-              <CollapsibleSection
-                title="Clinical Notes"
-                icon={<ClipboardList className="h-4 w-4" />}
-              >
-                <ClinicalNotesSection
-                  notes={clinical?.clinicalNotes ?? []}
-                  adding={addNote.isPending}
-                  onAdd={(input) => {
-                    addNote.mutate(input);
-                  }}
-                />
-              </CollapsibleSection>
-            </>
-          )}
-        </form>
-
-        <CollapsibleSection title="Audit" icon={<Clock className="h-4 w-4" />}>
-          <PatientAuditSection
-            createdBy={patient.created_by}
-            createdAt={patient.created_at}
-            updatedAt={patient.updated_at}
-            updatedBy="—"
-          />
-        </CollapsibleSection>
+              )}
+            </div>
+          </form>
+        </FormProvider>
 
         <ConfirmDialog
           open={deregisterOpen}
