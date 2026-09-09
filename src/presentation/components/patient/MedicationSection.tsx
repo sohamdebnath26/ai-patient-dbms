@@ -1,50 +1,200 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { Medication, MedicationInput } from "@domain/patient";
-import { Pill, Loader2, Plus, Trash2 } from "lucide-react";
-import { MedicationField, SectionHeading } from "./helpers";
-import { formatDate } from "./utils";
+import type { IMedicationSuggestionService } from "@application/ports/IMedicationSuggestionService";
+import type {
+  MedicationSuggestion,
+  DosageOption,
+  FrequencyOption,
+  RouteOption,
+} from "@domain/patient/MedicationSuggestion";
+import { Pill, Loader2, Plus, Trash2, Search, X } from "lucide-react";
+import { SectionHeading } from "./helpers";
+import { formatDate, inputClass } from "./utils";
 
 interface MedicationSectionProps {
   medications: Medication[];
   adding: boolean;
   onAdd: (input: MedicationInput) => void;
   onRemove: (id: string) => void;
+  suggestionService?: IMedicationSuggestionService;
 }
 
 const emptyDraft = {
   medication_name: "",
   dosage: "",
   frequency: "",
+  route: "",
   duration: "",
   start_date: "",
   end_date: "",
   prescribing_doctor: "",
 };
 
+const COMMON_FREQUENCIES: string[] = [
+  "Once daily",
+  "Twice daily",
+  "Three times daily",
+  "Four times daily",
+  "Every other day",
+  "Once weekly",
+  "As needed",
+  "At bedtime",
+  "Every 4 hours",
+  "Every 6 hours",
+  "Every 8 hours",
+  "Every 12 hours",
+];
+
+const COMMON_ROUTES: string[] = [
+  "Oral",
+  "Topical",
+  "Intravenous",
+  "Intramuscular",
+  "Subcutaneous",
+  "Sublingual",
+  "Inhalation",
+  "Ophthalmic",
+  "Otic",
+  "Rectal",
+  "Vaginal",
+  "Transdermal",
+];
+
 export function MedicationSection({
   medications,
   adding,
   onAdd,
   onRemove,
+  suggestionService,
 }: MedicationSectionProps) {
   const [draft, setDraft] = useState(emptyDraft);
+  const [suggestions, setSuggestions] = useState<MedicationSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [detailCache, setDetailCache] = useState<{
+    dosages: DosageOption[];
+    frequencies: FrequencyOption[];
+    routes: RouteOption[];
+    loadedFor: string;
+  } | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const hasSuggestions = !!suggestionService;
+
+  const doSearch = useCallback(
+    (query: string) => {
+      if (!suggestionService) return;
+      if (query.trim().length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+      setSearching(true);
+      suggestionService
+        .search(query.trim())
+        .then((results) => {
+          setSuggestions(results);
+          setShowSuggestions(results.length > 0);
+        })
+        .catch(() => {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        })
+        .finally(() => {
+          setSearching(false);
+        });
+    },
+    [suggestionService],
+  );
+
+  function handleMedicationNameChange(value: string) {
+    setDraft((p) => ({ ...p, medication_name: value }));
+    if (detailCache && detailCache.loadedFor !== value) {
+      setDetailCache(null);
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      doSearch(value);
+    }, 200);
+  }
+
+  function handleSelectSuggestion(suggestion: MedicationSuggestion) {
+    setDraft((p) => ({
+      ...p,
+      medication_name: suggestion.name,
+    }));
+    setShowSuggestions(false);
+    setSuggestions([]);
+
+    if (suggestionService) {
+      suggestionService
+        .getDetail(suggestion.id)
+        .then((detail) => {
+          if (!detail) return;
+          setDetailCache({
+            dosages: detail.dosageOptions,
+            frequencies: detail.frequencyOptions,
+            routes: detail.routeOptions,
+            loadedFor: suggestion.id,
+          });
+        })
+        .catch(() => {
+          /* ignore — detail lookup is best-effort */
+        });
+    }
+  }
+
+  const dosageOptions: DosageOption[] = detailCache?.dosages ?? [];
+  const frequencyOptions: (FrequencyOption & { label: string; value: string })[] =
+    detailCache?.frequencies ?? COMMON_FREQUENCIES.map((f) => ({ value: f, label: f }));
+  const routeOptions: (RouteOption & { label: string; value: string })[] =
+    detailCache?.routes ?? COMMON_ROUTES.map((r) => ({ value: r, label: r }));
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   function handleAdd() {
     if (!draft.medication_name.trim()) return;
     onAdd({
       medication_name: draft.medication_name.trim(),
-      dosage: draft.dosage,
-      frequency: draft.frequency,
-      duration: draft.duration,
+      dosage: draft.dosage || undefined,
+      frequency: draft.frequency || undefined,
+      route: draft.route || undefined,
+      duration: draft.duration || undefined,
       start_date: draft.start_date || undefined,
       end_date: draft.end_date || undefined,
-      prescribing_doctor: draft.prescribing_doctor,
+      prescribing_doctor: draft.prescribing_doctor || undefined,
     });
     setDraft(emptyDraft);
+    setDetailCache(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <SectionHeading
         icon={<Pill className="h-4 w-4" />}
         title="Medications"
@@ -56,18 +206,20 @@ export function MedicationSection({
           ) : undefined
         }
       />
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
               <th className="px-2 py-2 font-medium">Medication</th>
               <th className="px-2 py-2 font-medium">Dose</th>
+              <th className="px-2 py-2 font-medium">Route</th>
               <th className="px-2 py-2 font-medium">Frequency</th>
               <th className="px-2 py-2 font-medium">Duration</th>
               <th className="px-2 py-2 font-medium">Start</th>
               <th className="px-2 py-2 font-medium">End</th>
               <th className="px-2 py-2 font-medium">Prescribing Doctor</th>
-              <th className="px-2 py-2 font-medium"></th>
+              <th className="px-2 py-2 font-medium" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -75,6 +227,7 @@ export function MedicationSection({
               <tr key={m.id}>
                 <td className="px-2 py-2 font-medium text-gray-900">{m.medication_name}</td>
                 <td className="px-2 py-2 text-gray-600">{m.dosage || "—"}</td>
+                <td className="px-2 py-2 text-gray-600">{m.route || "—"}</td>
                 <td className="px-2 py-2 text-gray-600">{m.frequency || "—"}</td>
                 <td className="px-2 py-2 text-gray-600">{m.duration || "—"}</td>
                 <td className="px-2 py-2 text-gray-600">{formatDate(m.start_date)}</td>
@@ -96,7 +249,7 @@ export function MedicationSection({
             ))}
             {medications.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-2 py-4 text-center text-gray-400">
+                <td colSpan={9} className="px-2 py-4 text-center text-gray-400">
                   No medications recorded.
                 </td>
               </tr>
@@ -105,70 +258,258 @@ export function MedicationSection({
         </table>
       </div>
 
-      <div className="mt-4 grid gap-3 rounded-lg bg-gray-50 p-4 sm:grid-cols-3">
-        <MedicationField
-          label="Medication"
-          value={draft.medication_name}
-          onChange={(v) => {
-            setDraft((p) => ({ ...p, medication_name: v }));
-          }}
-        />
-        <MedicationField
-          label="Dose"
-          value={draft.dosage}
-          onChange={(v) => {
-            setDraft((p) => ({ ...p, dosage: v }));
-          }}
-        />
-        <MedicationField
-          label="Frequency"
-          value={draft.frequency}
-          onChange={(v) => {
-            setDraft((p) => ({ ...p, frequency: v }));
-          }}
-        />
-        <MedicationField
-          label="Duration"
-          value={draft.duration}
-          onChange={(v) => {
-            setDraft((p) => ({ ...p, duration: v }));
-          }}
-        />
-        <MedicationField
-          label="Start Date"
-          type="date"
-          value={draft.start_date}
-          onChange={(v) => {
-            setDraft((p) => ({ ...p, start_date: v }));
-          }}
-        />
-        <MedicationField
-          label="End Date"
-          type="date"
-          value={draft.end_date}
-          onChange={(v) => {
-            setDraft((p) => ({ ...p, end_date: v }));
-          }}
-        />
-        <div className="sm:col-span-2">
-          <MedicationField
-            label="Prescribing Doctor"
-            value={draft.prescribing_doctor}
-            onChange={(v) => {
-              setDraft((p) => ({ ...p, prescribing_doctor: v }));
-            }}
-          />
+      <div className="rounded-lg bg-gray-50 p-4">
+        <div className="mb-3 flex items-center gap-2 text-xs font-medium text-gray-500">
+          <Plus className="h-3.5 w-3.5" /> Add Medication
         </div>
-        <div className="flex items-end">
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!draft.medication_name.trim() || adding}
-            className="bg-brand-600 hover:bg-brand-700 inline-flex w-full items-center justify-center gap-1 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Add Medication
-          </button>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="relative sm:col-span-1">
+            <label className="mb-1 block text-xs font-medium text-gray-600">
+              Medicine Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={draft.medication_name}
+                onChange={(e) => {
+                  handleMedicationNameChange(e.target.value);
+                }}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                placeholder={hasSuggestions ? "Search medicine..." : "Enter medicine name"}
+                className={`${inputClass} pl-8`}
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={showSuggestions}
+                aria-haspopup="listbox"
+              />
+              {searching && (
+                <Loader2 className="absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-gray-400" />
+              )}
+              {draft.medication_name && !searching && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleMedicationNameChange("");
+                    setSuggestions([]);
+                    setShowSuggestions(false);
+                  }}
+                  className="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={dropdownRef}
+                className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
+              >
+                {suggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      handleSelectSuggestion(s);
+                    }}
+                    className="hover:bg-brand-50 flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                  >
+                    <span className="font-medium text-gray-900">{s.name}</span>
+                    {s.genericName && (
+                      <span className="text-xs text-gray-400">{s.genericName}</span>
+                    )}
+                    {s.category && (
+                      <span className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+                        {s.category}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Dosage</label>
+            {dosageOptions.length > 0 ? (
+              <select
+                value={draft.dosage}
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, dosage: e.target.value }));
+                }}
+                className={inputClass}
+              >
+                <option value="">Select dosage</option>
+                {dosageOptions.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+                <option value="__other__">Other (freetext)</option>
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={draft.dosage}
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, dosage: e.target.value }));
+                }}
+                placeholder="e.g. 500mg, 10mg"
+                className={inputClass}
+              />
+            )}
+            {draft.dosage === "__other__" && (
+              <input
+                type="text"
+                value=""
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, dosage: e.target.value }));
+                }}
+                placeholder="Specify dosage"
+                className={`${inputClass} mt-1`}
+                autoFocus
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Route</label>
+            {routeOptions.length > 0 ? (
+              <select
+                value={draft.route}
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, route: e.target.value }));
+                }}
+                className={inputClass}
+              >
+                <option value="">Select route</option>
+                {routeOptions.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={draft.route}
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, route: e.target.value }));
+                }}
+                className={inputClass}
+              >
+                <option value="">Select route</option>
+                {COMMON_ROUTES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Frequency</label>
+            {frequencyOptions.length > 0 ? (
+              <select
+                value={draft.frequency}
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, frequency: e.target.value }));
+                }}
+                className={inputClass}
+              >
+                <option value="">Select frequency</option>
+                {frequencyOptions.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={draft.frequency}
+                onChange={(e) => {
+                  setDraft((p) => ({ ...p, frequency: e.target.value }));
+                }}
+                className={inputClass}
+              >
+                <option value="">Select frequency</option>
+                {COMMON_FREQUENCIES.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Duration</label>
+            <input
+              type="text"
+              value={draft.duration}
+              onChange={(e) => {
+                setDraft((p) => ({ ...p, duration: e.target.value }));
+              }}
+              placeholder="e.g. 7 days, 2 weeks"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Start Date</label>
+            <input
+              type="date"
+              value={draft.start_date}
+              onChange={(e) => {
+                setDraft((p) => ({ ...p, start_date: e.target.value }));
+              }}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">End Date</label>
+            <input
+              type="date"
+              value={draft.end_date}
+              onChange={(e) => {
+                setDraft((p) => ({ ...p, end_date: e.target.value }));
+              }}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-gray-600">
+              Prescribing Doctor
+            </label>
+            <input
+              type="text"
+              value={draft.prescribing_doctor}
+              onChange={(e) => {
+                setDraft((p) => ({ ...p, prescribing_doctor: e.target.value }));
+              }}
+              placeholder="Doctor who prescribed this medication"
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!draft.medication_name.trim() || adding}
+              className="bg-brand-600 hover:bg-brand-700 inline-flex w-full items-center justify-center gap-1 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Add Medication
+            </button>
+          </div>
         </div>
       </div>
     </div>

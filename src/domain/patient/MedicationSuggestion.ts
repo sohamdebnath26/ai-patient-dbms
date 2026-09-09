@@ -10,13 +10,24 @@ export interface DosageOption {
   label: string;
 }
 
+export interface FrequencyOption {
+  value: string;
+  label: string;
+}
+
+export interface RouteOption {
+  value: string;
+  label: string;
+}
+
 export interface MedicationDetail {
   id: string;
   name: string;
   genericName?: string;
   category?: string;
   dosageOptions: DosageOption[];
-  frequencyOptions: DosageOption[];
+  frequencyOptions: FrequencyOption[];
+  routeOptions: RouteOption[];
   commonDuration?: string;
 }
 
