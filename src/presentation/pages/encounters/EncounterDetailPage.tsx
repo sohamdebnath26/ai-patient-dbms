@@ -371,7 +371,7 @@ export function EncounterDetailPage() {
       if (encounter?.appointment_id) {
         void navigate(`/appointments/${encounter.appointment_id}`);
       } else {
-        void navigate(`/patients/${encounter.patient_id}`);
+        void navigate("/encounters");
       }
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to complete encounter");
@@ -382,9 +382,14 @@ export function EncounterDetailPage() {
     if (!id) return;
     setActionError(null);
     try {
+      const hadAppointment = !!encounter?.appointment_id;
       await deleteMutation.mutateAsync(id);
       toast.success("Encounter deleted.");
-      void navigate("/encounters");
+      if (hadAppointment && encounter.appointment_id) {
+        void navigate(`/appointments/${encounter.appointment_id}`);
+      } else {
+        void navigate("/encounters");
+      }
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to delete encounter");
     }

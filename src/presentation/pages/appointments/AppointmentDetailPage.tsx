@@ -134,7 +134,7 @@ export function AppointmentDetailPage() {
               ) : (
                 <Stethoscope className="h-4 w-4" />
               )}
-              Start Encounter Now
+              Start Consultation
             </button>
             <button
               onClick={handleScheduleLater}
@@ -274,7 +274,7 @@ export function AppointmentDetailPage() {
                   View Patient
                 </button>
               )}
-              {isDoctor && appt.status === "scheduled" && (
+              {isDoctor && (appt.status === "scheduled" || appt.status === "confirmed") && (
                 <button
                   onClick={() => {
                     void handleCheckIn();
