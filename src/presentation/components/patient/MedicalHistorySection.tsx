@@ -1,116 +1,206 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useFormContext } from "react-hook-form";
 import type { PatientFormInput } from "@domain/patient";
-import { HeartPulse, Plus, X } from "lucide-react";
+import { HeartPulse, X, Search } from "lucide-react";
 import { FieldError, SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import {
-  SKIN_DISEASE_OPTIONS,
-  SURGERY_OPTIONS,
-  CHRONIC_CONDITION_OPTIONS,
-} from "./data/clinical-options";
+  getCategorySuggestions,
+  ensureCacheLoaded,
+  learnTerm,
+  type TermSuggestion,
+} from "@infrastructure/supabase/clinical/learnedTerms";
 
-function MultiSelectChips({
-  label,
-  options,
-  selected,
-  onToggle,
-  otherValue,
-  onOtherChange,
-  otherPlaceholder,
-}: {
+interface TagInputProps {
   label: string;
-  options: readonly string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-  otherValue: string;
-  onOtherChange: (value: string) => void;
-  otherPlaceholder: string;
-}) {
-  const [showOther, setShowOther] = useState(false);
+  category: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}
+
+function TagInput({ label, category, value, onChange, placeholder }: TagInputProps) {
+  const [input, setInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<TermSuggestion[]>([]);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const loaded = useRef(false);
+
+  const tags = value
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    void ensureCacheLoaded();
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const updateSuggestions = useCallback(
+    (q: string) => {
+      const results = getCategorySuggestions(category, q);
+      setSuggestions(results);
+      setHighlightIdx(0);
+      setShowSuggestions(true);
+    },
+    [category],
+  );
+
+  function addTag(tag: string) {
+    const trimmed = tag.trim();
+    if (!trimmed || tags.includes(trimmed)) {
+      setInput("");
+      setShowSuggestions(false);
+      return;
+    }
+    onChange([...tags, trimmed].join(", "));
+    setInput("");
+    setShowSuggestions(false);
+  }
+
+  function removeTag(tag: string) {
+    onChange(tags.filter((t) => t !== tag).join(", "));
+  }
+
+  function handleInputChange(val: string) {
+    setInput(val);
+    if (val.trim().length >= 1) {
+      updateSuggestions(val);
+    } else {
+      setShowSuggestions(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === "Enter" && input.trim()) {
+        e.preventDefault();
+        addTag(input);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const sel = suggestions[highlightIdx];
+      if (sel) {
+        addTag(sel.value);
+      } else if (input.trim()) {
+        addTag(input);
+      }
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }
 
   return (
-    <div>
+    <div ref={containerRef} className="relative">
       <label className={labelClass}>{label}</label>
-      <div className="mt-1 flex flex-wrap gap-1.5">
-        {options.map((opt) => {
-          const isSelected = selected.includes(opt);
-          return (
+
+      <div className="focus-within:border-brand-500 focus-within:ring-brand-500 mt-1 flex flex-wrap items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1.5 focus-within:ring-1">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="border-brand-200 bg-brand-50 text-brand-700 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
+          >
+            {tag}
             <button
-              key={opt}
               type="button"
               onClick={() => {
-                onToggle(opt);
+                removeTag(tag);
               }}
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                isSelected
-                  ? "border-brand-300 bg-brand-50 text-brand-700"
-                  : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+              className="text-brand-400 hover:text-brand-600"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={(e) => {
+            handleInputChange(e.target.value);
+          }}
+          onFocus={() => {
+            if (input.trim().length >= 1) updateSuggestions(input);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={tags.length === 0 ? placeholder : "Add more..."}
+          className="min-w-[120px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+        />
+      </div>
+
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+          {suggestions.map((s, i) => (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => {
+                if (s.isLearned) {
+                  void learnTerm(category, s.value).then(() => {
+                    addTag(s.value);
+                  });
+                } else {
+                  addTag(s.value);
+                }
+              }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
+                i === highlightIdx ? "bg-brand-50 text-brand-700" : "hover:bg-gray-50"
               }`}
             >
-              {isSelected && <X className="mr-1 h-3 w-3" />}
-              {opt}
+              <Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
+              <span>{s.value}</span>
+              {s.isLearned && <span className="ml-auto text-[10px] text-gray-400">learned</span>}
             </button>
-          );
-        })}
-        <button
-          type="button"
-          onClick={() => {
-            setShowOther(!showOther);
-          }}
-          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-            showOther
-              ? "border-brand-300 bg-brand-50 text-brand-700"
-              : "border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-700"
-          }`}
-        >
-          {showOther ? <X className="mr-1 h-3 w-3" /> : <Plus className="mr-1 h-3 w-3" />}
-          Other
-        </button>
-      </div>
-      {showOther && (
-        <input
-          type="text"
-          value={otherValue}
-          onChange={(e) => {
-            onOtherChange(e.target.value);
-          }}
-          placeholder={otherPlaceholder}
-          className={`${inputClass} mt-2`}
-        />
+          ))}
+          {!suggestions.some((s) => s.value.toLowerCase() === input.trim().toLowerCase()) &&
+            input.trim().length >= 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  void learnTerm(category, input.trim()).then(() => {
+                    addTag(input.trim());
+                  });
+                }}
+                className="text-brand-600 hover:bg-brand-50 flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-left text-sm"
+              >
+                <span className="text-brand-600">+</span>
+                <span>Add &quot;{input.trim()}&quot; as new term</span>
+              </button>
+            )}
+        </div>
       )}
     </div>
   );
-}
-
-function joinValues(selected: string[], other: string): string {
-  const all = [...selected];
-  if (other.trim()) all.push(other.trim());
-  return all.join(", ");
-}
-
-function parseKnown(s: string | undefined | null, knowns: readonly string[]): string[] {
-  if (!s) return [];
-  return s
-    .split(",")
-    .map((p) => p.trim())
-    .filter((p) => knowns.includes(p));
-}
-
-function parseOther(s: string | undefined | null, knowns: readonly string[]): string {
-  if (!s) return "";
-  return s
-    .split(",")
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0 && !knowns.includes(p))
-    .join(", ");
 }
 
 export function MedicalHistorySection() {
   const {
     register,
     formState: { errors },
-    setValue,
     watch,
   } = useFormContext<PatientFormInput>();
 
@@ -119,49 +209,7 @@ export function MedicalHistorySection() {
   const otherConditionsVal = watch("other_medical_conditions") as string | undefined | null;
   const hasCancer = watch("previous_skin_cancer") as boolean | undefined | null;
 
-  const parsed = useRef(false);
-
-  const [selectedSkinDiseases, setSelectedSkinDiseases] = useState<string[]>([]);
-  const [otherSkinDisease, setOtherSkinDisease] = useState("");
-  const [selectedSurgeries, setSelectedSurgeries] = useState<string[]>([]);
-  const [otherSurgery, setOtherSurgery] = useState("");
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [otherCondition, setOtherCondition] = useState("");
-
-  const syncing = useRef(false);
-
-  useEffect(() => {
-    if (parsed.current) return;
-    const anyValPresent = skinDiseasesVal || surgeriesVal || otherConditionsVal;
-    if (!anyValPresent) return;
-    parsed.current = true;
-    syncing.current = true;
-    setSelectedSkinDiseases(parseKnown(skinDiseasesVal, SKIN_DISEASE_OPTIONS));
-    setOtherSkinDisease(parseOther(skinDiseasesVal, SKIN_DISEASE_OPTIONS));
-    setSelectedSurgeries(parseKnown(surgeriesVal, SURGERY_OPTIONS));
-    setOtherSurgery(parseOther(surgeriesVal, SURGERY_OPTIONS));
-    setSelectedConditions(parseKnown(otherConditionsVal, CHRONIC_CONDITION_OPTIONS));
-    setOtherCondition(parseOther(otherConditionsVal, CHRONIC_CONDITION_OPTIONS));
-    syncing.current = false;
-  }, [skinDiseasesVal, surgeriesVal, otherConditionsVal]);
-
-  useEffect(() => {
-    if (syncing.current || !parsed.current) return;
-    const val = joinValues(selectedSkinDiseases, otherSkinDisease);
-    setValue("previous_skin_diseases", val || "", { shouldValidate: false });
-  }, [selectedSkinDiseases, otherSkinDisease, setValue]);
-
-  useEffect(() => {
-    if (syncing.current || !parsed.current) return;
-    const val = joinValues(selectedSurgeries, otherSurgery);
-    setValue("previous_surgeries", val || "", { shouldValidate: false });
-  }, [selectedSurgeries, otherSurgery, setValue]);
-
-  useEffect(() => {
-    if (syncing.current || !parsed.current) return;
-    const val = joinValues(selectedConditions, otherCondition);
-    setValue("other_medical_conditions", val || "", { shouldValidate: false });
-  }, [selectedConditions, otherCondition, setValue]);
+  const { setValue } = useFormContext<PatientFormInput>();
 
   return (
     <div className="space-y-5">
@@ -195,50 +243,38 @@ export function MedicalHistorySection() {
       </div>
 
       <div className="border-t border-gray-100 pt-4">
-        <MultiSelectChips
+        <TagInput
           label="Previous Skin Diseases"
-          options={SKIN_DISEASE_OPTIONS}
-          selected={selectedSkinDiseases}
-          onToggle={(val) => {
-            setSelectedSkinDiseases((prev) =>
-              prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-            );
+          category="skin_disease"
+          value={skinDiseasesVal ?? ""}
+          onChange={(v) => {
+            setValue("previous_skin_diseases", v, { shouldValidate: false });
           }}
-          otherValue={otherSkinDisease}
-          onOtherChange={setOtherSkinDisease}
-          otherPlaceholder="Specify other skin disease"
+          placeholder="Search or type skin diseases..."
         />
       </div>
 
       <div>
-        <MultiSelectChips
+        <TagInput
           label="Previous Surgeries"
-          options={SURGERY_OPTIONS}
-          selected={selectedSurgeries}
-          onToggle={(val) => {
-            setSelectedSurgeries((prev) =>
-              prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-            );
+          category="surgery"
+          value={surgeriesVal ?? ""}
+          onChange={(v) => {
+            setValue("previous_surgeries", v, { shouldValidate: false });
           }}
-          otherValue={otherSurgery}
-          onOtherChange={setOtherSurgery}
-          otherPlaceholder="Specify other surgery"
+          placeholder="Search or type surgeries..."
         />
       </div>
 
       <div>
-        <MultiSelectChips
+        <TagInput
           label="Other Medical Conditions"
-          options={CHRONIC_CONDITION_OPTIONS}
-          selected={selectedConditions}
-          onToggle={(val) => {
-            setSelectedConditions((prev) =>
-              prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-            );
+          category="condition"
+          value={otherConditionsVal ?? ""}
+          onChange={(v) => {
+            setValue("other_medical_conditions", v, { shouldValidate: false });
           }}
-          otherValue={otherCondition}
-          onOtherChange={setOtherCondition}
-          otherPlaceholder="Specify other condition"
+          placeholder="Search or type conditions..."
         />
       </div>
 

@@ -116,7 +116,6 @@ export function PatientEditPage() {
 
   const dobValue = watch("dob");
   const genderValue = watch("gender");
-  const primaryDiagnosisValue = watch("primary_diagnosis");
 
   useEffect(() => {
     if (patient) {
@@ -410,54 +409,6 @@ export function PatientEditPage() {
                       watch={watch}
                     />
                   </div>
-
-                  {!isReceptionist && (
-                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                      <div className="flex items-center gap-2">
-                        <Pill className="text-brand-600 h-4 w-4" />
-                        <h3 className="text-sm font-medium text-gray-700">Current Medications</h3>
-                        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                          {(clinical?.medications ?? []).length}
-                        </span>
-                      </div>
-                      {(clinical?.medications ?? []).length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {clinical?.medications.map((m) => (
-                            <span
-                              key={m.id}
-                              className="inline-flex rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700"
-                            >
-                              {m.medication_name}
-                              {m.dosage ? ` ${m.dosage}` : ""}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-gray-400">
-                          No medications recorded. Add them in the Medications tab.
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {!isReceptionist && (
-                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-                      <div className="flex items-center gap-2">
-                        <Activity className="text-brand-600 h-4 w-4" />
-                        <h3 className="text-sm font-medium text-gray-700">Current Conditions</h3>
-                        {primaryDiagnosisValue && (
-                          <span className="bg-brand-50 text-brand-700 rounded-full px-2 py-0.5 text-xs">
-                            {primaryDiagnosisValue}
-                          </span>
-                        )}
-                      </div>
-                      {!primaryDiagnosisValue && (
-                        <p className="mt-2 text-xs text-gray-400">
-                          Primary diagnosis not set. Set it in the Dermatology tab.
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
