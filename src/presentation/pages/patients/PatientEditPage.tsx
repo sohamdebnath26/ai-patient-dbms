@@ -455,6 +455,11 @@ export function PatientEditPage() {
                       removeMedication.mutate(itemId);
                     }}
                     suggestionService={medicationSuggestionService}
+                    prescribingDoctor={
+                      profile?.firstName
+                        ? `Dr. ${profile.firstName} ${profile.lastName}`
+                        : undefined
+                    }
                   />
                 </div>
               )}

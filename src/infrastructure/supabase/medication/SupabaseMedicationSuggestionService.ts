@@ -26,14 +26,14 @@ export class SupabaseMedicationSuggestionService implements IMedicationSuggestio
       return [];
     }
 
-    return (result.data as unknown as { id: string; medication: string; dosage: string }[]).map(
-      (row) => ({
-        id: row.id,
-        name: row.medication,
-        genericName: undefined,
-        category: undefined,
-      }),
-    );
+    const rows = result.data as unknown as { id: string; medication: string; dosage: string }[];
+    console.debug("Medication search results:", rows.length, "for query:", trimmed);
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.medication,
+      genericName: undefined,
+      category: undefined,
+    }));
   }
 
   async getDetail(medicationId: string): Promise<MedicationDetail | null> {

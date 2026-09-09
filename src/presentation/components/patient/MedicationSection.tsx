@@ -17,6 +17,7 @@ interface MedicationSectionProps {
   onAdd: (input: MedicationInput) => void;
   onRemove: (id: string) => void;
   suggestionService?: IMedicationSuggestionService;
+  prescribingDoctor?: string;
 }
 
 const emptyDraft = {
@@ -66,8 +67,12 @@ export function MedicationSection({
   onAdd,
   onRemove,
   suggestionService,
+  prescribingDoctor,
 }: MedicationSectionProps) {
-  const [draft, setDraft] = useState(emptyDraft);
+  const [draft, setDraft] = useState(() => ({
+    ...emptyDraft,
+    prescribing_doctor: prescribingDoctor ?? "",
+  }));
   const [suggestions, setSuggestions] = useState<MedicationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(0);
@@ -238,7 +243,7 @@ export function MedicationSection({
       end_date: draft.end_date || undefined,
       prescribing_doctor: draft.prescribing_doctor || undefined,
     });
-    setDraft(emptyDraft);
+    setDraft({ ...emptyDraft, prescribing_doctor: prescribingDoctor ?? "" });
     setDetailCache(null);
     setSuggestions([]);
     setShowSuggestions(false);
@@ -392,6 +397,24 @@ export function MedicationSection({
                     )}
                   </button>
                 ))}
+                {draft.medication_name.trim().length >= 2 &&
+                  !suggestions.some(
+                    (s) => s.name.toLowerCase() === draft.medication_name.trim().toLowerCase(),
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = draft.medication_name.trim();
+                        setDraft((p) => ({ ...p, medication_name: name }));
+                        setShowSuggestions(false);
+                        setSuggestions([]);
+                      }}
+                      className="text-brand-600 hover:bg-brand-50 flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-left text-sm"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add &quot;{draft.medication_name.trim()}&quot; as new medicine</span>
+                    </button>
+                  )}
               </div>
             )}
           </div>

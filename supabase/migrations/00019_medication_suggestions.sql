@@ -18,6 +18,9 @@ CREATE INDEX idx_medication_suggestions_lower_medication
 
 ALTER TABLE public.medication_suggestions ENABLE ROW LEVEL SECURITY;
 
+GRANT SELECT ON public.medication_suggestions TO authenticated;
+GRANT SELECT ON public.medication_suggestions TO anon;
+
 CREATE POLICY "Authenticated users can read medication suggestions"
   ON public.medication_suggestions
   FOR SELECT
