@@ -218,18 +218,25 @@ export function AppointmentDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold text-gray-900">
-                  {appt.patient
-                    ? `${appt.patient.first_name} ${appt.patient.last_name}`
-                    : "Appointment"}
-                </h1>
+                <button
+                  onClick={() => {
+                    void navigate(`/patients/${appt.patient_id}`);
+                  }}
+                  className="hover:text-brand-600 text-left transition-colors"
+                >
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {appt.patient
+                      ? `${appt.patient.first_name} ${appt.patient.last_name}`
+                      : "Appointment"}
+                  </h1>
+                </button>
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[appt.status] ?? ""}`}
                 >
                   {appt.status.replace("_", " ")}
                 </span>
               </div>
-              <div className="mt-2 space-y-1 text-sm text-gray-600">
+              <div className="mt-2 space-y-1 text-base text-gray-600">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
                   {appt.appointment_date} at {appt.appointment_time ?? "—"} ·{" "}
@@ -238,7 +245,8 @@ export function AppointmentDetailPage() {
                 {appt.patient && (
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-400" />
-                    MRN: {appt.patient.mrn}
+                    <span className="font-medium text-gray-700">Patient ID / MRN:</span>{" "}
+                    {appt.patient.mrn}
                   </div>
                 )}
                 <div className="flex items-center gap-2">
@@ -255,6 +263,17 @@ export function AppointmentDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              {appt.patient && (
+                <button
+                  onClick={() => {
+                    void navigate(`/patients/${appt.patient_id}`);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <User className="h-4 w-4" />
+                  View Patient
+                </button>
+              )}
               {isDoctor && appt.status === "scheduled" && (
                 <button
                   onClick={() => {
@@ -264,7 +283,7 @@ export function AppointmentDetailPage() {
                   className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
                   <Play className="h-4 w-4" />
-                  Check-in & Start Encounter
+                  Start Consultation
                 </button>
               )}
               {appt.status !== "cancelled" &&
@@ -352,17 +371,17 @@ export function AppointmentDetailPage() {
 
         {encounter && (
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900">Encounter</h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <h2 className="text-lg font-semibold text-gray-900">Consultation</h2>
+            <p className="mt-2 text-base text-gray-600">
               Status: <span className="font-medium">{encounter.status.replace("_", " ")}</span>
             </p>
             <button
               onClick={() => {
                 void navigate(`/encounters/${encounter.id}`);
               }}
-              className="text-brand-600 hover:text-brand-500 mt-2 text-sm font-medium"
+              className="bg-brand-600 hover:bg-brand-700 mt-3 inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-medium text-white"
             >
-              View Encounter →
+              Continue Consultation →
             </button>
           </div>
         )}

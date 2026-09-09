@@ -422,11 +422,16 @@ export function EncounterDetailPage() {
         <button
           type="button"
           onClick={() => {
-            void navigate(`/patients/${encounter.patient_id}`);
+            if (encounter.appointment_id) {
+              void navigate(`/appointments/${encounter.appointment_id}`);
+            } else {
+              void navigate(`/patients/${encounter.patient_id}`);
+            }
           }}
-          className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          className="inline-flex items-center gap-1 text-base text-gray-600 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Patient
+          <ArrowLeft className="h-4 w-4" />{" "}
+          {encounter.appointment_id ? "Back to Appointment" : "Back to Patient"}
         </button>
 
         <PatientHeader

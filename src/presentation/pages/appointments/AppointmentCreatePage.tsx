@@ -1,14 +1,14 @@
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CreateAppointmentSchema } from "@domain/appointment";
 import { useBookAppointment } from "@presentation/hooks/useAppointments";
-import { usePatientList, useCreateQuickPatient } from "@presentation/hooks/usePatients";
+import { usePatientList, useCreateQuickPatient, usePatient } from "@presentation/hooks/usePatients";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2, Search, User, UserPlus, Calendar, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AppointmentFormSchema = CreateAppointmentSchema.omit({ patient_id: true });
 
@@ -28,15 +28,29 @@ type PatientMode = "existing" | "new";
 
 export function AppointmentCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preSelectedPatientId = searchParams.get("patient_id") ?? "";
   const { user } = useAuth();
   const bookMutation = useBookAppointment();
   const createPatientMutation = useCreateQuickPatient();
+  const { data: preSelectedPatient } = usePatient(preSelectedPatientId);
   const [patientMode, setPatientMode] = useState<PatientMode>("existing");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState(preSelectedPatientId);
   const [selectedPatientLabel, setSelectedPatientLabel] = useState("");
   const { data: patients } = usePatientList({ page: 1, limit: 50, query: searchQuery });
   const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (preSelectedPatient) {
+      setSelectedPatientLabel(
+        `${preSelectedPatient.first_name} ${preSelectedPatient.last_name} (${preSelectedPatient.mrn})`,
+      );
+      setSearchQuery(
+        `${preSelectedPatient.first_name} ${preSelectedPatient.last_name} (${preSelectedPatient.mrn})`,
+      );
+    }
+  }, [preSelectedPatient]);
 
   const {
     register,

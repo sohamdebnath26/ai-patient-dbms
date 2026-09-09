@@ -59,12 +59,12 @@ export function PatientHeader({
       <div className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="bg-brand-50 ring-brand-100 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ring-2">
-              <span className="text-brand-600 text-sm font-bold">{avatar}</span>
+            <div className="bg-brand-50 ring-brand-100 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full ring-2">
+              <span className="text-brand-600 text-lg font-bold">{avatar}</span>
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900">{displayName}</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
                 {patient?.status && (
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusBadgeClass(patient.status)}`}
@@ -72,10 +72,10 @@ export function PatientHeader({
                     {patient.status.replace("_", " ")}
                   </span>
                 )}
-                {subtitle && <span className="text-sm text-gray-500">· {subtitle}</span>}
+                {subtitle && <span className="text-base text-gray-500">· {subtitle}</span>}
               </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
-                {patient?.mrn && <span className="font-mono text-xs">{patient.mrn}</span>}
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-gray-600">
+                {patient?.mrn && <span className="font-mono text-sm">{patient.mrn}</span>}
                 {age !== null && <span>{age} yrs</span>}
                 {patient?.gender && <span className="capitalize">{patient.gender}</span>}
                 {patient?.bloodGroup && <span>{patient.bloodGroup}</span>}
