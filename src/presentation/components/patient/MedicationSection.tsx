@@ -70,6 +70,7 @@ export function MedicationSection({
   const [draft, setDraft] = useState(emptyDraft);
   const [suggestions, setSuggestions] = useState<MedicationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
   const [searching, setSearching] = useState(false);
   const [suggestionInstructions, setSuggestionInstructions] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<{
@@ -97,6 +98,7 @@ export function MedicationSection({
         .search(query.trim())
         .then((results) => {
           setSuggestions(results);
+          setHighlightIdx(0);
           setShowSuggestions(results.length > 0);
         })
         .catch(() => {
@@ -126,6 +128,26 @@ export function MedicationSection({
     }, 200);
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const sel = suggestions[highlightIdx];
+      if (sel) {
+        handleSelectSuggestion(sel);
+      }
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }
+
   function handleSelectSuggestion(suggestion: MedicationSuggestion) {
     setDraft((p) => ({
       ...p,
@@ -133,8 +155,6 @@ export function MedicationSection({
     }));
     setShowSuggestions(false);
     setSuggestions([]);
-    setSuggestionInstructions(null);
-    setDetailCache(null);
 
     if (suggestionService) {
       suggestionService
@@ -309,8 +329,11 @@ export function MedicationSection({
                   handleMedicationNameChange(e.target.value);
                 }}
                 onFocus={() => {
-                  if (suggestions.length > 0) setShowSuggestions(true);
+                  if (suggestionService && draft.medication_name.trim().length >= 2) {
+                    doSearch(draft.medication_name);
+                  }
                 }}
+                onKeyDown={handleKeyDown}
                 placeholder={hasSuggestions ? "Search medicine..." : "Enter medicine name"}
                 className={`${inputClass} pl-8`}
                 autoComplete="off"
@@ -328,6 +351,7 @@ export function MedicationSection({
                     handleMedicationNameChange("");
                     setSuggestions([]);
                     setShowSuggestions(false);
+                    setHighlightIdx(0);
                   }}
                   className="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
@@ -341,15 +365,21 @@ export function MedicationSection({
                 ref={dropdownRef}
                 className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
               >
-                {suggestions.map((s) => (
+                {suggestions.map((s, i) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => {
                       handleSelectSuggestion(s);
                     }}
-                    className="hover:bg-brand-50 flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                    onMouseEnter={() => {
+                      setHighlightIdx(i);
+                    }}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
+                      i === highlightIdx ? "bg-brand-50 text-brand-700" : "hover:bg-gray-50"
+                    }`}
                   >
+                    <Search className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
                     <span className="font-medium text-gray-900">{s.name}</span>
                     {s.genericName && (
                       <span className="text-xs text-gray-400">{s.genericName}</span>
