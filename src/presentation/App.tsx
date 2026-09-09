@@ -13,6 +13,7 @@ import { SettingsPage } from "@presentation/pages/settings/SettingsPage";
 import { PatientListPage } from "@presentation/pages/patients/PatientListPage";
 import { PatientDetailPage } from "@presentation/pages/patients/PatientDetailPage";
 import { PatientEditPage } from "@presentation/pages/patients/PatientEditPage";
+import { PatientCreatePage } from "@presentation/pages/patients/PatientCreatePage";
 import { AppointmentListPage } from "@presentation/pages/appointments/AppointmentListPage";
 import { AppointmentCreatePage } from "@presentation/pages/appointments/AppointmentCreatePage";
 import { AppointmentDetailPage } from "@presentation/pages/appointments/AppointmentDetailPage";
@@ -116,6 +117,14 @@ export function App() {
                   element={
                     <ProtectedRoute>
                       <PatientListPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/patients/new"
+                  element={
+                    <ProtectedRoute>
+                      <PatientCreatePage />
                     </ProtectedRoute>
                   }
                 />

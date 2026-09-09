@@ -7,22 +7,19 @@ import { useLogout } from "@presentation/hooks/useLogout";
 import {
   LayoutDashboard,
   Users,
-  Calendar,
-  Stethoscope,
   Settings,
   Menu,
   Search,
   ChevronRight,
   Bell,
   LogOut,
+  Plus,
 } from "lucide-react";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, addAction: null },
-  { to: "/appointments", label: "Appointments", icon: Calendar, addAction: "/appointments/new" },
-  { to: "/patients", label: "Patients", icon: Users, addAction: null },
-  { to: "/encounters", label: "Encounters", icon: Stethoscope, disabled: false, addAction: null },
-  { to: "/settings", label: "Settings", icon: Settings, addAction: null },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/patients", label: "Patients", icon: Users },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -97,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <ul className="space-y-0.5">
-              {navItems.slice(0, 4).map(({ to, label, icon: Icon, addAction }) => (
+              {navItems.map(({ to, label, icon: Icon }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
@@ -114,22 +111,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                     <span className="flex-1">{label}</span>
-                    {addAction && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          void navigate(addAction);
-                        }}
-                        className="bg-brand-600 ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white"
-                        title={`Add ${label}`}
-                      >
-                        +
-                      </button>
-                    )}
                   </NavLink>
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    void navigate("/patients/new");
+                  }}
+                  className="group hover:bg-brand-50 hover:text-brand-700 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150"
+                >
+                  <span className="bg-brand-600 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded">
+                    <Plus className="h-3.5 w-3.5 text-white" />
+                  </span>
+                  <span className="flex-1">Add Patient</span>
+                </button>
+              </li>
             </ul>
           </nav>
 
