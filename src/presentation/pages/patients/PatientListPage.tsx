@@ -36,10 +36,10 @@ export function PatientListPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
           <button
-            onClick={() => void navigate("/appointments/new")}
+            onClick={() => void navigate("/patients/new")}
             className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white"
           >
-            New Appointment
+            Add Patient
           </button>
         </div>
 
