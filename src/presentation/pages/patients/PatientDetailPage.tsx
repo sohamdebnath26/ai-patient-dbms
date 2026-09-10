@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { usePatient, useDeregisterPatient } from "@presentation/hooks/usePatients";
+import { usePatient } from "@presentation/hooks/usePatients";
 import { usePatientEncounters } from "@presentation/hooks/useEncounters";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
-import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import {
   PatientHeader,
   type PatientHeaderData,
@@ -91,10 +89,8 @@ export function PatientDetailPage() {
     tabParam && TABS.some((t) => t.key === tabParam) ? (tabParam as TabKey) : "medical-overview";
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
-  const deregisterMutation = useDeregisterPatient();
   const { data: encounters } = usePatientEncounters(id ?? "");
   const { data: clinical } = usePatientClinicalData(id ?? "");
-  const [deregisterOpen, setDeregisterOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -610,26 +606,6 @@ export function PatientDetailPage() {
             );
           })()}
       </div>
-
-      <ConfirmDialog
-        open={deregisterOpen}
-        title="Deregister Patient"
-        message="Are you sure you want to deregister this patient?"
-        confirmLabel="Deregister"
-        confirmationText="DEREGISTER"
-        loading={deregisterMutation.isPending}
-        onCancel={() => {
-          setDeregisterOpen(false);
-        }}
-        onConfirm={() => {
-          deregisterMutation.mutate(patient.id, {
-            onSuccess: () => {
-              setDeregisterOpen(false);
-              void navigate("/patients");
-            },
-          });
-        }}
-      />
     </AppShell>
   );
 }
