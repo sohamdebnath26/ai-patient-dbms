@@ -18,7 +18,8 @@ import {
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/patients", label: "Patients", icon: Users },
+  { to: "/patients", label: "Patient", icon: Users },
+  { to: "/patients/new", label: "Add Patient", icon: Plus },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -114,21 +115,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </NavLink>
                 </li>
               ))}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSidebarOpen(false);
-                    void navigate("/patients/new");
-                  }}
-                  className="group hover:bg-brand-50 hover:text-brand-700 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150"
-                >
-                  <span className="bg-brand-600 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded">
-                    <Plus className="h-3.5 w-3.5 text-white" />
-                  </span>
-                  <span className="flex-1">Add Patient</span>
-                </button>
-              </li>
             </ul>
           </nav>
 
