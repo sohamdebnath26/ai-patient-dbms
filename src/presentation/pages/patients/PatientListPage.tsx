@@ -33,14 +33,8 @@ export function PatientListPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
-          <button
-            onClick={() => void navigate("/patients/new")}
-            className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white"
-          >
-            Add Patient
-          </button>
         </div>
 
         <div className="flex flex-wrap gap-3">
