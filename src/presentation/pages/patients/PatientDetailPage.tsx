@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { usePatient, useDeregisterPatient } from "@presentation/hooks/usePatients";
-import { useCreateEncounter, usePatientEncounters } from "@presentation/hooks/useEncounters";
+import { usePatientEncounters } from "@presentation/hooks/useEncounters";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
@@ -92,7 +92,6 @@ export function PatientDetailPage() {
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
   const deregisterMutation = useDeregisterPatient();
-  const createEncounter = useCreateEncounter();
   const { data: encounters } = usePatientEncounters(id ?? "");
   const { data: clinical } = usePatientClinicalData(id ?? "");
   const [deregisterOpen, setDeregisterOpen] = useState(false);
@@ -120,18 +119,6 @@ export function PatientDetailPage() {
   const latestEncounter =
     (encounters ?? []).find((e) => e.status === "completed") ?? (encounters ?? [])[0] ?? null;
   const nextFollowUp = latestEncounter?.follow_up_date ?? null;
-
-  const handleNewConsultation = () => {
-    createEncounter.mutate(patient.id, {
-      onSuccess: (encounter) => void navigate(`/encounters/${encounter.id}`),
-    });
-  };
-
-  const handleNewEncounter = () => {
-    createEncounter.mutate(patient.id, {
-      onSuccess: (encounter) => void navigate(`/encounters/${encounter.id}`),
-    });
-  };
 
   const assignedDoctor = profile?.firstName ? `Dr. ${profile.firstName} ${profile.lastName}` : "—";
 
@@ -181,36 +168,6 @@ export function PatientDetailPage() {
           nextFollowUp={nextFollowUp}
         >
           <div className="flex items-center gap-2">
-            {profile?.role === "doctor" &&
-              patient.status !== "archived" &&
-              patient.status !== "deregistered" && (
-                <>
-                  <button
-                    onClick={handleNewConsultation}
-                    disabled={createEncounter.isPending}
-                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-base font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {createEncounter.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Calendar className="h-4 w-4" />
-                    )}
-                    New Consultation
-                  </button>
-                  <button
-                    onClick={handleNewEncounter}
-                    disabled={createEncounter.isPending}
-                    className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {createEncounter.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Stethoscope className="h-4 w-4" />
-                    )}
-                    Record Visit
-                  </button>
-                </>
-              )}
             {canEdit && (
               <button
                 onClick={() => void navigate(`/patients/${patient.id}/edit`)}
