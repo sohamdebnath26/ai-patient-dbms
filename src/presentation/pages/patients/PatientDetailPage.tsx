@@ -122,7 +122,9 @@ export function PatientDetailPage() {
   const nextFollowUp = latestEncounter?.follow_up_date ?? null;
 
   const handleNewConsultation = () => {
-    void navigate(`/appointments/new?patient_id=${patient.id}`);
+    createEncounter.mutate(patient.id, {
+      onSuccess: (encounter) => void navigate(`/encounters/${encounter.id}`),
+    });
   };
 
   const handleNewEncounter = () => {
@@ -185,9 +187,14 @@ export function PatientDetailPage() {
                 <>
                   <button
                     onClick={handleNewConsultation}
-                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-base font-semibold text-white hover:bg-green-700"
+                    disabled={createEncounter.isPending}
+                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-base font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                   >
-                    <Calendar className="h-4 w-4" />
+                    {createEncounter.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Calendar className="h-4 w-4" />
+                    )}
                     New Consultation
                   </button>
                   <button
