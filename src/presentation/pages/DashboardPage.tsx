@@ -331,18 +331,7 @@ export function DashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Upcoming Appointments</h2>
-              <button
-                onClick={() => {
-                  void navigate("/appointments");
-                }}
-                className="text-brand-600 hover:text-brand-700 flex items-center gap-1 text-sm font-semibold"
-              >
-                View all <ArrowRight className="h-4 w-4" />{" "}
-                {/* Upcoming Appointments view-all → appointments list */}
-              </button>
-            </div>
+            <h2 className="mb-6 text-xl font-bold text-gray-900">Upcoming Appointments</h2>
 
             {upcomingAppointments.isLoading ? (
               <div className="space-y-3">
