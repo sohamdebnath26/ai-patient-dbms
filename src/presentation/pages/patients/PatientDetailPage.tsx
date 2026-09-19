@@ -1,100 +1,30 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import { usePatient } from "@presentation/hooks/usePatients";
 import { usePatientEncounters } from "@presentation/hooks/useEncounters";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
+import { useProfile } from "@presentation/hooks/useProfile";
+import { ClinicalService } from "@application/clinical/ClinicalService";
+import { SupabaseClinicalRepository } from "@infrastructure/supabase/clinical/SupabaseClinicalRepository";
 import { AppShell } from "@presentation/components/AppShell";
 import { computeAge } from "@presentation/components/patient/utils";
-import {
-  ArrowLeft,
-  Pencil,
-  Loader2,
-  Stethoscope,
-  Pill,
-  FileText,
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Calendar,
-} from "lucide-react";
-import { useProfile } from "@presentation/hooks/useProfile";
+import { SectionHeading } from "@presentation/components/patient/helpers";
 import type { Encounter } from "@domain/encounter";
-import type { Medication, MedicalAlert, ClinicalNote } from "@domain/patient";
+import type { MedicalAlert } from "@domain/patient";
+import { ArrowLeft, Pencil, Loader2, Stethoscope, Pill, AlertTriangle } from "lucide-react";
 
-interface TimelineEvent {
-  id: string;
-  date: string;
-  type: "encounter" | "medication" | "clinical-note" | "alert";
-  summary: string;
-  detail: string | null;
-  encounter?: Encounter;
-  medication?: Medication;
-  clinicalNote?: ClinicalNote;
-  alert?: MedicalAlert;
+const clinicalRepo = new SupabaseClinicalRepository();
+const clinicalService = new ClinicalService(clinicalRepo);
+
+function formatDateSafe(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-function buildTimeline(
-  encounters: Encounter[] | undefined,
-  medications: Medication[] | undefined,
-  clinicalNotes: ClinicalNote[] | undefined,
-): TimelineEvent[] {
-  const events: TimelineEvent[] = [];
-
-  for (const enc of encounters ?? []) {
-    if (!enc.encounter_date) continue;
-    const summary = enc.chief_complaint || "Consultation";
-    events.push({
-      id: `enc-${enc.id}`,
-      date: enc.encounter_date,
-      type: "encounter",
-      summary,
-      detail: [enc.present_illness, enc.findings, enc.body_site].filter(Boolean).join("; "),
-      encounter: enc,
-    });
-  }
-
-  for (const med of medications ?? []) {
-    const date = med.start_date || "";
-    if (!date) continue;
-    events.push({
-      id: `med-${med.id}`,
-      date,
-      type: "medication",
-      summary: med.dosage ? `${med.medication_name} ${med.dosage}` : med.medication_name,
-      detail: [
-        med.frequency,
-        med.route,
-        med.duration,
-        med.prescribing_doctor ? `Prescribed by: ${med.prescribing_doctor}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      medication: med,
-    });
-  }
-
-  for (const note of clinicalNotes ?? []) {
-    const date = note.created_at || "";
-    if (!date) continue;
-    const content = note.assessment || note.subjective || note.objective || "";
-    events.push({
-      id: `note-${note.id}`,
-      date,
-      type: "clinical-note",
-      summary: note.note_type
-        ? `${note.note_type.charAt(0).toUpperCase() + note.note_type.slice(1)} Note`
-        : "Clinical Note",
-      detail: content || null,
-      clinicalNote: note,
-    });
-  }
-
-  events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return events;
-}
-
-const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
+const ReadOnlyField = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
     <div>
@@ -104,31 +34,137 @@ const Field = ({ label, value }: { label: string; value: string | null | undefin
   );
 };
 
-const typeConfig: Record<
-  TimelineEvent["type"],
-  { icon: React.ComponentType<{ className?: string }>; badge: string; color: string }
-> = {
-  encounter: {
-    icon: Stethoscope,
-    badge: "Consultation",
-    color: "bg-blue-100 text-blue-700",
-  },
-  medication: {
-    icon: Pill,
-    badge: "Medication",
-    color: "bg-green-100 text-green-700",
-  },
-  "clinical-note": {
-    icon: FileText,
-    badge: "Clinical Note",
-    color: "bg-amber-100 text-amber-700",
-  },
-  alert: {
-    icon: AlertTriangle,
-    badge: "Alert",
-    color: "bg-red-100 text-red-700",
-  },
-};
+function EncounterMedicationTable({ encounterId }: { encounterId: string }) {
+  const { data: meds, isLoading } = useQuery({
+    queryKey: ["encounters", encounterId, "medications"],
+    queryFn: () => clinicalService.listMedicationsByEncounter(encounterId),
+    enabled: !!encounterId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-2">
+        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+        <span className="text-sm text-gray-400">Loading medications...</span>
+      </div>
+    );
+  }
+
+  if (!meds || meds.length === 0) {
+    return (
+      <p className="text-sm text-gray-400">No medications prescribed during this consultation.</p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500">
+            <th className="pr-3 pb-2">Medication</th>
+            <th className="pr-3 pb-2">Dose</th>
+            <th className="pr-3 pb-2">Route</th>
+            <th className="pr-3 pb-2">Frequency</th>
+            <th className="pr-3 pb-2">Duration</th>
+            <th className="pr-3 pb-2">Start</th>
+            <th className="pr-3 pb-2">End</th>
+            <th className="pr-3 pb-2">Prescribing Doctor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {meds.map((med) => (
+            <tr key={med.id} className="border-b border-gray-100">
+              <td className="py-2 pr-3 font-medium text-gray-900">{med.medication_name}</td>
+              <td className="py-2 pr-3 text-gray-600">{med.dosage || "—"}</td>
+              <td className="py-2 pr-3 text-gray-600">{med.route || "—"}</td>
+              <td className="py-2 pr-3 text-gray-600">{med.frequency || "—"}</td>
+              <td className="py-2 pr-3 text-gray-600">{med.duration || "—"}</td>
+              <td className="py-2 pr-3 text-gray-600">{formatDateSafe(med.start_date)}</td>
+              <td className="py-2 pr-3 text-gray-600">{formatDateSafe(med.end_date)}</td>
+              <td className="py-2 pr-3 text-gray-600">{med.prescribing_doctor || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TimelineBlock({ encounter }: { encounter: Encounter }) {
+  const d = encounter;
+
+  const dermatologyFields = [
+    { label: "Chief Complaint", value: d.chief_complaint },
+    { label: "Present Illness", value: d.present_illness },
+    { label: "Symptoms", value: d.symptoms },
+    { label: "Associated Symptoms", value: d.associated_symptoms },
+    { label: "Duration", value: d.duration_ },
+    { label: "Body Site", value: d.body_site },
+    { label: "Lesion Description", value: d.lesion_description },
+    { label: "Morphology", value: d.morphology },
+    { label: "Distribution", value: d.distribution },
+    { label: "Color", value: d.color },
+    { label: "Borders", value: d.borders },
+    { label: "Texture", value: d.texture },
+    { label: "Scaling", value: d.scaling },
+    { label: "Pigmentation", value: d.pigmentation },
+    { label: "Tenderness", value: d.tenderness },
+    { label: "Temperature", value: d.temperature },
+    { label: "Findings", value: d.findings },
+    { label: "General Examination", value: d.general_examination },
+    { label: "Local Skin Examination", value: d.local_skin_examination },
+    { label: "Plan", value: d.plan },
+  ].filter((f) => f.value);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+            {d.encounter_number || "Consultation"}
+          </span>
+          <span className="text-sm text-gray-500">
+            {new Date(d.encounter_date).toLocaleString(undefined, {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+          <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+            {d.status.replace("_", " ")}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-6 p-6">
+        <div>
+          <SectionHeading
+            icon={<Stethoscope className="h-4 w-4" />}
+            title="Dermatology Assessment"
+          />
+          {dermatologyFields.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-400">No dermatology data recorded.</p>
+          ) : (
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {dermatologyFields.map((f) => (
+                <ReadOnlyField key={f.label} label={f.label} value={f.value} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <SectionHeading icon={<Pill className="h-4 w-4" />} title="Medications" />
+          <div className="mt-3">
+            <EncounterMedicationTable encounterId={d.id} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -139,19 +175,6 @@ export function PatientDetailPage() {
   const { data: clinical } = usePatientClinicalData(id ?? "");
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
-
-  function toggleExpand(eventId: string) {
-    setExpandedEvents((prev) => {
-      const next = new Set(prev);
-      if (next.has(eventId)) {
-        next.delete(eventId);
-      } else {
-        next.add(eventId);
-      }
-      return next;
-    });
-  }
 
   if (isLoading) {
     return (
@@ -174,9 +197,13 @@ export function PatientDetailPage() {
   const canEdit = profile?.role === "doctor" || profile?.role === "receptionist";
   const patientName = `${patient.first_name} ${patient.last_name}`.trim();
 
-  const timelineEvents = buildTimeline(encounters, clinical?.medications, clinical?.clinicalNotes);
+  const completedEncounters = (encounters ?? [])
+    .filter((e) => !!e.encounter_date)
+    .sort((a, b) => new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime());
 
-  const allergyAlerts = (clinical?.alerts ?? []).filter((a) => a.category === "allergy" && a.label);
+  const allergyAlerts = (clinical?.alerts ?? []).filter(
+    (a: MedicalAlert) => a.category === "allergy" && a.label,
+  );
 
   return (
     <AppShell>
@@ -233,27 +260,30 @@ export function PatientDetailPage() {
             <h2 className="text-2xl font-bold text-gray-900">{patientName}</h2>
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field
+              <ReadOnlyField
                 label="Age"
                 value={computeAge(patient.dob) !== null ? `${computeAge(patient.dob)} yrs` : null}
               />
-              <Field label="Gender" value={patient.gender} />
+              <ReadOnlyField label="Gender" value={patient.gender} />
             </div>
 
             <div className="mt-6">
               <h3 className="text-sm font-medium text-gray-500">Contact Details</h3>
               <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Phone" value={patient.phone} />
-                <Field label="Email" value={patient.email} />
+                <ReadOnlyField label="Phone" value={patient.phone} />
+                <ReadOnlyField label="Email" value={patient.email} />
               </div>
             </div>
 
             <div className="mt-6">
               <h3 className="text-sm font-medium text-gray-500">Emergency Contact</h3>
               <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Field label="Name" value={patient.emergency_contact_name} />
-                <Field label="Phone" value={patient.emergency_contact_phone} />
-                <Field label="Relationship" value={patient.emergency_contact_relationship} />
+                <ReadOnlyField label="Name" value={patient.emergency_contact_name} />
+                <ReadOnlyField label="Phone" value={patient.emergency_contact_phone} />
+                <ReadOnlyField
+                  label="Relationship"
+                  value={patient.emergency_contact_relationship}
+                />
               </div>
             </div>
           </div>
@@ -280,159 +310,31 @@ export function PatientDetailPage() {
               </div>
             )}
 
-            {timelineEvents.length === 0 ? (
+            {completedEncounters.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-                <Calendar className="mx-auto h-10 w-10 text-gray-300" />
-                <p className="mt-4 text-lg font-medium text-gray-900">No clinical history yet</p>
+                <Stethoscope className="mx-auto h-10 w-10 text-gray-300" />
+                <p className="mt-4 text-lg font-medium text-gray-900">No consultation history</p>
                 <p className="mt-1 text-base text-gray-500">
-                  Clinical events will appear here as consultations, medications, notes, and lab
-                  reports are recorded.
+                  Completed consultations will appear here with their Dermatology and Medications
+                  data.
                 </p>
               </div>
             ) : (
               <div className="relative">
-                <div className="absolute top-2 bottom-2 left-5 w-0.5 bg-gray-200" />
+                <div className="absolute top-3 bottom-3 left-5 w-0.5 bg-gray-200" />
 
-                <div className="space-y-4">
-                  {timelineEvents.map((event) => {
-                    const config = typeConfig[event.type];
-                    const Icon = config.icon;
-                    const isExpanded = expandedEvents.has(event.id);
-
-                    return (
-                      <div key={event.id} className="relative flex gap-4">
-                        <div
-                          className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white ${config.color} shadow-sm`}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
-
-                        <div className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              toggleExpand(event.id);
-                            }}
-                            className="w-full px-5 py-3 text-left"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${config.color}`}
-                                  >
-                                    {config.badge}
-                                  </span>
-                                  <span className="text-sm text-gray-500">
-                                    {new Date(event.date).toLocaleDateString(undefined, {
-                                      year: "numeric",
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                    {event.date.includes("T") &&
-                                      ` at ${new Date(event.date).toLocaleTimeString(undefined, {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}`}
-                                  </span>
-                                </div>
-                                <p className="mt-1 text-sm font-semibold text-gray-900">
-                                  {event.summary}
-                                </p>
-                                {!isExpanded && event.detail && (
-                                  <p className="mt-0.5 truncate text-sm text-gray-500">
-                                    {event.detail}
-                                  </p>
-                                )}
-                              </div>
-                              {isExpanded ? (
-                                <ChevronUp className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                              )}
-                            </div>
-                          </button>
-
-                          {isExpanded && (
-                            <div className="border-t border-gray-100 px-5 py-4">
-                              {event.type === "encounter" && event.encounter && (
-                                <div className="space-y-3">
-                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    <Field
-                                      label="Chief Complaint"
-                                      value={event.encounter.chief_complaint}
-                                    />
-                                    <Field
-                                      label="Present Illness"
-                                      value={event.encounter.present_illness}
-                                    />
-                                    <Field label="Body Site" value={event.encounter.body_site} />
-                                    <Field label="Findings" value={event.encounter.findings} />
-                                    <Field
-                                      label="Lesion Description"
-                                      value={event.encounter.lesion_description}
-                                    />
-                                    <Field label="Morphology" value={event.encounter.morphology} />
-                                    <Field
-                                      label="Distribution"
-                                      value={event.encounter.distribution}
-                                    />
-                                    <Field label="Plan" value={event.encounter.plan} />
-                                    <Field label="Status" value={event.encounter.status} />
-                                  </div>
-                                  <a
-                                    href={`/appointments/${event.encounter.appointment_id}`}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      if (event.encounter?.appointment_id) {
-                                        void navigate(
-                                          `/appointments/${event.encounter.appointment_id}`,
-                                        );
-                                      }
-                                    }}
-                                    className="text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 text-sm font-medium"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    View Full Consultation
-                                  </a>
-                                </div>
-                              )}
-
-                              {event.type === "medication" && event.medication && (
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                  <Field
-                                    label="Medication"
-                                    value={event.medication.medication_name}
-                                  />
-                                  <Field label="Dosage" value={event.medication.dosage} />
-                                  <Field label="Frequency" value={event.medication.frequency} />
-                                  <Field label="Route" value={event.medication.route} />
-                                  <Field label="Duration" value={event.medication.duration} />
-                                  <Field
-                                    label="Prescribing Doctor"
-                                    value={event.medication.prescribing_doctor}
-                                  />
-                                  <Field
-                                    label="Instructions"
-                                    value={event.medication.instructions}
-                                  />
-                                </div>
-                              )}
-
-                              {event.type === "clinical-note" && event.clinicalNote && (
-                                <div className="space-y-3">
-                                  <Field label="Subjective" value={event.clinicalNote.subjective} />
-                                  <Field label="Objective" value={event.clinicalNote.objective} />
-                                  <Field label="Assessment" value={event.clinicalNote.assessment} />
-                                  <Field label="Plan" value={event.clinicalNote.plan} />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                <div className="space-y-6">
+                  {completedEncounters.map((enc) => (
+                    <div key={enc.id} className="relative flex gap-4">
+                      <div className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-blue-100 text-blue-700 shadow-sm">
+                        <Stethoscope className="h-4 w-4" />
                       </div>
-                    );
-                  })}
+
+                      <div className="min-w-0 flex-1">
+                        <TimelineBlock encounter={enc} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
