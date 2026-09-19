@@ -335,11 +335,12 @@ export function DashboardPage() {
               <h2 className="text-xl font-bold text-gray-900">Upcoming Appointments</h2>
               <button
                 onClick={() => {
-                  void navigate("/patients/new");
+                  void navigate("/appointments");
                 }}
                 className="text-brand-600 hover:text-brand-700 flex items-center gap-1 text-sm font-semibold"
               >
-                View all <ArrowRight className="h-4 w-4" />
+                View all <ArrowRight className="h-4 w-4" />{" "}
+                {/* Upcoming Appointments view-all → appointments list */}
               </button>
             </div>
 
@@ -376,40 +377,53 @@ export function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
-                {upcomingAppointments.data.appointments.map((apt) => (
-                  <button
-                    key={apt.id}
-                    onClick={() => {
-                      void navigate(`/patients/${apt.patient_id}`);
-                    }}
-                    className="flex w-full items-center gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-gray-50"
-                  >
-                    <div className="bg-brand-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
-                      <span className="text-brand-600 text-sm font-bold">
-                        {(apt.patient?.first_name ?? "?").charAt(0)}
-                        {(apt.patient?.last_name ?? "").charAt(0)}
+              <div>
+                <button
+                  onClick={() => {
+                    void navigate("/patients/new");
+                  }}
+                  className="bg-brand-600 hover:bg-brand-700 mb-3 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  Book Appointment
+                </button>
+                <div className="divide-y divide-gray-100">
+                  {upcomingAppointments.data.appointments.map((apt) => (
+                    <button
+                      key={apt.id}
+                      onClick={() => {
+                        void navigate(`/patients/${apt.patient_id}`);
+                      }}
+                      className="flex w-full items-center gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-gray-50"
+                    >
+                      <div className="bg-brand-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
+                        <span className="text-brand-600 text-sm font-bold">
+                          {(apt.patient?.first_name ?? "?").charAt(0)}
+                          {(apt.patient?.last_name ?? "").charAt(0)}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-gray-900">
+                          {apt.patient?.first_name ?? "Unknown"} {apt.patient?.last_name ?? ""}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {apt.patient?.mrn ?? "—"} · {formatDateStr(apt.appointment_date)}
+                          {apt.appointment_time && (
+                            <>
+                              {" · "}
+                              <Clock className="mr-0.5 inline h-3 w-3" />
+                              {formatTime(apt.appointment_time)}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <span className={statusBadge(apt.status)}>
+                        {apt.status.replace("_", " ")}
                       </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-gray-900">
-                        {apt.patient?.first_name ?? "Unknown"} {apt.patient?.last_name ?? ""}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {apt.patient?.mrn ?? "—"} · {formatDateStr(apt.appointment_date)}
-                        {apt.appointment_time && (
-                          <>
-                            {" · "}
-                            <Clock className="mr-0.5 inline h-3 w-3" />
-                            {formatTime(apt.appointment_time)}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <span className={statusBadge(apt.status)}>{apt.status.replace("_", " ")}</span>
-                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                  </button>
-                ))}
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
