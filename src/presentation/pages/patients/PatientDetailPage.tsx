@@ -1,18 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { usePatient } from "@presentation/hooks/usePatients";
+import { usePatientEncounters } from "@presentation/hooks/useEncounters";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
-import { useProfile } from "@presentation/hooks/useProfile";
+import { useUpdatePatient } from "@presentation/hooks/usePatients";
+import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
-import { computeAge, formatDate } from "@presentation/components/patient/utils";
-import { ArrowLeft, Pencil, Loader2 } from "lucide-react";
-
-const TABS = [
-  { key: "overview", label: "Patient Overview" },
-  { key: "timeline", label: "Timeline" },
-] as const;
-
-type TabKey = (typeof TABS)[number]["key"];
+import { computeAge } from "@presentation/components/patient/utils";
+import { ArrowLeft, Pencil, Loader2, X } from "lucide-react";
+import { useProfile } from "@presentation/hooks/useProfile";
 
 interface BodyAssessment {
   bodyArea: string;
@@ -23,6 +19,24 @@ interface BodyAssessment {
   symptoms: string;
   morphology: string;
   distribution: string;
+}
+
+interface TimelineItem {
+  timestamp: string;
+  type: "snapshot" | "medication" | "allergy" | "clinical-note" | "encounter";
+  data: Record<string, unknown>;
+  id: string;
+}
+
+function parseTimelineSnapshots(raw: string | null | undefined): TimelineItem[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) return parsed as TimelineItem[];
+  } catch {
+    /* ignore */
+  }
+  return [];
 }
 
 function parseBodyAssessments(raw: string | null | undefined): BodyAssessment[] {
@@ -47,7 +61,7 @@ function parseBodyAssessments(raw: string | null | undefined): BodyAssessment[] 
   }
 }
 
-function Field({ label, value }: { label: string; value: string | null | undefined }) {
+const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
     <div>
@@ -55,6 +69,10 @@ function Field({ label, value }: { label: string; value: string | null | undefin
       <p className="text-base text-gray-900">{value}</p>
     </div>
   );
+};
+
+function isRecord(obj: unknown): obj is Record<string, unknown> {
+  return obj !== null && typeof obj === "object" && !Array.isArray(obj);
 }
 
 export function PatientDetailPage() {
@@ -62,9 +80,13 @@ export function PatientDetailPage() {
   const navigate = useNavigate();
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
+  const { data: encounters } = usePatientEncounters(id ?? "");
   const { data: clinical } = usePatientClinicalData(id ?? "");
+  const updatePatientMutation = useUpdatePatient();
+  const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
 
   if (isLoading) {
     return (
@@ -86,11 +108,90 @@ export function PatientDetailPage() {
 
   const canEdit = profile?.role === "doctor" || profile?.role === "receptionist";
 
-  const allergyList = (clinical?.alerts ?? [])
-    .filter((a) => a.category === "allergy")
-    .map((a) => a.label);
-  const medList = clinical?.medications ?? [];
-  const bodyAssessments = parseBodyAssessments(patient.family_history);
+  const snapshots = parseTimelineSnapshots(patient.cosmetic_product_usage);
+
+  const getCurrentTimestamp = () => new Date().toISOString();
+
+  const timelineItems: TimelineItem[] = [
+    ...snapshots.map((s, i) => ({ ...s, type: "snapshot" as const, id: `snapshot-${i}` })),
+    ...(clinical?.medications || []).map((med) => ({
+      data: { type: "medication", ...med },
+      timestamp: getCurrentTimestamp(),
+      type: "medication" as const,
+      id: `med-${med.id}`,
+    })),
+    ...(clinical?.alerts || [])
+      .filter((a) => a.category === "allergy")
+      .map((alert) => ({
+        data: { type: "allergy", ...alert },
+        timestamp: getCurrentTimestamp(),
+        type: "allergy" as const,
+        id: `allergy-${alert.id}`,
+      })),
+    ...(clinical?.clinicalNotes || []).map((note) => ({
+      data: { type: "clinical-note", ...note },
+      timestamp: getCurrentTimestamp(),
+      type: "clinical-note" as const,
+      id: `note-${note.id}`,
+    })),
+    ...(encounters || []).map((e) => ({
+      data: { type: "encounter", ...e },
+      timestamp: e.encounter_date,
+      type: "encounter" as const,
+      id: `encounter-${e.id}`,
+    })),
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  async function handleCreateSnapshot() {
+    if (!id) return;
+
+    setIsSavingSnapshot(true);
+
+    const snapshotData = {
+      timestamp: new Date().toISOString(),
+      type: "snapshot" as const,
+      data: {
+        Name: `${patient.first_name} ${patient.last_name}`.trim(),
+        DOB: patient.dob,
+        Gender: patient.gender,
+        Phone: patient.phone,
+        Smoking: patient.smoking_status,
+        Alcohol: patient.alcohol_consumption,
+        Allergies: (clinical?.alerts ?? [])
+          .filter((a) => a.category === "allergy")
+          .map((a) => a.label)
+          .join(", "),
+        "Clinical Notes": patient.medical_notes,
+        "Emergency Contact": patient.emergency_contact_name,
+        "Emergency Phone": patient.emergency_contact_phone,
+        "Emergency Relationship": patient.emergency_contact_relationship,
+        Age: computeAge(patient.dob) !== null ? `${computeAge(patient.dob)} yrs` : "",
+        "Body Assessments": parseBodyAssessments(patient.family_history)
+          .map((a) => a.finding)
+          .join(", "),
+        Medications: (clinical?.medications ?? []).map((m) => m.medication_name).join(", "),
+      },
+      id: `snapshot-${Date.now()}`,
+    };
+
+    const newSnapshots = [...snapshots, snapshotData];
+
+    try {
+      await updatePatientMutation.mutateAsync({
+        id,
+        input: { cosmetic_product_usage: JSON.stringify(newSnapshots) },
+      });
+      toast.success("EMR snapshot saved successfully.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save EMR snapshot");
+    } finally {
+      setIsSavingSnapshot(false);
+    }
+  }
+
+  function handleCreateSnapshotClick() {
+    void handleCreateSnapshot();
+  }
 
   return (
     <AppShell>
@@ -105,30 +206,41 @@ export function PatientDetailPage() {
           </button>
           {canEdit && (
             <button
-              onClick={() => void navigate(`/patients/${patient.id}/edit`)}
-              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={handleCreateSnapshotClick}
+              disabled={isSavingSnapshot}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               <Pencil className="h-4 w-4" /> Start Consultation
+              {isSavingSnapshot && <Loader2 className="h-4 w-4 animate-spin" />}
             </button>
           )}
         </div>
 
         <div className="flex gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key);
-              }}
-              className={`flex-1 rounded-md px-4 py-2.5 text-base font-medium whitespace-nowrap transition-colors ${
-                activeTab === tab.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <button
+            onClick={() => {
+              setActiveTab("overview");
+            }}
+            className={`flex-1 rounded-md px-4 py-2.5 text-base font-medium transition-colors ${
+              activeTab === "overview"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Patient Overview
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("timeline");
+            }}
+            className={`flex-1 rounded-md px-4 py-2.5 text-base font-medium transition-colors ${
+              activeTab === "timeline"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Timeline
+          </button>
         </div>
 
         {activeTab === "overview" && (
@@ -165,81 +277,195 @@ export function PatientDetailPage() {
         )}
 
         {activeTab === "timeline" && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              {new Date().toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </h2>
-
-            <div className="rounded-xl border border-gray-200 bg-white p-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field
-                  label="Age"
-                  value={computeAge(patient.dob) !== null ? `${computeAge(patient.dob)} yrs` : null}
-                />
-                <Field label="Smoking" value={patient.smoking_status} />
-                <Field label="Alcohol" value={patient.alcohol_consumption} />
-                <Field
-                  label="Allergies"
-                  value={allergyList.length > 0 ? allergyList.join(", ") : null}
-                />
+          <div className="space-y-6">
+            {timelineItems.length === 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+                <X className="mx-auto h-8 w-8 text-gray-400" />
+                <p className="mt-3 text-base font-medium text-gray-900">No timeline entries</p>
+                <p className="mt-1 text-base text-gray-500">
+                  Click Start Consultation to save the current EMR snapshot.
+                </p>
               </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(
+                  timelineItems.reduce<Record<string, typeof timelineItems>>((acc, item) => {
+                    const dateKey = new Date(item.timestamp).toDateString();
+                    if (!acc[dateKey]) acc[dateKey] = [];
+                    acc[dateKey].push(item);
+                    return acc;
+                  }, {}),
+                ).map(([date, items]) => {
+                  const uniqueThreads = new Map<string, typeof timelineItems>();
+                  items.forEach((item) => {
+                    if (
+                      item.type === "encounter" &&
+                      isRecord(item.data) &&
+                      item.data.encounter_date
+                    ) {
+                      const threadKey = new Date(item.data.encounter_date).toDateString();
+                      if (!uniqueThreads.has(threadKey)) uniqueThreads.set(threadKey, []);
+                      uniqueThreads.get(threadKey)?.push(item);
+                    } else {
+                      const threadKey = item.timestamp;
+                      if (!uniqueThreads.has(threadKey)) uniqueThreads.set(threadKey, []);
+                      uniqueThreads.get(threadKey)?.push(item);
+                    }
+                  });
 
-              <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-500">Body Assessments</h3>
-                {bodyAssessments.length === 0 ? (
-                  <p className="mt-2 text-base text-gray-400">No body assessments recorded.</p>
-                ) : (
-                  <div className="mt-3 space-y-4">
-                    {bodyAssessments.map((a, i) => (
-                      <div
-                        key={a.bodyArea || i}
-                        className="rounded-lg border border-gray-200 bg-gray-50/50 p-4"
-                      >
-                        <h4 className="mb-3 text-sm font-semibold text-gray-700">
-                          Assessment {i + 1}
-                        </h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="Body Area" value={a.bodyArea} />
-                          <Field label="Finding / Lesion" value={a.finding} />
-                          <Field label="Severity" value={a.severity} />
-                          <Field label="Onset Date" value={formatDate(a.onsetDate)} />
-                          <Field label="Duration" value={a.duration} />
-                          <Field label="Symptoms" value={a.symptoms} />
-                          <Field label="Morphology" value={a.morphology} />
-                          <Field label="Distribution" value={a.distribution} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                  const sortedThreads = Array.from(uniqueThreads.entries()).sort(
+                    ([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime(),
+                  );
 
-              <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-500">Medications</h3>
-                {medList.length === 0 ? (
-                  <p className="mt-2 text-base text-gray-400">No medications recorded.</p>
-                ) : (
-                  <ul className="mt-3 space-y-2">
-                    {medList.map((m) => (
-                      <li
-                        key={m.id}
-                        className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2"
-                      >
-                        <span className="font-medium text-gray-900">{m.medication_name}</span>
-                        {m.dosage && <span className="text-sm text-gray-600">{m.dosage}</span>}
-                        {m.frequency && (
-                          <span className="text-sm text-gray-600">{m.frequency}</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  return (
+                    <div key={date} className="space-y-4">
+                      <h3 className="border-b pb-2 text-lg font-semibold text-gray-700">
+                        {new Date(date).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </h3>
+                      {sortedThreads.map(([threadDate, threadItems]) => {
+                        const isSingleItem = threadItems.length === 1;
+                        const hasMultipleSameDate =
+                          new Set(threadItems.map((t) => new Date(t.timestamp).toDateString()))
+                            .size > 1;
+
+                        return (
+                          <div key={threadDate} className="space-y-4">
+                            {hasMultipleSameDate && !isSingleItem && (
+                              <div className="ml-2 text-sm font-medium text-gray-500">
+                                Thread:{" "}
+                                {new Date(threadDate).toLocaleTimeString(undefined, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </div>
+                            )}
+
+                            {threadItems.map((item, index) => {
+                              const isSnapshot = item.type === "snapshot";
+                              const title = isSnapshot
+                                ? item.data.Name || "EMR Snapshot"
+                                : item.type.charAt(0).toUpperCase() + item.type.slice(1);
+
+                              const formatThreadDate = () => {
+                                const itemDate = new Date(item.timestamp);
+                                return itemDate.toLocaleTimeString(undefined, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                });
+                              };
+
+                              const showDateSeparator =
+                                !isSingleItem && index === 0 && !hasMultipleSameDate;
+
+                              return (
+                                <div key={item.id} className="relative">
+                                  {showDateSeparator && (
+                                    <div className="absolute top-0 bottom-0 -left-4 border-l-2 border-gray-200" />
+                                  )}
+                                  <div className="ml-4 rounded-xl border border-gray-200 bg-white p-6">
+                                    <div className="mb-4 flex items-center justify-between">
+                                      <div>
+                                        <p className="text-lg font-bold text-gray-900">{title}</p>
+                                        <p className="text-sm text-gray-500">
+                                          {formatThreadDate()}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                      {isSnapshot && (
+                                        <>
+                                          <Field label="Age" value={item.data.Age as string} />
+                                          <Field
+                                            label="Smoking"
+                                            value={item.data.Smoking as string}
+                                          />
+                                          <Field
+                                            label="Alcohol"
+                                            value={item.data.Alcohol as string}
+                                          />
+                                          <Field
+                                            label="Body Assessments"
+                                            value={item.data.Body_Assessments as string}
+                                          />
+                                          <Field
+                                            label="Medications"
+                                            value={item.data.Medications as string}
+                                          />
+                                        </>
+                                      )}
+
+                                      {!isSnapshot && item.type === "medication" && (
+                                        <>
+                                          <Field
+                                            label="Medication"
+                                            value={item.data.medication_name as string}
+                                          />
+                                          <Field
+                                            label="Dosage"
+                                            value={item.data.dosage as string}
+                                          />
+                                          <Field
+                                            label="Frequency"
+                                            value={item.data.frequency as string}
+                                          />
+                                          <Field label="Route" value={item.data.route as string} />
+                                        </>
+                                      )}
+
+                                      {!isSnapshot && item.type === "allergy" && (
+                                        <>
+                                          <Field
+                                            label="Allergen"
+                                            value={item.data.label as string}
+                                          />
+                                        </>
+                                      )}
+
+                                      {!isSnapshot && item.type === "clinical-note" && (
+                                        <>
+                                          <Field label="Note" value={item.data.note as string} />
+                                        </>
+                                      )}
+
+                                      {!isSnapshot &&
+                                        item.type === "encounter" &&
+                                        isRecord(item.data) && (
+                                          <>
+                                            <Field
+                                              label="Chief Complaint"
+                                              value={item.data.chief_complaint as string}
+                                            />
+                                            <Field
+                                              label="Present Illness"
+                                              value={item.data.present_illness as string}
+                                            />
+                                            <Field
+                                              label="Encounter Number"
+                                              value={
+                                                item.data.encounter_number ||
+                                                `Consultation ${item.data.status as string}`
+                                              }
+                                            />
+                                          </>
+                                        )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
