@@ -53,11 +53,11 @@ import {
 
 const TABS = [
   { key: "overview", label: "Patient Overview" },
-  { key: "medical-history", label: "Medical History" },
   { key: "dermatology", label: "Dermatology" },
+  { key: "lifestyle", label: "Lifestyle" },
+  { key: "medical-history", label: "Medical History" },
   { key: "medications", label: "Medications" },
   { key: "alerts", label: "Alerts & Notes" },
-  { key: "lifestyle", label: "Lifestyle" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
