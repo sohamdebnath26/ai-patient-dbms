@@ -357,17 +357,46 @@ export function EncounterDetailPage() {
   }
 
   const [actionError, setActionError] = useState<string | null>(null);
+  const [timelineSnapshots, setTimelineSnapshots] = useState<
+    { timestamp: string; form: Record<string, unknown> }[]
+  >([]);
+
+  useEffect(() => {
+    if (encounter?.findings) {
+      try {
+        const parsed = JSON.parse(encounter.findings) as unknown;
+        if (Array.isArray(parsed)) {
+          setTimelineSnapshots(parsed as typeof timelineSnapshots);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [encounter?.findings]);
 
   function handleSave() {
     if (!id) return;
     setActionError(null);
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      form: { ...form },
+    };
+    const newSnapshots = [
+      ...timelineSnapshots.filter((s) => !s.timestamp.startsWith("current_")),
+      snapshot,
+    ];
+    const payload = {
+      ...buildUpdatePayload(),
+      findings: JSON.stringify(newSnapshots),
+    };
     updateMutation.mutate(
-      { id, input: buildUpdatePayload() },
+      { id, input: payload },
       {
         onError: (e) => {
           setActionError(e instanceof Error ? e.message : "Save failed");
         },
         onSuccess: () => {
+          setTimelineSnapshots(newSnapshots);
           toast.success("Encounter saved.");
         },
       },
@@ -378,7 +407,19 @@ export function EncounterDetailPage() {
     if (!id || !user) return;
     setActionError(null);
     try {
-      await updateMutation.mutateAsync({ id, input: buildUpdatePayload() });
+      const snapshot = {
+        timestamp: new Date().toISOString(),
+        form: { ...form },
+      };
+      const newSnapshots = [
+        ...timelineSnapshots.filter((s) => !s.timestamp.startsWith("current_")),
+        snapshot,
+      ];
+      const payload = {
+        ...buildUpdatePayload(),
+        findings: JSON.stringify(newSnapshots),
+      };
+      await updateMutation.mutateAsync({ id, input: payload });
       await completeMutation.mutateAsync(id);
       if (encounter?.appointment_id) {
         await completeApptMutation.mutateAsync({ id: encounter.appointment_id, userId: user.id });
@@ -1371,60 +1412,141 @@ export function EncounterDetailPage() {
           {activeTab === "timeline" && (
             <TabContentWrapper tabKey="timeline">
               <h2 className="mb-4 text-base font-semibold text-gray-900">Encounter Timeline</h2>
-              {previousEncounters.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
-                  <History className="mx-auto h-8 w-8 text-gray-300" />
-                  <p className="mt-3 text-sm font-medium text-gray-600">No previous encounters</p>
-                  <p className="mt-1 text-sm text-gray-400">
-                    Previous encounters for this patient will appear here.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {previousEncounters
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime(),
-                    )
-                    .map((enc) => (
-                      <button
-                        key={enc.id}
-                        type="button"
-                        onClick={() => {
-                          void navigate(`/encounters/${enc.id}`);
-                        }}
-                        className="w-full rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {enc.encounter_number ?? "Encounter"}
-                          </span>
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              enc.status === "completed"
-                                ? "bg-gray-100 text-gray-600"
-                                : enc.status === "in_progress"
-                                  ? "bg-green-50 text-green-700"
-                                  : "bg-yellow-50 text-yellow-700"
-                            }`}
-                          >
-                            {enc.status.replace("_", " ")}
-                          </span>
+
+              {(() => {
+                const snapshots: { timestamp: string; form: Record<string, unknown> }[] = [];
+                if (encounter.findings) {
+                  try {
+                    const parsed = JSON.parse(encounter.findings) as unknown;
+                    if (Array.isArray(parsed)) {
+                      snapshots.push(...(parsed as typeof snapshots));
+                    }
+                  } catch {
+                    // ignore
+                  }
+                }
+                const hasSnapshots = snapshots.length > 0;
+                const hasPrevious = previousEncounters.length > 0;
+
+                if (!hasSnapshots && !hasPrevious) {
+                  return (
+                    <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+                      <History className="mx-auto h-8 w-8 text-gray-300" />
+                      <p className="mt-3 text-sm font-medium text-gray-600">No timeline entries</p>
+                      <p className="mt-1 text-sm text-gray-400">
+                        Save the encounter to create timeline snapshots.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-6">
+                    {hasSnapshots && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold text-gray-700">
+                          Encounter Snapshots
+                        </h3>
+                        <div className="space-y-2">
+                          {snapshots
+                            .slice()
+                            .reverse()
+                            .map((s, i) => (
+                              <div
+                                key={i}
+                                className="rounded-lg border border-gray-200 bg-gray-50/50 p-4"
+                              >
+                                <p className="text-xs font-medium text-gray-500">
+                                  {new Date(s.timestamp).toLocaleString("en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                  {typeof s.form.chief_complaint === "string" &&
+                                    s.form.chief_complaint && (
+                                      <p className="col-span-2 text-gray-700">
+                                        <span className="font-medium">CC:</span>{" "}
+                                        {s.form.chief_complaint.slice(0, 80)}
+                                      </p>
+                                    )}
+                                  {typeof s.form.general_examination === "string" &&
+                                    s.form.general_examination && (
+                                      <p className="text-gray-600">
+                                        <span className="font-medium">Exam:</span>{" "}
+                                        {s.form.general_examination.slice(0, 40)}
+                                      </p>
+                                    )}
+                                  {typeof s.form.body_site === "string" && s.form.body_site && (
+                                    <p className="text-gray-600">
+                                      <span className="font-medium">Site:</span> {s.form.body_site}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                         </div>
-                        <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-500">
-                          <span>{formatDate(enc.encounter_date)}</span>
-                          {enc.chief_complaint && (
-                            <span>
-                              {enc.chief_complaint.slice(0, 60)}
-                              {enc.chief_complaint.length > 60 ? "..." : ""}
-                            </span>
-                          )}
+                      </div>
+                    )}
+
+                    {hasPrevious && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold text-gray-700">
+                          Previous Encounters
+                        </h3>
+                        <div className="space-y-3">
+                          {previousEncounters
+                            .slice()
+                            .sort(
+                              (a, b) =>
+                                new Date(b.encounter_date).getTime() -
+                                new Date(a.encounter_date).getTime(),
+                            )
+                            .map((enc) => (
+                              <button
+                                key={enc.id}
+                                type="button"
+                                onClick={() => {
+                                  void navigate(`/encounters/${enc.id}`);
+                                }}
+                                className="w-full rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {enc.encounter_number ?? "Encounter"}
+                                  </span>
+                                  <span
+                                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                      enc.status === "completed"
+                                        ? "bg-gray-100 text-gray-600"
+                                        : enc.status === "in_progress"
+                                          ? "bg-green-50 text-green-700"
+                                          : "bg-yellow-50 text-yellow-700"
+                                    }`}
+                                  >
+                                    {enc.status.replace("_", " ")}
+                                  </span>
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-500">
+                                  <span>{formatDate(enc.encounter_date)}</span>
+                                  {enc.chief_complaint && (
+                                    <span>
+                                      {enc.chief_complaint.slice(0, 60)}
+                                      {enc.chief_complaint.length > 60 ? "..." : ""}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
                         </div>
-                      </button>
-                    ))}
-                </div>
-              )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </TabContentWrapper>
           )}
         </div>
