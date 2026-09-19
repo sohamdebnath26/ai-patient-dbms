@@ -543,7 +543,39 @@ export function PatientDetailPage() {
         {activeTab === "timeline" &&
           (() => {
             const timelineEntries = encounters ?? [];
-            if (timelineEntries.length === 0) {
+
+            const allSnapshots: {
+              encounterId: string;
+              encounterNumber: string;
+              timestamp: string;
+              form: Record<string, unknown>;
+            }[] = [];
+            for (const e of timelineEntries) {
+              if (e.findings) {
+                try {
+                  const parsed = JSON.parse(e.findings) as unknown;
+                  if (Array.isArray(parsed)) {
+                    for (const s of parsed as Record<string, unknown>[]) {
+                      if (typeof s.timestamp === "string" && typeof s.form === "object" && s.form) {
+                        allSnapshots.push({
+                          encounterId: e.id,
+                          encounterNumber: e.encounter_number ?? "",
+                          timestamp: s.timestamp,
+                          form: s.form as Record<string, unknown>,
+                        });
+                      }
+                    }
+                  }
+                } catch {
+                  // ignore
+                }
+              }
+            }
+            allSnapshots.sort(
+              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+            );
+
+            if (timelineEntries.length === 0 && allSnapshots.length === 0) {
               return (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
@@ -558,50 +590,102 @@ export function PatientDetailPage() {
             }
             return (
               <div className="space-y-4">
-                <div className="space-y-3">
-                  {timelineEntries
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime(),
-                    )
-                    .map((e, i) => (
+                {allSnapshots.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-700">EMR Snapshots</h3>
+                    {allSnapshots.map((s, i) => (
                       <button
-                        key={e.id}
-                        onClick={() => void navigate(`/encounters/${e.id}`)}
+                        key={`${s.encounterId}-${i}`}
+                        onClick={() => void navigate(`/encounters/${s.encounterId}`)}
                         className="relative flex w-full gap-4 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-gray-300 hover:bg-gray-50"
                       >
                         <div className="flex flex-col items-center">
                           <div className="bg-brand-50 text-brand-700 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
-                            {i === 0 ? "Now" : i}
+                            {i + 1}
                           </div>
-                          {i < timelineEntries.length - 1 && (
+                          {i < allSnapshots.length - 1 && (
                             <div className="bg-brand-200 mt-1 h-full w-0.5" />
                           )}
                         </div>
                         <div className="flex-1">
                           <p className="text-base font-semibold text-gray-900">
-                            {e.encounter_number ?? "Consultation"}
+                            {s.encounterNumber || "Consultation"}
                           </p>
-                          <p className="text-base text-gray-600">{formatDate(e.encounter_date)}</p>
-                          {e.chief_complaint && (
+                          <p className="text-base text-gray-600">
+                            {new Date(s.timestamp).toLocaleString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                          {typeof s.form.chief_complaint === "string" && s.form.chief_complaint && (
                             <p className="mt-1 text-base text-gray-700">
-                              {e.chief_complaint.slice(0, 100)}
+                              {s.form.chief_complaint.slice(0, 100)}
                             </p>
                           )}
-                          <span
-                            className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              e.status === "completed"
-                                ? "bg-gray-100 text-gray-600"
-                                : "bg-green-50 text-green-700"
-                            }`}
-                          >
-                            {e.status.replace("_", " ")}
+                          <span className="mt-2 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                            Snapshot
                           </span>
                         </div>
                       </button>
                     ))}
-                </div>
+                  </div>
+                )}
+
+                {timelineEntries.length > 0 && (
+                  <div className="space-y-3">
+                    {allSnapshots.length > 0 && (
+                      <h3 className="text-sm font-semibold text-gray-700">Encounters</h3>
+                    )}
+                    {timelineEntries
+                      .slice()
+                      .sort(
+                        (a, b) =>
+                          new Date(b.encounter_date).getTime() -
+                          new Date(a.encounter_date).getTime(),
+                      )
+                      .map((e, i) => (
+                        <button
+                          key={e.id}
+                          onClick={() => void navigate(`/encounters/${e.id}`)}
+                          className="relative flex w-full gap-4 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-gray-300 hover:bg-gray-50"
+                        >
+                          <div className="flex flex-col items-center">
+                            <div className="bg-brand-50 text-brand-700 flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold">
+                              {i === 0 ? "Now" : i}
+                            </div>
+                            {i < timelineEntries.length - 1 && (
+                              <div className="bg-brand-200 mt-1 h-full w-0.5" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-base font-semibold text-gray-900">
+                              {e.encounter_number ?? "Consultation"}
+                            </p>
+                            <p className="text-base text-gray-600">
+                              {formatDate(e.encounter_date)}
+                            </p>
+                            {e.chief_complaint && (
+                              <p className="mt-1 text-base text-gray-700">
+                                {e.chief_complaint.slice(0, 100)}
+                              </p>
+                            )}
+                            <span
+                              className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                e.status === "completed"
+                                  ? "bg-gray-100 text-gray-600"
+                                  : "bg-green-50 text-green-700"
+                              }`}
+                            >
+                              {e.status.replace("_", " ")}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
             );
           })()}
