@@ -28,4 +28,17 @@ export interface IAppointmentRepository {
     auth: AuthorizationContext,
   ): Promise<Appointment>;
   delete(id: string, auth: AuthorizationContext): Promise<void>;
+  cancelAllFutureByPatient(
+    patientId: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<number>;
+  getLatestActiveByPatient(
+    patientId: string,
+    auth: AuthorizationContext,
+  ): Promise<Appointment | null>;
+  listUpcoming(
+    params: AppointmentSearchParams,
+    auth: AuthorizationContext,
+  ): Promise<AppointmentListPage>;
 }

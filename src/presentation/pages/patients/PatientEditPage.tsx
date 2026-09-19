@@ -18,7 +18,9 @@ import {
   useRemoveMedication,
   useAddClinicalNote,
 } from "@presentation/hooks/useClinical";
+import { useCompleteLatestAppointment } from "@presentation/hooks/useAppointments";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useAuth } from "@presentation/hooks/useAuth";
 import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
@@ -69,6 +71,7 @@ const TABS = [
   { key: "medical-history", label: "Medical History" },
   { key: "medications", label: "Medications" },
   { key: "alerts", label: "Alerts & Notes" },
+  { key: "follow-up-plans", label: "Follow up Date and Plans" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -97,6 +100,7 @@ export function PatientEditPage() {
   const navigate = useNavigate();
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
+  const { user } = useAuth();
   const updateMutation = useUpdatePatient();
   const deregisterMutation = useDeregisterPatient();
   const { data: clinical } = usePatientClinicalData(id ?? "");
@@ -104,6 +108,7 @@ export function PatientEditPage() {
   const removeMedication = useRemoveMedication(id ?? "");
   const addNote = useAddClinicalNote(id ?? "");
   const toast = useToast();
+  const completeAppointment = useCompleteLatestAppointment();
 
   const isReceptionist = profile?.role === "receptionist";
   const [deregisterOpen, setDeregisterOpen] = useState(false);
@@ -297,6 +302,9 @@ export function PatientEditPage() {
       { id, input: payload },
       {
         onSuccess: () => {
+          if (user?.id) {
+            completeAppointment.mutate({ patientId: id, userId: user.id });
+          }
           toast.success("Patient saved successfully.");
           void navigate("/patients");
         },
@@ -699,6 +707,69 @@ export function PatientEditPage() {
                           addNote.mutate(input);
                         }}
                       />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "follow-up-plans" && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-brand-600 h-5 w-5" />
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Follow up Date and Plans
+                    </h2>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Follow Up Date
+                        </label>
+                        <input
+                          type="date"
+                          {...register("follow_up_date")}
+                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        />
+                        {errors.follow_up_date && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.follow_up_date.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Follow Up Plan
+                      </label>
+                      <textarea
+                        {...register("follow_up_plan")}
+                        rows={4}
+                        className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        placeholder="Enter follow-up plan details..."
+                      />
+                      {errors.follow_up_plan && (
+                        <p className="mt-1 text-sm text-red-600">{errors.follow_up_plan.message}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Follow Up Instructions
+                      </label>
+                      <textarea
+                        {...register("follow_up_instructions")}
+                        rows={4}
+                        className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        placeholder="Enter follow-up instructions..."
+                      />
+                      {errors.follow_up_instructions && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.follow_up_instructions.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

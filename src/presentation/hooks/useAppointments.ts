@@ -133,3 +133,45 @@ export function useDeleteAppointment() {
     },
   });
 }
+
+export function useUpcomingAppointments(params: AppointmentSearchParams) {
+  const auth = useCurrentAuth();
+  return useQuery({
+    queryKey: [
+      "appointments",
+      "upcoming",
+      params,
+      auth.selectedOrganizationId ?? `user:${auth.userId}`,
+    ],
+    queryFn: () => svc.listUpcoming(params, auth),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useCancelAllFutureAppointments() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: async ({ patientId, userId }: { patientId: string; userId: string }) => {
+      return svc.cancelAllFutureForPatient(patientId, userId, auth);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useCompleteLatestAppointment() {
+  const qc = useQueryClient();
+  const auth = useCurrentAuth();
+  return useMutation({
+    mutationFn: async ({ patientId, userId }: { patientId: string; userId: string }) => {
+      return svc.completeLatestForPatient(patientId, userId, auth);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["appointments"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}

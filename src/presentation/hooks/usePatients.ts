@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PatientService } from "@application/patient/PatientService";
 import { SupabasePatientRepository } from "@infrastructure/supabase/patient/SupabasePatientRepository";
 import { SupabaseClinicalRepository } from "@infrastructure/supabase/clinical/SupabaseClinicalRepository";
+import { AppointmentService } from "@application/appointment/AppointmentService";
+import { SupabaseAppointmentRepository } from "@infrastructure/supabase/appointment/SupabaseAppointmentRepository";
 import {
   type AuthorizationContext,
   type CreatePatientFormInput,
@@ -19,6 +21,8 @@ import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrgan
 const repository = new SupabasePatientRepository();
 const clinicalRepository = new SupabaseClinicalRepository();
 const service = new PatientService(repository, clinicalRepository);
+const appointmentRepo = new SupabaseAppointmentRepository();
+const appointmentSvc = new AppointmentService(appointmentRepo);
 
 function useCurrentAuth(): AuthorizationContext {
   const { user } = useAuth();
@@ -104,11 +108,16 @@ export function useArchivePatient() {
 
 export function useDeregisterPatient() {
   const queryClient = useQueryClient();
+  const auth = useCurrentAuth();
 
   return useMutation({
-    mutationFn: (id: string) => service.deregister(id),
+    mutationFn: async (id: string) => {
+      await appointmentSvc.cancelAllFutureForPatient(id, auth.userId, auth);
+      await service.deregister(id);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["patients"] });
+      void queryClient.invalidateQueries({ queryKey: ["appointments"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });

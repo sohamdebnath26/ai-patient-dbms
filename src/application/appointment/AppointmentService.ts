@@ -62,4 +62,30 @@ export class AppointmentService {
   async delete(id: string, auth: AuthorizationContext): Promise<void> {
     return this.repo.delete(id, auth);
   }
+
+  async cancelAllFutureForPatient(
+    patientId: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<number> {
+    return this.repo.cancelAllFutureByPatient(patientId, userId, auth);
+  }
+
+  async completeLatestForPatient(
+    patientId: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<void> {
+    const latest = await this.repo.getLatestActiveByPatient(patientId, auth);
+    if (latest) {
+      await this.repo.updateStatus(latest.id, APPOINTMENT_STATUS.completed, userId, auth);
+    }
+  }
+
+  async listUpcoming(
+    params: AppointmentSearchParams,
+    auth: AuthorizationContext,
+  ): Promise<AppointmentListPage> {
+    return this.repo.listUpcoming(params, auth);
+  }
 }

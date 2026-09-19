@@ -212,4 +212,115 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
 
     if (error) throw new Error(error.message);
   }
+
+  async cancelAllFutureByPatient(
+    patientId: string,
+    userId: string,
+    auth: AuthorizationContext,
+  ): Promise<number> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data, error } = (await client
+      .from("appointments")
+      .select("id,status")
+      .eq("patient_id", patientId)
+      .eq(scope.column, scope.value)
+      .not("status", "in", '("completed","cancelled","no_show")')
+      .gte("appointment_date", today)) as unknown as {
+      data: { id: string; status: string }[] | null;
+      error: { message: string } | null;
+    };
+
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) return 0;
+
+    for (const apt of data) {
+      await client.from("appointment_status_history").insert({
+        appointment_id: apt.id,
+        new_status: "cancelled",
+        changed_by: userId,
+        previous_status: apt.status,
+      });
+    }
+
+    const ids = data.map((a) => a.id);
+    const { error: updateErr } = await client
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .in("id", ids)
+      .eq(scope.column, scope.value);
+
+    if (updateErr) throw new Error(updateErr.message);
+    return ids.length;
+  }
+
+  async getLatestActiveByPatient(
+    patientId: string,
+    auth: AuthorizationContext,
+  ): Promise<Appointment | null> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+
+    const { data, error } = (await client
+      .from("appointments")
+      .select("*, patient:patients(first_name,last_name,mrn)")
+      .eq("patient_id", patientId)
+      .eq(scope.column, scope.value)
+      .not("status", "in", '("completed","cancelled","no_show")')
+      .order("appointment_date", { ascending: true })
+      .order("appointment_time", { ascending: true })
+      .limit(1)
+      .maybeSingle()) as unknown as {
+      data: AppointmentRow | null;
+      error: { code: string; message: string } | null;
+    };
+
+    if (error) {
+      if (error.code === "PGRST116") return null;
+      throw new Error(error.message);
+    }
+    return data ? mapToAppointment(data) : null;
+  }
+
+  async listUpcoming(
+    params: AppointmentSearchParams,
+    auth: AuthorizationContext,
+  ): Promise<AppointmentListPage> {
+    const client = getSupabaseClient();
+    const offset = (params.page - 1) * params.limit;
+    const scope = resolveAuthScope(auth);
+    const today = new Date().toISOString().slice(0, 10);
+
+    let query = client
+      .from("appointments")
+      .select("*, patient:patients(first_name,last_name,mrn)", { count: "exact" })
+      .eq(scope.column, scope.value)
+      .not("status", "in", '("completed","cancelled","no_show")')
+      .gte("appointment_date", today);
+
+    if (params.assigned_to) query = query.eq("assigned_to", params.assigned_to);
+    if (params.patient_id) query = query.eq("patient_id", params.patient_id);
+
+    query = query
+      .order("appointment_date", { ascending: true })
+      .order("appointment_time", { ascending: true })
+      .range(offset, offset + params.limit - 1);
+
+    const { data, error, count } = (await query) as unknown as {
+      data: AppointmentRow[] | null;
+      error: { code: string; message: string } | null;
+      count: number | null;
+    };
+
+    if (error) throw new Error(error.message);
+    return {
+      appointments: (data ?? []).map(mapToAppointment),
+      total: count ?? 0,
+      page: params.page,
+      limit: params.limit,
+      totalPages: Math.ceil((count ?? 0) / params.limit),
+    };
+  }
 }

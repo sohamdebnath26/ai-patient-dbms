@@ -287,6 +287,9 @@ export const PatientFormSchema = z
     sun_exposure_history: z.string().optional(),
     cosmetic_product_usage: z.string().optional(),
     occupational_exposure: z.string().optional(),
+    follow_up_date: z.string().optional(),
+    follow_up_plan: z.string().optional(),
+    follow_up_instructions: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.country.toLowerCase() === "india" && data.postal_code) {

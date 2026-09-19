@@ -1,12 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useUpcomingAppointments } from "@presentation/hooks/useAppointments";
 import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 import { resolveAuthScope } from "@domain/patient";
 import type { AuthorizationContext } from "@domain/patient";
 import { useNavigate } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
-import { Users, ChevronRight, ArrowRight, AlertTriangle, Plus } from "lucide-react";
+import {
+  Users,
+  ChevronRight,
+  ArrowRight,
+  AlertTriangle,
+  Plus,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 
 function useAuthContext(): AuthorizationContext {
@@ -86,12 +95,40 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const auth = useAuthContext();
   const recentPatients = useRecentPatients(auth);
+  const upcomingAppointments = useUpcomingAppointments({ page: 1, limit: 10, hideCancelled: true });
 
   const displayName = profile?.firstName
     ? `Dr. ${profile.firstName} ${profile.lastName}`
     : user
       ? user.email.split("@")[0] || "User"
       : "User";
+
+  function formatTime(time: string | null): string {
+    if (!time) return "";
+    const [h, m] = time.split(":");
+    const hour = parseInt(h, 10);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const h12 = hour % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  }
+
+  function formatDateStr(date: string): string {
+    const d = new Date(date);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, string> = {
+      scheduled: "bg-blue-50 text-blue-700",
+      confirmed: "bg-green-50 text-green-700",
+      in_progress: "bg-yellow-50 text-yellow-700",
+    };
+    return `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${map[status] ?? "bg-gray-50 text-gray-600"}`;
+  };
 
   return (
     <AppShell>
@@ -181,6 +218,90 @@ export function DashboardPage() {
                         {computeAge(p.dob)} · {p.gender ?? "—"} · MRN: {p.mrn}
                       </p>
                     </div>
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Upcoming Appointments</h2>
+              <button
+                onClick={() => {
+                  void navigate("/appointments");
+                }}
+                className="text-brand-600 hover:text-brand-700 flex items-center gap-1 text-sm font-semibold"
+              >
+                View all <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {upcomingAppointments.isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex animate-pulse items-center gap-3 rounded-lg bg-gray-50 p-3"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-gray-200" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 w-32 rounded bg-gray-200" />
+                      <div className="h-2.5 w-20 rounded bg-gray-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : upcomingAppointments.isError ? (
+              <SectionError
+                message={upcomingAppointments.error.message}
+                onRetry={() => {
+                  void upcomingAppointments.refetch();
+                }}
+              />
+            ) : (upcomingAppointments.data?.appointments.length ?? 0) === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-50">
+                  <Calendar className="h-6 w-6 text-gray-400" />
+                </div>
+                <p className="mt-3 text-sm font-bold text-gray-900">No upcoming appointments</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Schedule a consultation from the patient record.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {upcomingAppointments.data.appointments.map((apt) => (
+                  <button
+                    key={apt.id}
+                    onClick={() => {
+                      void navigate(`/patients/${apt.patient_id}`);
+                    }}
+                    className="flex w-full items-center gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-gray-50"
+                  >
+                    <div className="bg-brand-50 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
+                      <span className="text-brand-600 text-sm font-bold">
+                        {(apt.patient?.first_name ?? "?").charAt(0)}
+                        {(apt.patient?.last_name ?? "").charAt(0)}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-gray-900">
+                        {apt.patient?.first_name ?? "Unknown"} {apt.patient?.last_name ?? ""}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {apt.patient?.mrn ?? "—"} · {formatDateStr(apt.appointment_date)}
+                        {apt.appointment_time && (
+                          <>
+                            {" · "}
+                            <Clock className="mr-0.5 inline h-3 w-3" />
+                            {formatTime(apt.appointment_time)}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <span className={statusBadge(apt.status)}>{apt.status.replace("_", " ")}</span>
                     <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
                   </button>
                 ))}
