@@ -12,6 +12,19 @@ import {
 import { formatDate } from "@presentation/components/patient/utils";
 import { ArrowLeft, Pencil, Loader2, Stethoscope } from "lucide-react";
 
+function parseTL(
+  r: string | null | undefined,
+): { timestamp: string; data: Record<string, unknown> }[] {
+  if (!r) return [];
+  try {
+    const p = JSON.parse(r) as unknown;
+    if (Array.isArray(p)) return p as { timestamp: string; data: Record<string, unknown> }[];
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
+
 const TABS = [
   { key: "overview", label: "Patient Overview" },
   { key: "timeline", label: "Timeline" },
@@ -84,6 +97,8 @@ export function PatientDetailPage() {
     assignedDoctor,
   };
 
+  const snapshots = parseTL(patient.cosmetic_product_usage);
+
   return (
     <AppShell>
       <div className="mx-auto max-w-5xl space-y-5">
@@ -148,6 +163,62 @@ export function PatientDetailPage() {
                 <p className="mt-1 text-base text-gray-500">
                   Encounter data will appear here after consultations.
                 </p>
+              </div>
+            )}
+
+            {snapshots.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-gray-700">Saved Snapshots</h3>
+                {snapshots
+                  .slice()
+                  .reverse()
+                  .map((s, i) => (
+                    <div key={i} className="rounded-xl border border-gray-200 bg-white p-6">
+                      <div className="mb-4 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-500">
+                          {new Date(s.timestamp).toLocaleString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {(typeof s.data.first_name === "string" ||
+                          typeof s.data.last_name === "string") && (
+                          <EMRField
+                            label="Name"
+                            value={
+                              (typeof s.data.first_name === "string" ? s.data.first_name : "") +
+                              " " +
+                              (typeof s.data.last_name === "string" ? s.data.last_name : "")
+                            }
+                          />
+                        )}
+                        {typeof s.data.dob === "string" && (
+                          <EMRField label="DOB" value={s.data.dob} />
+                        )}
+                        {typeof s.data.gender === "string" && (
+                          <EMRField label="Gender" value={s.data.gender} />
+                        )}
+                        {typeof s.data.phone === "string" && (
+                          <EMRField label="Phone" value={s.data.phone} />
+                        )}
+                        {typeof s.data.primary_diagnosis === "string" &&
+                          s.data.primary_diagnosis && (
+                            <EMRField label="Diagnosis" value={s.data.primary_diagnosis} />
+                          )}
+                        {typeof s.data.chief_complaint === "string" && s.data.chief_complaint && (
+                          <EMRField label="Chief Complaint" value={s.data.chief_complaint} />
+                        )}
+                        {typeof s.data.symptoms === "string" && s.data.symptoms && (
+                          <EMRField label="Symptoms" value={s.data.symptoms} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
 
