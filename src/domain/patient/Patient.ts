@@ -283,7 +283,7 @@ export const PatientFormSchema = z
     alcohol_consumption: z.string().optional(),
     pregnancy_status: z.string().optional(),
     date_of_onset: z.string().optional(),
-    symptoms: z.string().min(1, "At least one symptom is required"),
+    symptoms: z.string().optional(),
     sun_exposure_history: z.string().optional(),
     cosmetic_product_usage: z.string().optional(),
     occupational_exposure: z.string().optional(),

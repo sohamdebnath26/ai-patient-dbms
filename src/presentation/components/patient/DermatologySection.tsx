@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import type { PatientFormInput } from "@domain/patient";
 import { Stethoscope, X, Plus, Trash2 } from "lucide-react";
-import { FieldError, SectionHeading } from "./helpers";
+import { SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import { SYMPTOM_OPTIONS } from "./data/clinical-options";
 import {
@@ -21,6 +21,9 @@ interface Assessment {
   severity: string;
   onsetDate: string;
   duration: string;
+  symptoms: string;
+  morphology: string;
+  distribution: string;
 }
 
 let nextId = 1;
@@ -35,6 +38,9 @@ const DEFAULT_ASSESSMENT: Assessment = {
   severity: "",
   onsetDate: "",
   duration: "",
+  symptoms: "",
+  morphology: "",
+  distribution: "",
 };
 
 function parseAssessments(raw: string | undefined | null): Assessment[] {
@@ -49,6 +55,9 @@ function parseAssessments(raw: string | undefined | null): Assessment[] {
         severity: typeof a.severity === "string" ? a.severity : "",
         onsetDate: typeof a.onsetDate === "string" ? a.onsetDate : "",
         duration: typeof a.duration === "string" ? a.duration : "",
+        symptoms: typeof a.symptoms === "string" ? a.symptoms : "",
+        morphology: typeof a.morphology === "string" ? a.morphology : "",
+        distribution: typeof a.distribution === "string" ? a.distribution : "",
       }));
     }
   } catch {
@@ -467,22 +476,43 @@ function AssessmentCard({
             />
           </div>
         </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TagInput
+            label="Symptoms"
+            value={assessment.symptoms}
+            onChange={(v) => {
+              onChange({ ...assessment, symptoms: v });
+            }}
+            placeholder="e.g. itching, burning, pain"
+            suggestions={SYMPTOM_OPTIONS}
+          />
+          <TagInput
+            label="Morphology"
+            value={assessment.morphology}
+            onChange={(v) => {
+              onChange({ ...assessment, morphology: v });
+            }}
+            placeholder="e.g. papules, plaques, vesicles"
+            suggestions={MORPHOLOGY_OPTIONS}
+          />
+          <TagInput
+            label="Distribution"
+            value={assessment.distribution}
+            onChange={(v) => {
+              onChange({ ...assessment, distribution: v });
+            }}
+            placeholder="e.g. localized, bilateral, generalized"
+            suggestions={DISTRIBUTION_OPTIONS}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
 export function DermatologySection() {
-  const {
-    register,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useFormContext<PatientFormInput>();
+  const { register, setValue, watch } = useFormContext<PatientFormInput>();
 
-  const symptomsVal = watch("symptoms");
-  const morphologyVal = watch("secondary_diagnosis");
-  const distributionVal = watch("sun_exposure_history");
   const familyHistoryVal = watch("family_history");
 
   const [assessments, setAssessments] = useState<Assessment[]>(() =>
@@ -550,43 +580,6 @@ export function DermatologySection() {
         <Plus className="h-4 w-4" />
         Add Assessment
       </button>
-
-      <div className="border-t border-gray-100 pt-6">
-        <div className="grid gap-5 md:grid-cols-3">
-          <div>
-            <TagInput
-              label="Symptoms"
-              value={symptomsVal}
-              onChange={(v) => {
-                setValue("symptoms", v, { shouldValidate: true });
-              }}
-              placeholder="e.g. itching, burning, pain, tenderness"
-              suggestions={SYMPTOM_OPTIONS}
-            />
-            <FieldError message={errors.symptoms?.message} />
-          </div>
-
-          <TagInput
-            label="Morphology"
-            value={morphologyVal ?? ""}
-            onChange={(v) => {
-              setValue("secondary_diagnosis", v, { shouldValidate: false });
-            }}
-            placeholder="e.g. papules, plaques, vesicles, scales"
-            suggestions={MORPHOLOGY_OPTIONS}
-          />
-
-          <TagInput
-            label="Distribution"
-            value={distributionVal ?? ""}
-            onChange={(v) => {
-              setValue("sun_exposure_history", v, { shouldValidate: false });
-            }}
-            placeholder="e.g. localized, bilateral, flexural, generalized"
-            suggestions={DISTRIBUTION_OPTIONS}
-          />
-        </div>
-      </div>
 
       <div>
         <label className={labelClass}>Clinical Notes</label>
