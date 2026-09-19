@@ -6,7 +6,7 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { computeAge, formatDate } from "@presentation/components/patient/utils";
 import { SectionHeading } from "@presentation/components/patient/helpers";
-import { ArrowLeft, Pencil, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2, ChevronDown, Stethoscope, Pill } from "lucide-react";
 
 interface AssessmentCard {
   bodyArea: string;
@@ -44,6 +44,21 @@ function parseAssessments(raw: string | null | undefined): AssessmentCard[] {
     /* ignore */
   }
   return [];
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const day = d.getDate();
+  const month = MONTHS[d.getMonth()];
+  const year = d.getFullYear();
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const h12 = hours % 12 || 12;
+  const mm = minutes.toString().padStart(2, "0");
+  return `${day} ${month} ${year} \u2022 ${h12}:${mm} ${ampm}`;
 }
 
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
@@ -208,55 +223,38 @@ export function PatientDetailPage() {
                 </p>
               </div>
             ) : (
-              <div className="relative">
-                <div className="absolute top-0 bottom-0 left-5 w-0.5 bg-gray-200" />
+              <div className="relative pl-10">
+                <div className="absolute top-2 bottom-2 left-[9px] w-0.5 bg-gray-200" />
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {snapshots.map((snapshot) => {
                     const assessments = parseAssessments(snapshot.data.family_history);
                     const isExpanded = expandedSnapshots.has(snapshot.timestamp);
 
                     return (
-                      <div key={snapshot.timestamp} className="relative flex gap-4">
-                        <div className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-white shadow-sm">
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </div>
+                      <div key={snapshot.timestamp} className="relative">
+                        <div className="absolute top-4 left-[-34px] z-10 h-[18px] w-[18px] rounded-full border-2 border-blue-500 bg-white" />
 
-                        <div className="min-w-0 flex-1">
+                        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
                           <button
                             type="button"
                             onClick={() => {
                               toggleExpanded(snapshot.timestamp);
                             }}
-                            className="w-full rounded-lg border border-gray-200 bg-white px-6 py-4 text-left transition-all hover:bg-gray-50"
+                            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50"
                           >
-                            <div className="flex items-center justify-between">
-                              <p className="text-lg font-semibold text-gray-900">
-                                {new Date(snapshot.timestamp).toLocaleDateString(undefined, {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                                {" • "}
-                                {new Date(snapshot.timestamp).toLocaleTimeString(undefined, {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                              {isExpanded ? (
-                                <ChevronUp className="h-4 w-4 text-gray-400" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4 text-gray-400" />
-                              )}
-                            </div>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {formatTimestamp(snapshot.timestamp)}
+                            </span>
+                            <ChevronDown
+                              className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
+                            />
                           </button>
 
                           {isExpanded && (
-                            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-6">
+                            <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-5">
                               <div className="space-y-6">
                                 <div>
                                   <SectionHeading
@@ -327,25 +325,27 @@ export function PatientDetailPage() {
                                                 {med.medication_name}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.dosage || "—"}
+                                                {med.dosage || "\u2014"}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.route || "—"}
+                                                {med.route || "\u2014"}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.frequency || "—"}
+                                                {med.frequency || "\u2014"}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.duration || "—"}
+                                                {med.duration || "\u2014"}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.start_date ? formatDate(med.start_date) : "—"}
+                                                {med.start_date
+                                                  ? formatDate(med.start_date)
+                                                  : "\u2014"}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.end_date ? formatDate(med.end_date) : "—"}
+                                                {med.end_date ? formatDate(med.end_date) : "\u2014"}
                                               </td>
                                               <td className="py-2 pr-3 text-gray-600">
-                                                {med.prescribing_doctor || "—"}
+                                                {med.prescribing_doctor || "\u2014"}
                                               </td>
                                             </tr>
                                           ))}
