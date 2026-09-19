@@ -166,7 +166,13 @@ export function PatientDetailPage() {
 
         {activeTab === "timeline" && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900">Latest EMR</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {new Date().toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </h2>
 
             <div className="rounded-xl border border-gray-200 bg-white p-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
