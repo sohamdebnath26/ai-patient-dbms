@@ -73,7 +73,6 @@ const FIELD_TAB_MAP: Record<string, { tab: TabKey; label: string }> = {
   postal_code: { tab: "overview", label: "Postal Code" },
   chief_complaint: { tab: "medical-history", label: "Chief Complaint" },
   present_illness: { tab: "medical-history", label: "Present Illness" },
-  primary_diagnosis: { tab: "dermatology", label: "Primary Diagnosis" },
   current_treatment: { tab: "dermatology", label: "Current Treatment" },
   date_of_onset: { tab: "dermatology", label: "Date of Onset" },
   symptoms: { tab: "dermatology", label: "Symptoms" },

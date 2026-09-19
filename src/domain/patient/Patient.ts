@@ -261,7 +261,7 @@ export const PatientFormSchema = z
     emergency_contact_phone: z.string().optional(),
     emergency_contact_relationship: z.string().optional(),
     chronic_conditions: z.string().optional(),
-    primary_diagnosis: z.string().min(1, "Current diagnosis is required"),
+    primary_diagnosis: z.string().optional(),
     secondary_diagnosis: z.string().optional(),
     skin_type: z.string().optional(),
     affected_body_areas: z.string().optional(),
