@@ -15,6 +15,9 @@ import {
   Plus,
   Calendar,
   Clock,
+  UserCheck,
+  ClipboardList,
+  CalendarCheck,
 } from "lucide-react";
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 
@@ -60,6 +63,50 @@ function useRecentPatients(auth: AuthorizationContext) {
   });
 }
 
+function useActivePatientCount(auth: AuthorizationContext) {
+  const scope = resolveAuthScope(auth);
+  return useQuery({
+    queryKey: ["dashboard", "activePatientCount", scope.column, scope.value],
+    queryFn: async () => {
+      const client = getSupabaseClient();
+      const { count, error } = (await client
+        .from("patients")
+        .select("*", { count: "exact", head: true })
+        .neq("status", "deregistered")
+        .eq(scope.column, scope.value)) as unknown as {
+        count: number | null;
+        error: { message: string } | null;
+      };
+      if (error) throw new Error(error.message);
+      return count ?? 0;
+    },
+    staleTime: 60_000,
+  });
+}
+
+function useTodayAppointmentCount(auth: AuthorizationContext) {
+  const scope = resolveAuthScope(auth);
+  const today = new Date().toISOString().slice(0, 10);
+  return useQuery({
+    queryKey: ["dashboard", "todayAppointmentCount", scope.column, scope.value, today],
+    queryFn: async () => {
+      const client = getSupabaseClient();
+      const { count, error } = (await client
+        .from("appointments")
+        .select("*", { count: "exact", head: true })
+        .eq(scope.column, scope.value)
+        .eq("appointment_date", today)
+        .not("status", "in", '("completed","cancelled","no_show")')) as unknown as {
+        count: number | null;
+        error: { message: string } | null;
+      };
+      if (error) throw new Error(error.message);
+      return count ?? 0;
+    },
+    staleTime: 30_000,
+  });
+}
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -96,6 +143,8 @@ export function DashboardPage() {
   const auth = useAuthContext();
   const recentPatients = useRecentPatients(auth);
   const upcomingAppointments = useUpcomingAppointments({ page: 1, limit: 10, hideCancelled: true });
+  const activePatientCount = useActivePatientCount(auth);
+  const todayAppointmentCount = useTodayAppointmentCount(auth);
 
   const displayName = profile?.firstName
     ? `Dr. ${profile.firstName} ${profile.lastName}`
@@ -148,6 +197,62 @@ export function DashboardPage() {
               day: "numeric",
             })}
           </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {activePatientCount.isLoading ? (
+                    <span className="inline-block h-7 w-8 animate-pulse rounded bg-gray-200" />
+                  ) : (
+                    (activePatientCount.data ?? 0)
+                  )}
+                </p>
+                <p className="text-xs text-gray-500">Active Patients</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+                <ClipboardList className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {todayAppointmentCount.isLoading ? (
+                    <span className="inline-block h-7 w-8 animate-pulse rounded bg-gray-200" />
+                  ) : (
+                    (todayAppointmentCount.data ?? 0)
+                  )}
+                </p>
+                <p className="text-xs text-gray-500">Due Today</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
+                <CalendarCheck className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {upcomingAppointments.isLoading ? (
+                    <span className="inline-block h-7 w-8 animate-pulse rounded bg-gray-200" />
+                  ) : (
+                    (upcomingAppointments.data?.total ?? 0)
+                  )}
+                </p>
+                <p className="text-xs text-gray-500">Upcoming Appointments</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
