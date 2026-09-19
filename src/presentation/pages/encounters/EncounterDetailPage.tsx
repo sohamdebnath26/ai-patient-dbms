@@ -51,10 +51,10 @@ import { AIChatService } from "@application/ai/ChatService";
 
 const TABS = [
   { key: "overview", label: "Overview" },
-  { key: "history", label: "History & Symptoms" },
-  { key: "examination", label: "Examination" },
+  { key: "examination", label: "Dermatology" },
+  { key: "history", label: "History &amp; Symptoms" },
   { key: "measurements", label: "Measurements" },
-  { key: "diagnosis", label: "Diagnosis & Treatment" },
+  { key: "diagnosis", label: "Diagnosis &amp; Treatment" },
   { key: "procedures", label: "Procedures" },
   { key: "lab-reports", label: "Lab Reports" },
   { key: "clinical-images", label: "Clinical Images" },
@@ -655,22 +655,6 @@ export function EncounterDetailPage() {
             <TabContentWrapper tabKey="history">
               <h2 className="mb-4 text-base font-semibold text-gray-900">History &amp; Symptoms</h2>
               <div className="grid grid-cols-2 gap-4">
-                <TextAreaField
-                  label="Chief Complaint"
-                  value={form.chief_complaint}
-                  onChange={(v) => {
-                    updateForm("chief_complaint", v);
-                  }}
-                  disabled={!isActive}
-                />
-                <TextAreaField
-                  label="Present Illness"
-                  value={form.present_illness}
-                  onChange={(v) => {
-                    updateForm("present_illness", v);
-                  }}
-                  disabled={!isActive}
-                />
                 <TextField
                   label="Duration"
                   value={form.duration_}
@@ -697,136 +681,167 @@ export function EncounterDetailPage() {
                   span="full"
                 />
               </div>
-              {!form.chief_complaint &&
-                !form.present_illness &&
-                !form.duration_ &&
-                !form.symptoms &&
-                !form.associated_symptoms && (
-                  <p className="mt-4 text-sm text-gray-400">No history or symptoms recorded.</p>
-                )}
+              {!form.duration_ && !form.symptoms && !form.associated_symptoms && (
+                <p className="mt-4 text-sm text-gray-400">No history or symptoms recorded.</p>
+              )}
             </TabContentWrapper>
           )}
 
           {activeTab === "examination" && (
             <TabContentWrapper tabKey="examination">
-              <h2 className="mb-4 text-base font-semibold text-gray-900">Examination</h2>
-              <div className="grid gap-4">
-                <TextAreaField
-                  label="General Examination"
-                  value={form.general_examination}
-                  onChange={(v) => {
-                    updateForm("general_examination", v);
-                  }}
-                  disabled={!isActive}
-                  span="full"
-                />
-                <TextAreaField
-                  label="Local Skin Examination"
-                  value={form.local_skin_examination}
-                  onChange={(v) => {
-                    updateForm("local_skin_examination", v);
-                  }}
-                  disabled={!isActive}
-                  span="full"
-                />
-                <div className="grid grid-cols-3 gap-4">
-                  <TextField
-                    label="Body Site"
-                    value={form.body_site}
+              <h2 className="mb-4 text-base font-semibold text-gray-900">Dermatology</h2>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <TextAreaField
+                      label="Chief Complaint"
+                      value={form.chief_complaint}
+                      onChange={(v) => {
+                        updateForm("chief_complaint", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextAreaField
+                      label="Present Illness"
+                      value={form.present_illness}
+                      onChange={(v) => {
+                        updateForm("present_illness", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                  </div>
+                  <TextAreaField
+                    label="General Examination"
+                    value={form.general_examination}
                     onChange={(v) => {
-                      updateForm("body_site", v);
+                      updateForm("general_examination", v);
                     }}
                     disabled={!isActive}
+                    span="full"
                   />
-                  <TextField
-                    label="Lesion Description"
-                    value={form.lesion_description}
+                  <TextAreaField
+                    label="Local Skin Examination"
+                    value={form.local_skin_examination}
                     onChange={(v) => {
-                      updateForm("lesion_description", v);
+                      updateForm("local_skin_examination", v);
                     }}
                     disabled={!isActive}
+                    span="full"
                   />
-                  <TextField
-                    label="Morphology"
-                    value={form.morphology}
-                    onChange={(v) => {
-                      updateForm("morphology", v);
-                    }}
-                    disabled={!isActive}
-                  />
+                  <div className="grid grid-cols-3 gap-4">
+                    <TextField
+                      label="Body Site"
+                      value={form.body_site}
+                      onChange={(v) => {
+                        updateForm("body_site", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Lesion Description"
+                      value={form.lesion_description}
+                      onChange={(v) => {
+                        updateForm("lesion_description", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Morphology"
+                      value={form.morphology}
+                      onChange={(v) => {
+                        updateForm("morphology", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <TextField
+                      label="Distribution"
+                      value={form.distribution}
+                      onChange={(v) => {
+                        updateForm("distribution", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Color"
+                      value={form.color}
+                      onChange={(v) => {
+                        updateForm("color", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Borders"
+                      value={form.borders}
+                      onChange={(v) => {
+                        updateForm("borders", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <TextField
+                      label="Texture"
+                      value={form.texture}
+                      onChange={(v) => {
+                        updateForm("texture", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Scaling"
+                      value={form.scaling}
+                      onChange={(v) => {
+                        updateForm("scaling", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Pigmentation"
+                      value={form.pigmentation}
+                      onChange={(v) => {
+                        updateForm("pigmentation", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <TextField
+                      label="Tenderness"
+                      value={form.tenderness}
+                      onChange={(v) => {
+                        updateForm("tenderness", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                    <TextField
+                      label="Temperature"
+                      value={form.temperature}
+                      onChange={(v) => {
+                        updateForm("temperature", v);
+                      }}
+                      disabled={!isActive}
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <TextField
-                    label="Distribution"
-                    value={form.distribution}
-                    onChange={(v) => {
-                      updateForm("distribution", v);
+                <div>
+                  <h3 className="mb-4 text-base font-semibold text-gray-900">Medications</h3>
+                  <MedicationSection
+                    medications={encounterMeds.data ?? []}
+                    adding={addEncounterMed.isPending}
+                    onAdd={(input) => {
+                      addEncounterMed.mutate(input);
                     }}
-                    disabled={!isActive}
-                  />
-                  <TextField
-                    label="Color"
-                    value={form.color}
-                    onChange={(v) => {
-                      updateForm("color", v);
+                    onRemove={(itemId) => {
+                      removeEncounterMed.mutate(itemId);
                     }}
-                    disabled={!isActive}
-                  />
-                  <TextField
-                    label="Borders"
-                    value={form.borders}
-                    onChange={(v) => {
-                      updateForm("borders", v);
-                    }}
-                    disabled={!isActive}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <TextField
-                    label="Texture"
-                    value={form.texture}
-                    onChange={(v) => {
-                      updateForm("texture", v);
-                    }}
-                    disabled={!isActive}
-                  />
-                  <TextField
-                    label="Scaling"
-                    value={form.scaling}
-                    onChange={(v) => {
-                      updateForm("scaling", v);
-                    }}
-                    disabled={!isActive}
-                  />
-                  <TextField
-                    label="Pigmentation"
-                    value={form.pigmentation}
-                    onChange={(v) => {
-                      updateForm("pigmentation", v);
-                    }}
-                    disabled={!isActive}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <TextField
-                    label="Tenderness"
-                    value={form.tenderness}
-                    onChange={(v) => {
-                      updateForm("tenderness", v);
-                    }}
-                    disabled={!isActive}
-                  />
-                  <TextField
-                    label="Temperature"
-                    value={form.temperature}
-                    onChange={(v) => {
-                      updateForm("temperature", v);
-                    }}
-                    disabled={!isActive}
                   />
                 </div>
               </div>
-              {!form.general_examination &&
+              {!form.chief_complaint &&
+                !form.present_illness &&
+                !form.general_examination &&
                 !form.local_skin_examination &&
                 !form.body_site &&
                 !form.lesion_description &&
@@ -1048,20 +1063,6 @@ export function EncounterDetailPage() {
                   </div>
                 </div>
               )}
-
-              <div className="mt-6 border-t border-gray-200 pt-6">
-                <h3 className="mb-4 text-base font-semibold text-gray-900">Medications</h3>
-                <MedicationSection
-                  medications={encounterMeds.data ?? []}
-                  adding={addEncounterMed.isPending}
-                  onAdd={(input) => {
-                    addEncounterMed.mutate(input);
-                  }}
-                  onRemove={(itemId) => {
-                    removeEncounterMed.mutate(itemId);
-                  }}
-                />
-              </div>
             </TabContentWrapper>
           )}
 
