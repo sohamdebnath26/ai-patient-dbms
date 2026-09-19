@@ -1,21 +1,16 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { usePatient, useUpdatePatient } from "@presentation/hooks/usePatients";
+import { usePatient } from "@presentation/hooks/usePatients";
 import { usePatientEncounters } from "@presentation/hooks/useEncounters";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
-import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import {
   PatientHeader,
   type PatientHeaderData,
 } from "@presentation/components/patient/PatientHeader";
-import { ArrowLeft, Pencil, Loader2, Save, Trash2 } from "lucide-react";
-
-interface TimelineSnapshot {
-  timestamp: string;
-  data: Record<string, unknown>;
-}
+import { formatDate } from "@presentation/components/patient/utils";
+import { ArrowLeft, Pencil, Loader2, Stethoscope } from "lucide-react";
 
 const TABS = [
   { key: "overview", label: "Patient Overview" },
@@ -24,15 +19,14 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-function parseSnapshots(raw: string | null | undefined): TimelineSnapshot[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed)) return parsed as TimelineSnapshot[];
-  } catch {
-    // ignore
-  }
-  return [];
+function EMRField({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div>
+      <span className="text-sm font-medium text-gray-500">{label}:</span>{" "}
+      <span className="text-base text-gray-900">{value}</span>
+    </div>
+  );
 }
 
 export function PatientDetailPage() {
@@ -42,8 +36,6 @@ export function PatientDetailPage() {
   const { profile } = useProfile();
   const { data: encounters } = usePatientEncounters(id ?? "");
   const { data: clinical } = usePatientClinicalData(id ?? "");
-  const updateMutation = useUpdatePatient();
-  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
@@ -91,55 +83,6 @@ export function PatientDetailPage() {
     diseaseSeverity: patient.disease_severity,
     assignedDoctor,
   };
-
-  const snapshots = parseSnapshots(patient.cosmetic_product_usage);
-
-  function handleSaveSnapshot() {
-    if (!id) return;
-    const snapshot: TimelineSnapshot = {
-      timestamp: new Date().toISOString(),
-      data: {
-        first_name: patient.first_name,
-        last_name: patient.last_name,
-        dob: patient.dob,
-        gender: patient.gender,
-        mrn: patient.mrn,
-        phone: patient.phone,
-        primary_diagnosis: patient.primary_diagnosis,
-        disease_severity: patient.disease_severity,
-        chief_complaint: patient.chief_complaint,
-        present_illness: patient.present_illness,
-        symptoms: patient.symptoms,
-        current_treatment: patient.current_treatment,
-        medical_notes: patient.medical_notes,
-        smoking_status: patient.smoking_status,
-        alcohol_consumption: patient.alcohol_consumption,
-        other_medical_conditions: patient.other_medical_conditions,
-      },
-    };
-    const newSnapshots = [...snapshots, snapshot];
-    updateMutation.mutate(
-      { id, input: { cosmetic_product_usage: JSON.stringify(newSnapshots) } },
-      {
-        onSuccess: () => {
-          toast.success("EMR snapshot saved.");
-        },
-      },
-    );
-  }
-
-  function handleDeleteSnapshot(index: number) {
-    if (!id) return;
-    const newSnapshots = snapshots.filter((_, i) => i !== index);
-    updateMutation.mutate(
-      { id, input: { cosmetic_product_usage: JSON.stringify(newSnapshots) } },
-      {
-        onSuccess: () => {
-          toast.success("Snapshot deleted.");
-        },
-      },
-    );
-  }
 
   return (
     <AppShell>
@@ -196,108 +139,58 @@ export function PatientDetailPage() {
 
         {activeTab === "timeline" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Patient Timeline</h2>
-              <button
-                onClick={handleSaveSnapshot}
-                disabled={updateMutation.isPending}
-                className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              >
-                {updateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save EMR Snapshot
-              </button>
-            </div>
+            <h2 className="text-xl font-bold text-gray-900">Patient Timeline</h2>
 
-            {snapshots.length === 0 && (
+            {(encounters ?? []).length === 0 && (
               <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-                <p className="text-base font-medium text-gray-900">No snapshots yet</p>
+                <Stethoscope className="mx-auto h-8 w-8 text-gray-400" />
+                <p className="mt-3 text-base font-medium text-gray-900">No timeline entries</p>
                 <p className="mt-1 text-base text-gray-500">
-                  Save a snapshot of the current patient EMR data.
+                  Encounter data will appear here after consultations.
                 </p>
               </div>
             )}
 
-            <div className="space-y-3">
-              {snapshots
-                .slice()
-                .reverse()
-                .map((s, i) => (
-                  <div key={i} className="rounded-xl border border-gray-200 bg-white p-5">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-gray-500">
-                        {new Date(s.timestamp).toLocaleString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                      <button
-                        onClick={() => {
-                          handleDeleteSnapshot(snapshots.length - 1 - i);
-                        }}
-                        disabled={updateMutation.isPending}
-                        className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
-                        title="Delete snapshot"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+            <div className="space-y-4">
+              {[...(encounters ?? [])]
+                .sort(
+                  (a, b) =>
+                    new Date(b.encounter_date).getTime() - new Date(a.encounter_date).getTime(),
+                )
+                .map((e, i) => (
+                  <div key={e.id} className="rounded-xl border border-gray-200 bg-white p-6">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-bold text-gray-900">
+                          {e.encounter_number ?? `Consultation ${(encounters ?? []).length - i}`}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(e.encounter_date)} ·{" "}
+                          <span className="capitalize">{e.status.replace("_", " ")}</span>
+                        </p>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                      {typeof s.data.first_name === "string" && (
-                        <p>
-                          <span className="font-medium">Name:</span> {s.data.first_name}{" "}
-                          {typeof s.data.last_name === "string" ? s.data.last_name : ""}
-                        </p>
-                      )}
-                      {typeof s.data.dob === "string" && (
-                        <p>
-                          <span className="font-medium">DOB:</span> {s.data.dob}
-                        </p>
-                      )}
-                      {typeof s.data.gender === "string" && (
-                        <p>
-                          <span className="font-medium">Gender:</span> {s.data.gender}
-                        </p>
-                      )}
-                      {typeof s.data.primary_diagnosis === "string" && s.data.primary_diagnosis && (
-                        <p className="col-span-2">
-                          <span className="font-medium">Diagnosis:</span> {s.data.primary_diagnosis}
-                        </p>
-                      )}
-                      {typeof s.data.chief_complaint === "string" && s.data.chief_complaint && (
-                        <p className="col-span-2">
-                          <span className="font-medium">Chief Complaint:</span>{" "}
-                          {s.data.chief_complaint}
-                        </p>
-                      )}
-                      {typeof s.data.symptoms === "string" && s.data.symptoms && (
-                        <p>
-                          <span className="font-medium">Symptoms:</span> {s.data.symptoms}
-                        </p>
-                      )}
-                      {typeof s.data.current_treatment === "string" && s.data.current_treatment && (
-                        <p>
-                          <span className="font-medium">Treatment:</span> {s.data.current_treatment}
-                        </p>
-                      )}
-                      {typeof s.data.smoking_status === "string" && s.data.smoking_status && (
-                        <p>
-                          <span className="font-medium">Smoking:</span> {s.data.smoking_status}
-                        </p>
-                      )}
-                      {typeof s.data.alcohol_consumption === "string" &&
-                        s.data.alcohol_consumption && (
-                          <p>
-                            <span className="font-medium">Alcohol:</span>{" "}
-                            {s.data.alcohol_consumption}
-                          </p>
-                        )}
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <EMRField label="Chief Complaint" value={e.chief_complaint} />
+                      <EMRField label="Present Illness" value={e.present_illness} />
+                      <EMRField label="Duration" value={e.duration_} />
+                      <EMRField label="Symptoms" value={e.symptoms} />
+                      <EMRField label="Associated Symptoms" value={e.associated_symptoms} />
+                      <EMRField label="General Examination" value={e.general_examination} />
+                      <EMRField label="Local Skin Examination" value={e.local_skin_examination} />
+                      <EMRField label="Body Site" value={e.body_site} />
+                      <EMRField label="Lesion Description" value={e.lesion_description} />
+                      <EMRField label="Morphology" value={e.morphology} />
+                      <EMRField label="Distribution" value={e.distribution} />
+                      <EMRField label="Color" value={e.color} />
+                      <EMRField label="Borders" value={e.borders} />
+                      <EMRField label="Texture" value={e.texture} />
+                      <EMRField label="Scaling" value={e.scaling} />
+                      <EMRField label="Pigmentation" value={e.pigmentation} />
+                      <EMRField label="Tenderness" value={e.tenderness} />
+                      <EMRField label="Temperature" value={e.temperature} />
+                      <EMRField label="Follow-up Date" value={e.follow_up_date} />
+                      <EMRField label="Follow-up Advice" value={e.follow_up_advice} />
                     </div>
                   </div>
                 ))}
