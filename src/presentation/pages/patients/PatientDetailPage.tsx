@@ -89,7 +89,7 @@ export function PatientDetailPage() {
                 onClick={() => void navigate(`/patients/${patient.id}/edit`)}
                 className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
               >
-                <Pencil className="h-4 w-4" /> Edit
+                <Pencil className="h-4 w-4" /> Start Consultation ({(encounters ?? []).length + 1})
               </button>
             )}
           </div>
