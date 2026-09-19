@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useForm, FormProvider, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,6 +47,7 @@ import {
   Pill,
   Sparkles,
   Sun,
+  X,
 } from "lucide-react";
 
 const TABS = [
@@ -95,6 +96,9 @@ export function PatientEditPage() {
   const [deregisterOpen, setDeregisterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [validationBanner, setValidationBanner] = useState<string[] | null>(null);
+  const [allergyInput, setAllergyInput] = useState("");
+  const [allergyOpen, setAllergyOpen] = useState(false);
+  const allergyRef = useRef<HTMLDivElement>(null);
 
   const methods = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
@@ -112,6 +116,7 @@ export function PatientEditPage() {
 
   const dobValue = watch("dob");
   const genderValue = watch("gender");
+  const otherMedicalVal = watch("other_medical_conditions");
 
   useEffect(() => {
     if (patient) {
@@ -178,6 +183,19 @@ export function PatientEditPage() {
       };
     }
   }, [updateMutation.isPending]);
+
+  useEffect(() => {
+    if (!allergyOpen) return;
+    function handler(e: MouseEvent) {
+      if (allergyRef.current && !allergyRef.current.contains(e.target as Node)) {
+        setAllergyOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+    };
+  }, [allergyOpen]);
 
   function onValidationFailed(errs: FieldErrors<EditPatientFormInput>) {
     const missing: { label: string; tab: TabKey }[] = [];
@@ -432,6 +450,132 @@ export function PatientEditPage() {
                   </div>
 
                   <DermatologySection />
+
+                  <div className="border-t border-gray-100 pt-6">
+                    <h3 className="mb-4 text-base font-semibold text-gray-900">Allergic to:</h3>
+                    <div ref={allergyRef} className="relative">
+                      <div className="focus-within:border-brand-500 focus-within:ring-brand-500 flex min-h-[38px] flex-wrap items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 focus-within:ring-1">
+                        {(() => {
+                          const tags = (otherMedicalVal ?? "")
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean);
+                          return tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="bg-brand-50 text-brand-700 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium"
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setValue(
+                                    "other_medical_conditions",
+                                    tags.filter((t) => t !== tag).join(", "),
+                                    { shouldValidate: false },
+                                  );
+                                }}
+                                className="text-brand-400 hover:text-brand-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ));
+                        })()}
+                        <input
+                          type="text"
+                          value={allergyInput}
+                          onChange={(e) => {
+                            setAllergyInput(e.target.value);
+                            setAllergyOpen(e.target.value.trim().length >= 1);
+                          }}
+                          onFocus={() => {
+                            if (allergyInput.trim().length >= 1) setAllergyOpen(true);
+                          }}
+                          placeholder="Add allergy..."
+                          className="min-w-[120px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                        />
+                      </div>
+                      {allergyOpen &&
+                        (() => {
+                          const COMMON_ALLERGENS = [
+                            "Dust",
+                            "Pollen",
+                            "Fish",
+                            "Shellfish",
+                            "Peanuts",
+                            "Tree Nuts",
+                            "Milk",
+                            "Eggs",
+                            "Soy",
+                            "Wheat",
+                            "Penicillin",
+                            "Sulfa Drugs",
+                            "Latex",
+                            "Insect Stings",
+                            "Animal Dander",
+                            "Mold",
+                            "Fragrances",
+                          ];
+                          const tags = (otherMedicalVal ?? "")
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean);
+                          const suggestions = COMMON_ALLERGENS.filter(
+                            (a) =>
+                              !tags.includes(a) &&
+                              a.toLowerCase().includes(allergyInput.trim().toLowerCase()),
+                          );
+                          if (suggestions.length === 0 && allergyInput.trim().length >= 1) {
+                            return (
+                              <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setValue(
+                                      "other_medical_conditions",
+                                      [...tags, allergyInput.trim()].join(", "),
+                                      { shouldValidate: false },
+                                    );
+                                    setAllergyInput("");
+                                    setAllergyOpen(false);
+                                  }}
+                                  className="text-brand-600 hover:bg-brand-50 flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                                >
+                                  <span className="text-brand-600">+</span>
+                                  <span>Add &quot;{allergyInput.trim()}&quot;</span>
+                                </button>
+                              </div>
+                            );
+                          }
+                          if (suggestions.length > 0) {
+                            return (
+                              <div className="absolute z-50 mt-1 max-h-44 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                                {suggestions.map((s) => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => {
+                                      setValue(
+                                        "other_medical_conditions",
+                                        [...tags, s].join(", "),
+                                        { shouldValidate: false },
+                                      );
+                                      setAllergyInput("");
+                                      setAllergyOpen(false);
+                                    }}
+                                    className="hover:bg-brand-50 flex w-full items-center px-3 py-2 text-left text-sm"
+                                  >
+                                    {s}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                    </div>
+                  </div>
 
                   <div className="border-t border-gray-100 pt-6">
                     <h3 className="mb-4 text-base font-semibold text-gray-900">Lifestyle</h3>
