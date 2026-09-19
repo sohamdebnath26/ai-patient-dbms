@@ -6,7 +6,7 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
 import { computeAge, formatDate } from "@presentation/components/patient/utils";
 import { SectionHeading } from "@presentation/components/patient/helpers";
-import { ArrowLeft, Pencil, Loader2, Stethoscope, Pill } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 interface AssessmentCard {
   bodyArea: string;
@@ -64,6 +64,19 @@ export function PatientDetailPage() {
   const { data: clinical } = usePatientClinicalData(id ?? "");
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [expandedSnapshots, setExpandedSnapshots] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(timestamp: string) {
+    setExpandedSnapshots((prev) => {
+      const next = new Set(prev);
+      if (next.has(timestamp)) {
+        next.delete(timestamp);
+      } else {
+        next.add(timestamp);
+      }
+      return next;
+    });
+  }
 
   if (isLoading) {
     return (
@@ -88,9 +101,7 @@ export function PatientDetailPage() {
   const initials =
     patient.first_name && patient.last_name
       ? `${patient.first_name.charAt(0)}${patient.last_name.charAt(0)}`.toUpperCase()
-      : "?".trim()
-        ? "?"
-        : "".trim();
+      : "?";
 
   const snapshots = parseSnapshots(patient.cosmetic_product_usage).sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
@@ -187,7 +198,7 @@ export function PatientDetailPage() {
         )}
 
         {activeTab === "timeline" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {snapshots.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
                 <Loader2 className="mx-auto h-10 w-10 text-gray-300" />
@@ -198,127 +209,154 @@ export function PatientDetailPage() {
               </div>
             ) : (
               <div className="relative">
-                <div className="absolute top-3 bottom-3 left-5 w-0.5 bg-gray-200" />
+                <div className="absolute top-0 bottom-0 left-5 w-0.5 bg-gray-200" />
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {snapshots.map((snapshot) => {
                     const assessments = parseAssessments(snapshot.data.family_history);
+                    const isExpanded = expandedSnapshots.has(snapshot.timestamp);
 
                     return (
                       <div key={snapshot.timestamp} className="relative flex gap-4">
                         <div className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-white shadow-sm">
-                          <Stethoscope className="h-4 w-4" />
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
                         </div>
 
-                        <div className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white">
-                          <div className="border-b border-gray-100 px-6 py-4">
-                            <p className="text-lg font-bold text-gray-900">EMR Record</p>
-                            <p className="text-sm text-gray-500">
-                              {new Date(snapshot.timestamp).toLocaleString(undefined, {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                          </div>
-
-                          <div className="space-y-6 p-6">
-                            <div>
-                              <SectionHeading
-                                icon={<Stethoscope className="h-4 w-4" />}
-                                title="Dermatology Assessment"
-                              />
-                              {assessments.length === 0 ? (
-                                <p className="mt-2 text-sm text-gray-400">
-                                  No dermatology data recorded.
-                                </p>
+                        <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              toggleExpanded(snapshot.timestamp);
+                            }}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-6 py-4 text-left transition-all hover:bg-gray-50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-lg font-semibold text-gray-900">
+                                {new Date(snapshot.timestamp).toLocaleDateString(undefined, {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                                {" • "}
+                                {new Date(snapshot.timestamp).toLocaleTimeString(undefined, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-gray-400" />
                               ) : (
-                                <div className="mt-3 space-y-4">
-                                  {assessments.map((a, i) => (
-                                    <div
-                                      key={i}
-                                      className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                                    >
-                                      <h4 className="mb-3 text-sm font-semibold text-gray-700">
-                                        Assessment {i + 1}
-                                      </h4>
-                                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                        <Field label="Body Area" value={a.bodyArea} />
-                                        <Field label="Finding / Lesion" value={a.finding} />
-                                        <Field label="Severity" value={a.severity} />
-                                        <Field label="Onset Date" value={formatDate(a.onsetDate)} />
-                                        <Field label="Duration" value={a.duration} />
-                                        <Field label="Symptoms" value={a.symptoms} />
-                                        <Field label="Morphology" value={a.morphology} />
-                                        <Field label="Distribution" value={a.distribution} />
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
                               )}
                             </div>
+                          </button>
 
-                            <div>
-                              <SectionHeading
-                                icon={<Pill className="h-4 w-4" />}
-                                title="Medications"
-                              />
-                              {currentMeds.length === 0 ? (
-                                <p className="mt-2 text-sm text-gray-400">
-                                  No medications recorded.
-                                </p>
-                              ) : (
-                                <div className="mt-3 overflow-x-auto">
-                                  <table className="min-w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500">
-                                        <th className="pr-3 pb-2">Medication</th>
-                                        <th className="pr-3 pb-2">Dose</th>
-                                        <th className="pr-3 pb-2">Route</th>
-                                        <th className="pr-3 pb-2">Frequency</th>
-                                        <th className="pr-3 pb-2">Duration</th>
-                                        <th className="pr-3 pb-2">Start</th>
-                                        <th className="pr-3 pb-2">End</th>
-                                        <th className="pr-3 pb-2">Doctor</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {currentMeds.map((med) => (
-                                        <tr key={med.id} className="border-b border-gray-100">
-                                          <td className="py-2 pr-3 font-medium text-gray-900">
-                                            {med.medication_name}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.dosage || "—"}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.route || "—"}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.frequency || "—"}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.duration || "—"}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.start_date ? formatDate(med.start_date) : "—"}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.end_date ? formatDate(med.end_date) : "—"}
-                                          </td>
-                                          <td className="py-2 pr-3 text-gray-600">
-                                            {med.prescribing_doctor || "—"}
-                                          </td>
-                                        </tr>
+                          {isExpanded && (
+                            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-6">
+                              <div className="space-y-6">
+                                <div>
+                                  <SectionHeading
+                                    icon={<Stethoscope className="h-4 w-4" />}
+                                    title="Dermatology Assessment"
+                                  />
+                                  {assessments.length === 0 ? (
+                                    <p className="mt-2 text-sm text-gray-400">
+                                      No dermatology data recorded.
+                                    </p>
+                                  ) : (
+                                    <div className="mt-3 space-y-4">
+                                      {assessments.map((a, i) => (
+                                        <div
+                                          key={i}
+                                          className="rounded-lg border border-gray-200 bg-white p-4"
+                                        >
+                                          <h4 className="mb-3 text-sm font-semibold text-gray-700">
+                                            Assessment {i + 1}
+                                          </h4>
+                                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                            <Field label="Body Area" value={a.bodyArea} />
+                                            <Field label="Finding / Lesion" value={a.finding} />
+                                            <Field label="Severity" value={a.severity} />
+                                            <Field
+                                              label="Onset Date"
+                                              value={formatDate(a.onsetDate)}
+                                            />
+                                            <Field label="Duration" value={a.duration} />
+                                            <Field label="Symptoms" value={a.symptoms} />
+                                            <Field label="Morphology" value={a.morphology} />
+                                            <Field label="Distribution" value={a.distribution} />
+                                          </div>
+                                        </div>
                                       ))}
-                                    </tbody>
-                                  </table>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+
+                                <div>
+                                  <SectionHeading
+                                    icon={<Pill className="h-4 w-4" />}
+                                    title="Medications"
+                                  />
+                                  {currentMeds.length === 0 ? (
+                                    <p className="mt-2 text-sm text-gray-400">
+                                      No medications recorded.
+                                    </p>
+                                  ) : (
+                                    <div className="mt-3 overflow-x-auto">
+                                      <table className="min-w-full text-sm">
+                                        <thead>
+                                          <tr className="border-b border-gray-200 text-left text-xs font-medium text-gray-500">
+                                            <th className="pr-3 pb-2">Medication</th>
+                                            <th className="pr-3 pb-2">Dose</th>
+                                            <th className="pr-3 pb-2">Route</th>
+                                            <th className="pr-3 pb-2">Frequency</th>
+                                            <th className="pr-3 pb-2">Duration</th>
+                                            <th className="pr-3 pb-2">Start</th>
+                                            <th className="pr-3 pb-2">End</th>
+                                            <th className="pr-3 pb-2">Doctor</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {currentMeds.map((med) => (
+                                            <tr key={med.id} className="border-b border-gray-100">
+                                              <td className="py-2 pr-3 font-medium text-gray-900">
+                                                {med.medication_name}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.dosage || "—"}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.route || "—"}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.frequency || "—"}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.duration || "—"}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.start_date ? formatDate(med.start_date) : "—"}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.end_date ? formatDate(med.end_date) : "—"}
+                                              </td>
+                                              <td className="py-2 pr-3 text-gray-600">
+                                                {med.prescribing_doctor || "—"}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     );
