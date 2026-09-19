@@ -133,18 +133,33 @@ export function PatientDetailPage() {
 
         {activeTab === "overview" && (
           <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Name" value={`${patient.first_name} ${patient.last_name}`.trim()} />
-              <Field label="DOB" value={formatDate(patient.dob)} />
-              <Field label="Gender" value={patient.gender} />
-              <Field label="Phone" value={patient.phone} />
-              <Field label="Smoking" value={patient.smoking_status} />
-              <Field label="Alcohol" value={patient.alcohol_consumption} />
+            <h2 className="text-2xl font-bold text-gray-900">
+              {`${patient.first_name} ${patient.last_name}`.trim()}
+            </h2>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
-                label="Allergies"
-                value={allergyList.length > 0 ? allergyList.join(", ") : null}
+                label="Age"
+                value={computeAge(patient.dob) !== null ? `${computeAge(patient.dob)} yrs` : null}
               />
-              <Field label="Clinical Notes" value={patient.medical_notes} />
+              <Field label="Gender" value={patient.gender} />
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-500">Contact Details</h3>
+              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Phone" value={patient.phone} />
+                <Field label="Email" value={patient.email} />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-500">Emergency Contact</h3>
+              <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field label="Name" value={patient.emergency_contact_name} />
+                <Field label="Phone" value={patient.emergency_contact_phone} />
+                <Field label="Relationship" value={patient.emergency_contact_relationship} />
+              </div>
             </div>
           </div>
         )}
