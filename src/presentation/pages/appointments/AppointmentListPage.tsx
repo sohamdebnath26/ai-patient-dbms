@@ -54,7 +54,7 @@ export function AppointmentListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
           <button
             onClick={() => {
-              void navigate("/appointments/new");
+              void navigate("/patients/new");
             }}
             className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white"
           >
