@@ -50,6 +50,19 @@ import {
   X,
 } from "lucide-react";
 
+function parseTimelineSnapshots(
+  raw: string | null | undefined,
+): { timestamp: string; data: Record<string, unknown> }[] {
+  if (!raw) return [];
+  try {
+    const p = JSON.parse(raw) as unknown;
+    if (Array.isArray(p)) return p as { timestamp: string; data: Record<string, unknown> }[];
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
+
 const TABS = [
   { key: "overview", label: "Patient Overview" },
   { key: "dermatology", label: "Dermatology" },
@@ -251,7 +264,10 @@ export function PatientEditPage() {
   function onSubmit(data: EditPatientFormInput) {
     setValidationBanner(null);
     if (!id) return;
-    const payload: UpdatePatientInput = isReceptionist
+    const existingSnapshots = parseTimelineSnapshots(patient.cosmetic_product_usage);
+    const snapshot = { timestamp: new Date().toISOString(), data: { ...data } };
+    const newSnapshots = [...existingSnapshots, snapshot];
+    const base: UpdatePatientInput = isReceptionist
       ? {
           first_name: data.first_name,
           last_name: data.last_name,
@@ -273,6 +289,10 @@ export function PatientEditPage() {
           emergency_contact_relationship: data.emergency_contact_relationship,
         }
       : data;
+    const payload: UpdatePatientInput = {
+      ...base,
+      cosmetic_product_usage: JSON.stringify(newSnapshots),
+    };
     updateMutation.mutate(
       { id, input: payload },
       {
