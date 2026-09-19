@@ -18,7 +18,10 @@ import {
   useRemoveMedication,
   useAddClinicalNote,
 } from "@presentation/hooks/useClinical";
-import { useCompleteLatestAppointment } from "@presentation/hooks/useAppointments";
+import {
+  useCompleteLatestAppointment,
+  useBookAppointment,
+} from "@presentation/hooks/useAppointments";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useToast } from "@presentation/hooks/useToast";
@@ -109,6 +112,7 @@ export function PatientEditPage() {
   const addNote = useAddClinicalNote(id ?? "");
   const toast = useToast();
   const completeAppointment = useCompleteLatestAppointment();
+  const bookAppointment = useBookAppointment();
 
   const isReceptionist = profile?.role === "receptionist";
   const [deregisterOpen, setDeregisterOpen] = useState(false);
@@ -304,6 +308,19 @@ export function PatientEditPage() {
         onSuccess: () => {
           if (user?.id) {
             completeAppointment.mutate({ patientId: id, userId: user.id });
+          }
+          if (data.follow_up_date && user?.id) {
+            bookAppointment.mutate({
+              input: {
+                patient_id: id,
+                appointment_date: data.follow_up_date,
+                duration_minutes: 30,
+                type: "in_person",
+                reason: data.follow_up_plan || "Follow-up consultation",
+                notes: data.follow_up_instructions || undefined,
+              },
+              userId: user.id,
+            });
           }
           toast.success("Patient saved successfully.");
           void navigate("/patients");
