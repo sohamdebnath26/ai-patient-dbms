@@ -67,6 +67,9 @@ export const PatientSchema = z.object({
   sun_exposure_history: z.string().nullable(),
   cosmetic_product_usage: z.string().nullable(),
   occupational_exposure: z.string().nullable(),
+  follow_up_date: z.string().nullable(),
+  follow_up_plan: z.string().nullable(),
+  follow_up_instructions: z.string().nullable(),
 });
 
 export type Patient = z.infer<typeof PatientSchema>;
@@ -118,6 +121,9 @@ export const CreatePatientFormSchema = z.object({
   sun_exposure_history: z.string().optional(),
   cosmetic_product_usage: z.string().optional(),
   occupational_exposure: z.string().optional(),
+  follow_up_date: z.string().optional(),
+  follow_up_plan: z.string().optional(),
+  follow_up_instructions: z.string().optional(),
 });
 
 export type CreatePatientFormInput = z.infer<typeof CreatePatientFormSchema>;
@@ -217,6 +223,9 @@ export const UpdatePatientSchema = z.object({
   sun_exposure_history: z.string().nullable().optional(),
   cosmetic_product_usage: z.string().nullable().optional(),
   occupational_exposure: z.string().nullable().optional(),
+  follow_up_date: z.string().nullable().optional(),
+  follow_up_plan: z.string().nullable().optional(),
+  follow_up_instructions: z.string().nullable().optional(),
 });
 
 export type UpdatePatientInput = z.infer<typeof UpdatePatientSchema>;

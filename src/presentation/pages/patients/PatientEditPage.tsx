@@ -190,6 +190,9 @@ export function PatientEditPage() {
         sun_exposure_history: patient.sun_exposure_history ?? "",
         cosmetic_product_usage: patient.cosmetic_product_usage ?? "",
         occupational_exposure: patient.occupational_exposure ?? "",
+        follow_up_date: patient.follow_up_date ?? "",
+        follow_up_plan: patient.follow_up_plan ?? "",
+        follow_up_instructions: patient.follow_up_instructions ?? "",
       });
     }
   }, [patient, reset]);
