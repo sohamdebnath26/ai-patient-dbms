@@ -67,9 +67,9 @@ export const PatientSchema = z.object({
   sun_exposure_history: z.string().nullable(),
   cosmetic_product_usage: z.string().nullable(),
   occupational_exposure: z.string().nullable(),
-  follow_up_date: z.string().nullable(),
-  follow_up_plan: z.string().nullable(),
-  follow_up_instructions: z.string().nullable(),
+  follow_up_date: z.string().nullable().default(null),
+  follow_up_plan: z.string().nullable().default(null),
+  follow_up_instructions: z.string().nullable().default(null),
 });
 
 export type Patient = z.infer<typeof PatientSchema>;
