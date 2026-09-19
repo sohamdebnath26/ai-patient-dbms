@@ -54,27 +54,34 @@ export function PatientCreatePage() {
     setActionError(null);
     setCheckingDuplicate(true);
 
-    const client = getSupabaseClient();
-    const { data: existing } = (await client
-      .from("patients")
-      .select("id")
-      .eq("first_name", data.first_name)
-      .eq("last_name", data.last_name)
-      .eq("dob", data.dob)
-      .eq("phone", data.phone)
-      .neq("status", "deregistered")
-      .maybeSingle()) as unknown as {
-      data: { id: string } | null;
-      error: { message: string } | null;
-    };
+    try {
+      const client = getSupabaseClient();
+      const { data: existing } = (await client
+        .from("patients")
+        .select("id,first_name,last_name")
+        .eq("first_name", data.first_name.trim())
+        .eq("last_name", data.last_name.trim())
+        .eq("dob", data.dob)
+        .eq("phone", data.phone.trim())
+        .neq("status", "deregistered")
+        .limit(1)) as unknown as {
+        data: { id: string }[] | null;
+        error: { message: string } | null;
+      };
 
-    if (existing) {
-      setActionError(
-        "Patient already exists. Kindly go to the Patients tab and click on the patient name to start a consultation.",
-      );
+      if (existing && existing.length > 0) {
+        setActionError(
+          "Patient already exists. Kindly go to the Patients tab and click on the patient name to start a consultation.",
+        );
+        setCheckingDuplicate(false);
+        return;
+      }
+    } catch {
+      setActionError("Unable to verify patient. Please try again.");
       setCheckingDuplicate(false);
       return;
     }
+
     setCheckingDuplicate(false);
     const mrn = `MRN-${Date.now()}`;
     createMutation.mutate(
