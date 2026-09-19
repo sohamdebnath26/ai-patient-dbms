@@ -9,6 +9,7 @@ import { AppShell } from "@presentation/components/AppShell";
 import { ArrowLeft, Loader2, UserPlus, Calendar, Check } from "lucide-react";
 import { useState } from "react";
 import type { Patient } from "@domain/patient";
+import { getSupabaseClient } from "@infrastructure/supabase/client";
 
 const QuickPatientSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -32,6 +33,7 @@ export function PatientCreatePage() {
   const bookMutation = useBookAppointment();
   const toast = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [createdPatient, setCreatedPatient] = useState<Patient | null>(null);
 
   const {
@@ -48,8 +50,32 @@ export function PatientCreatePage() {
     formState: { errors: aptErrors },
   } = useForm<AppointmentInput>();
 
-  function onSubmit(data: QuickPatientInput) {
+  async function onSubmit(data: QuickPatientInput) {
     setActionError(null);
+    setCheckingDuplicate(true);
+
+    const client = getSupabaseClient();
+    const { data: existing } = (await client
+      .from("patients")
+      .select("id")
+      .eq("first_name", data.first_name)
+      .eq("last_name", data.last_name)
+      .eq("dob", data.dob)
+      .eq("phone", data.phone)
+      .neq("status", "deregistered")
+      .maybeSingle()) as unknown as {
+      data: { id: string } | null;
+      error: { message: string } | null;
+    };
+
+    if (existing) {
+      setActionError(
+        "Patient already exists. Kindly go to the Patients tab and click on the patient name to start a consultation.",
+      );
+      setCheckingDuplicate(false);
+      return;
+    }
+    setCheckingDuplicate(false);
     const mrn = `MRN-${Date.now()}`;
     createMutation.mutate(
       {
@@ -329,10 +355,12 @@ export function PatientCreatePage() {
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || checkingDuplicate}
               className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {(createMutation.isPending || checkingDuplicate) && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
               Register Patient
             </button>
             <button
