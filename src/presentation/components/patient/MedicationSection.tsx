@@ -20,13 +20,45 @@ interface MedicationSectionProps {
   prescribingDoctor?: string;
 }
 
+function todayStr(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function computeEndDate(startDate: string, duration: string): string | null {
+  if (!startDate || !duration) return null;
+  const match = duration.match(/^(\d+(\.?\d+)?)\s*(day|week|month|year)s?\s*$/i);
+  if (!match) return null;
+  const num = parseFloat(match[1]);
+  if (isNaN(num)) return null;
+  const unit = match[3].toLowerCase();
+  const date = new Date(startDate);
+  if (isNaN(date.getTime())) return null;
+  switch (unit) {
+    case "day":
+      date.setDate(date.getDate() + num);
+      break;
+    case "week":
+      date.setDate(date.getDate() + Math.round(num * 7));
+      break;
+    case "month":
+      date.setMonth(date.getMonth() + Math.round(num));
+      break;
+    case "year":
+      date.setFullYear(date.getFullYear() + Math.round(num));
+      break;
+    default:
+      return null;
+  }
+  return date.toISOString().split("T")[0];
+}
+
 const emptyDraft = {
   medication_name: "",
   dosage: "",
   frequency: "",
   route: "",
   duration: "",
-  start_date: "",
+  start_date: todayStr(),
   end_date: "",
   prescribing_doctor: "",
 };
@@ -87,6 +119,15 @@ export function MedicationSection({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (draft.start_date && draft.duration) {
+      const computed = computeEndDate(draft.start_date, draft.duration);
+      if (computed && computed !== draft.end_date) {
+        setDraft((p) => ({ ...p, end_date: computed }));
+      }
+    }
+  }, [draft.start_date, draft.duration, draft.end_date]);
 
   const hasSuggestions = !!suggestionService;
 
