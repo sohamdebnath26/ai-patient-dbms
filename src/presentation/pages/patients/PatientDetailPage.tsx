@@ -371,10 +371,7 @@ export function PatientDetailPage() {
 
             <ClinicalCard icon={Calendar} title="Recent Visit / Consultation">
               {latestEncounter ? (
-                <button
-                  onClick={() => void navigate(`/encounters/${latestEncounter.id}`)}
-                  className="w-full rounded-lg border border-gray-100 p-4 text-left hover:bg-gray-50"
-                >
+                <button className="w-full rounded-lg border border-gray-100 p-4 text-left hover:bg-gray-50">
                   <p className="text-base font-semibold text-gray-900">
                     {latestEncounter.encounter_number ?? "Consultation"} ·{" "}
                     {formatDate(latestEncounter.encounter_date)}
@@ -451,9 +448,8 @@ export function PatientDetailPage() {
           <div className="space-y-4">
             {encounters && encounters.length > 0 ? (
               encounters.map((e) => (
-                <button
+                <div
                   key={e.id}
-                  onClick={() => void navigate(`/encounters/${e.id}`)}
                   className="w-full rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-gray-300 hover:bg-gray-50"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -485,7 +481,7 @@ export function PatientDetailPage() {
                       Follow-up: {formatDate(e.follow_up_date)}
                     </p>
                   )}
-                </button>
+                </div>
               ))
             ) : (
               <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
@@ -596,7 +592,6 @@ export function PatientDetailPage() {
                     {allSnapshots.map((s, i) => (
                       <button
                         key={`${s.encounterId}-${i}`}
-                        onClick={() => void navigate(`/encounters/${s.encounterId}`)}
                         className="relative flex w-full gap-4 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-gray-300 hover:bg-gray-50"
                       >
                         <div className="flex flex-col items-center">
@@ -649,7 +644,6 @@ export function PatientDetailPage() {
                       .map((e, i) => (
                         <button
                           key={e.id}
-                          onClick={() => void navigate(`/encounters/${e.id}`)}
                           className="relative flex w-full gap-4 rounded-xl border border-gray-200 bg-white p-5 text-left hover:border-gray-300 hover:bg-gray-50"
                         >
                           <div className="flex flex-col items-center">

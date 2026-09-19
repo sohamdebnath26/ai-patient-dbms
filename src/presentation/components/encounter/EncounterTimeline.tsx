@@ -37,7 +37,7 @@ export function EncounterTimeline({ encounters }: EncounterTimelineProps) {
             key={enc.id}
             type="button"
             onClick={() => {
-              void navigate(`/encounters/${enc.id}`);
+              void navigate(`/patients/${enc.patient_id}`);
             }}
             className="w-full rounded-lg border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50"
           >

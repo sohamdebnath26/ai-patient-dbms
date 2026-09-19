@@ -85,7 +85,7 @@ export function AppointmentDetailPage() {
       const enc = await startEncounter.mutateAsync({ appointmentId: id, userId: user.id });
       searchParams.delete("new");
       setSearchParams(searchParams, { replace: true });
-      void navigate(`/encounters/${enc.id}`);
+      void navigate(`/patients/${enc.patient_id}`);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Failed to start encounter");
       setIsStarting(false);
@@ -156,7 +156,7 @@ export function AppointmentDetailPage() {
     try {
       await checkIn.mutateAsync({ id, userId: user.id });
       const enc = await startEncounter.mutateAsync({ appointmentId: id, userId: user.id });
-      void navigate(`/encounters/${enc.id}`);
+      void navigate(`/patients/${enc.patient_id}`);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Action failed");
     }
@@ -377,11 +377,11 @@ export function AppointmentDetailPage() {
             </p>
             <button
               onClick={() => {
-                void navigate(`/encounters/${encounter.id}`);
+                void navigate(`/patients/${encounter.patient_id}`);
               }}
               className="bg-brand-600 hover:bg-brand-700 mt-3 inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-medium text-white"
             >
-              Continue Consultation →
+              View Patient →
             </button>
           </div>
         )}

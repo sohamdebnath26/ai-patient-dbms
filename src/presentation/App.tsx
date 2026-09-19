@@ -17,8 +17,6 @@ import { PatientCreatePage } from "@presentation/pages/patients/PatientCreatePag
 import { AppointmentListPage } from "@presentation/pages/appointments/AppointmentListPage";
 import { AppointmentCreatePage } from "@presentation/pages/appointments/AppointmentCreatePage";
 import { AppointmentDetailPage } from "@presentation/pages/appointments/AppointmentDetailPage";
-import { EncounterDetailPage } from "@presentation/pages/encounters/EncounterDetailPage";
-import { EncounterListPage } from "@presentation/pages/encounters/EncounterListPage";
 import { ChatProvider } from "@presentation/contexts/ChatProvider";
 import { AIChatbot, ChatLauncher } from "@presentation/components/AIChatbot";
 import { ErrorBoundary } from "@presentation/components/ErrorBoundary";
@@ -165,22 +163,6 @@ export function App() {
                   element={
                     <ProtectedRoute>
                       <AppointmentDetailPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/encounters"
-                  element={
-                    <ProtectedRoute>
-                      <EncounterListPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/encounters/:id"
-                  element={
-                    <ProtectedRoute>
-                      <EncounterDetailPage />
                     </ProtectedRoute>
                   }
                 />
