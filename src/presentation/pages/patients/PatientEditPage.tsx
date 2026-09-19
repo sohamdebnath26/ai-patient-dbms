@@ -153,6 +153,7 @@ export function PatientEditPage() {
         previous_skin_diseases: patient.previous_skin_diseases ?? "",
         previous_surgeries: patient.previous_surgeries ?? "",
         other_medical_conditions: patient.other_medical_conditions ?? "",
+        family_history: patient.family_history ?? "",
         family_history_skin: patient.family_history_skin ?? "",
         family_history_cancer: patient.family_history_cancer ?? "",
         smoking_status: patient.smoking_status ?? "",
