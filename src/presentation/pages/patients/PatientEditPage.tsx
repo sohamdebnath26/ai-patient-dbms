@@ -31,7 +31,6 @@ import { PatientContactSection } from "@presentation/components/patient/PatientC
 import { PatientAddressSection } from "@presentation/components/patient/PatientAddressSection";
 import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
 import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
-import { LifestyleSection } from "@presentation/components/patient/LifestyleSection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
@@ -45,7 +44,6 @@ import {
   UserRoundX,
   User,
   HeartPulse,
-  Activity,
   Pill,
   Sparkles,
   Sun,
@@ -54,7 +52,6 @@ import {
 const TABS = [
   { key: "overview", label: "Patient Overview" },
   { key: "dermatology", label: "Dermatology" },
-  { key: "lifestyle", label: "Lifestyle" },
   { key: "medical-history", label: "Medical History" },
   { key: "medications", label: "Medications" },
   { key: "alerts", label: "Alerts & Notes" },
@@ -435,6 +432,57 @@ export function PatientEditPage() {
                   </div>
 
                   <DermatologySection />
+
+                  <div className="border-t border-gray-100 pt-6">
+                    <h3 className="mb-4 text-base font-semibold text-gray-900">Lifestyle</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Smoking Status
+                        </label>
+                        <select
+                          {...register("smoking_status")}
+                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        >
+                          <option value="">Select</option>
+                          <option value="never">Never</option>
+                          <option value="former">Former</option>
+                          <option value="current">Current</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Alcohol Consumption
+                        </label>
+                        <select
+                          {...register("alcohol_consumption")}
+                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        >
+                          <option value="">Select</option>
+                          <option value="none">None</option>
+                          <option value="occasional">Occasional</option>
+                          <option value="moderate">Moderate</option>
+                          <option value="heavy">Heavy</option>
+                        </select>
+                      </div>
+                      {genderValue.toLowerCase() === "female" && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Pregnancy Status
+                          </label>
+                          <select
+                            {...register("pregnancy_status")}
+                            className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                          >
+                            <option value="">Select</option>
+                            <option value="not_pregnant">Not Pregnant</option>
+                            <option value="pregnant">Pregnant</option>
+                            <option value="unknown">Unknown</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -489,17 +537,6 @@ export function PatientEditPage() {
                       />
                     </div>
                   </div>
-                </div>
-              )}
-
-              {activeTab === "lifestyle" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Activity className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Lifestyle</h2>
-                  </div>
-
-                  <LifestyleSection register={register} gender={genderValue} />
                 </div>
               )}
             </div>
