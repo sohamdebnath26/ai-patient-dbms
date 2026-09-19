@@ -6,7 +6,7 @@ import { resolveAuthScope } from "@domain/patient";
 import type { AuthorizationContext } from "@domain/patient";
 import { useNavigate } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
-import { Users, Stethoscope, ChevronRight, ArrowRight, AlertTriangle, Plus } from "lucide-react";
+import { Users, ChevronRight, ArrowRight, AlertTriangle, Plus } from "lucide-react";
 import { getSupabaseClient } from "@infrastructure/supabase/client";
 
 function useAuthContext(): AuthorizationContext {
@@ -208,15 +208,6 @@ export function DashboardPage() {
               >
                 <Users className="h-5 w-5 text-gray-400" />
                 Find Patient
-              </button>
-              <button
-                onClick={() => {
-                  void navigate("/encounters");
-                }}
-                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <Stethoscope className="h-5 w-5 text-gray-400" />
-                View Consultations
               </button>
             </div>
           </div>
