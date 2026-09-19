@@ -85,6 +85,13 @@ export function PatientDetailPage() {
 
   const canEdit = profile?.role === "doctor" || profile?.role === "receptionist";
   const patientName = `${patient.first_name} ${patient.last_name}`.trim();
+  const initials =
+    patient.first_name && patient.last_name
+      ? `${patient.first_name.charAt(0)}${patient.last_name.charAt(0)}`.toUpperCase()
+      : "?".trim()
+        ? "?"
+        : "".trim();
+
   const snapshots = parseSnapshots(patient.cosmetic_product_usage).sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
@@ -111,24 +118,36 @@ export function PatientDetailPage() {
           )}
         </div>
 
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-gray-900">{patientName}</h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="bg-brand-100 text-brand-700 flex h-12 w-12 items-center justify-center rounded-full text-base font-bold">
+              {initials}
+            </div>
+          </div>
+        </div>
+
         <div className="flex gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-1">
           <button
             onClick={() => {
               setActiveTab("overview");
             }}
-            className={`flex-1 rounded-md px-4 py-2.5 text-base font-medium transition-colors ${
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === "overview"
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            Patient Overview
+            Overview
           </button>
           <button
             onClick={() => {
               setActiveTab("timeline");
             }}
-            className={`flex-1 rounded-md px-4 py-2.5 text-base font-medium transition-colors ${
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === "timeline"
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-600 hover:text-gray-900"
@@ -140,8 +159,6 @@ export function PatientDetailPage() {
 
         {activeTab === "overview" && (
           <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="text-2xl font-bold text-gray-900">{patientName}</h2>
-
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
                 label="Age"
