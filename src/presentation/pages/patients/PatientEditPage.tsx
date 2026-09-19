@@ -124,57 +124,86 @@ export function PatientEditPage() {
 
   useEffect(() => {
     if (patient) {
+      const snapshots = parseTimelineSnapshots(patient.cosmetic_product_usage);
+      const sorted = [...snapshots].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+      const latest = sorted.length > 0 ? sorted[0].data : ({} as Record<string, unknown>);
+
       reset({
-        first_name: patient.first_name,
-        last_name: patient.last_name,
-        dob: patient.dob ?? "",
-        gender: patient.gender ?? "",
-        blood_group: patient.blood_group ?? "",
-        email: patient.email ?? "",
-        phone: patient.phone ?? "",
-        mrn: patient.mrn,
-        status: patient.status,
-        address_line1: patient.address_line1 ?? patient.address ?? "",
-        address_line2: patient.address_line2 ?? "",
-        landmark: patient.landmark ?? "",
-        city: patient.city ?? "",
-        district: patient.district ?? "",
-        state: patient.state ?? "",
-        country: patient.country ?? "",
-        postal_code: patient.postal_code ?? "",
-        emergency_contact_name: patient.emergency_contact_name ?? "",
-        emergency_contact_phone: patient.emergency_contact_phone ?? "",
-        emergency_contact_relationship: patient.emergency_contact_relationship ?? "",
-        chronic_conditions: patient.chronic_conditions ?? "",
-        primary_diagnosis: patient.primary_diagnosis ?? "",
-        secondary_diagnosis: patient.secondary_diagnosis ?? "",
-        skin_type: patient.skin_type ?? "",
-        affected_body_areas: patient.affected_body_areas ?? "",
-        disease_severity: patient.disease_severity ?? "",
-        duration: patient.duration ?? "",
-        current_flare: patient.current_flare ?? false,
-        previous_skin_cancer: patient.previous_skin_cancer ?? false,
-        current_treatment: patient.current_treatment ?? "",
-        medical_notes: patient.medical_notes ?? "",
-        chief_complaint: patient.chief_complaint ?? "",
-        present_illness: patient.present_illness ?? "",
-        previous_skin_diseases: patient.previous_skin_diseases ?? "",
-        previous_surgeries: patient.previous_surgeries ?? "",
-        other_medical_conditions: patient.other_medical_conditions ?? "",
-        family_history: patient.family_history ?? "",
-        family_history_skin: patient.family_history_skin ?? "",
-        family_history_cancer: patient.family_history_cancer ?? "",
-        smoking_status: patient.smoking_status ?? "",
-        alcohol_consumption: patient.alcohol_consumption ?? "",
-        pregnancy_status: patient.pregnancy_status ?? "",
-        date_of_onset: patient.date_of_onset ?? "",
-        symptoms: patient.symptoms ?? "",
-        sun_exposure_history: patient.sun_exposure_history ?? "",
-        cosmetic_product_usage: patient.cosmetic_product_usage ?? "",
-        occupational_exposure: patient.occupational_exposure ?? "",
-        follow_up_date: patient.follow_up_date ?? "",
-        follow_up_plan: patient.follow_up_plan ?? "",
-        follow_up_instructions: patient.follow_up_instructions ?? "",
+        first_name: (latest.first_name as string) || patient.first_name,
+        last_name: (latest.last_name as string) || patient.last_name,
+        dob: (latest.dob as string) || patient.dob || "",
+        gender: (latest.gender as string) || patient.gender || "",
+        blood_group: (latest.blood_group as string) || patient.blood_group || "",
+        email: (latest.email as string) || patient.email || "",
+        phone: (latest.phone as string) || patient.phone || "",
+        mrn: (latest.mrn as string) || patient.mrn,
+        status: (latest.status as string) || patient.status,
+        address_line1:
+          (latest.address_line1 as string) || patient.address_line1 || patient.address || "",
+        address_line2: (latest.address_line2 as string) || patient.address_line2 || "",
+        landmark: (latest.landmark as string) || patient.landmark || "",
+        city: (latest.city as string) || patient.city || "",
+        district: (latest.district as string) || patient.district || "",
+        state: (latest.state as string) || patient.state || "",
+        country: (latest.country as string) || patient.country || "",
+        postal_code: (latest.postal_code as string) || patient.postal_code || "",
+        emergency_contact_name:
+          (latest.emergency_contact_name as string) || patient.emergency_contact_name || "",
+        emergency_contact_phone:
+          (latest.emergency_contact_phone as string) || patient.emergency_contact_phone || "",
+        emergency_contact_relationship:
+          (latest.emergency_contact_relationship as string) ||
+          patient.emergency_contact_relationship ||
+          "",
+        chronic_conditions:
+          (latest.chronic_conditions as string) || patient.chronic_conditions || "",
+        primary_diagnosis: (latest.primary_diagnosis as string) || patient.primary_diagnosis || "",
+        secondary_diagnosis:
+          (latest.secondary_diagnosis as string) || patient.secondary_diagnosis || "",
+        skin_type: (latest.skin_type as string) || patient.skin_type || "",
+        affected_body_areas:
+          (latest.affected_body_areas as string) || patient.affected_body_areas || "",
+        disease_severity: (latest.disease_severity as string) || patient.disease_severity || "",
+        duration: (latest.duration as string) || patient.duration || "",
+        current_flare:
+          ("current_flare" in latest ? (latest.current_flare as boolean) : patient.current_flare) ??
+          false,
+        previous_skin_cancer:
+          ("previous_skin_cancer" in latest
+            ? (latest.previous_skin_cancer as boolean)
+            : patient.previous_skin_cancer) ?? false,
+        current_treatment: (latest.current_treatment as string) || patient.current_treatment || "",
+        medical_notes: (latest.medical_notes as string) || patient.medical_notes || "",
+        chief_complaint: (latest.chief_complaint as string) || patient.chief_complaint || "",
+        present_illness: (latest.present_illness as string) || patient.present_illness || "",
+        previous_skin_diseases:
+          (latest.previous_skin_diseases as string) || patient.previous_skin_diseases || "",
+        previous_surgeries:
+          (latest.previous_surgeries as string) || patient.previous_surgeries || "",
+        other_medical_conditions:
+          (latest.other_medical_conditions as string) || patient.other_medical_conditions || "",
+        family_history: (latest.family_history as string) || patient.family_history || "",
+        family_history_skin:
+          (latest.family_history_skin as string) || patient.family_history_skin || "",
+        family_history_cancer:
+          (latest.family_history_cancer as string) || patient.family_history_cancer || "",
+        smoking_status: (latest.smoking_status as string) || patient.smoking_status || "",
+        alcohol_consumption:
+          (latest.alcohol_consumption as string) || patient.alcohol_consumption || "",
+        pregnancy_status: (latest.pregnancy_status as string) || patient.pregnancy_status || "",
+        date_of_onset: (latest.date_of_onset as string) || patient.date_of_onset || "",
+        symptoms: (latest.symptoms as string) || patient.symptoms || "",
+        sun_exposure_history:
+          (latest.sun_exposure_history as string) || patient.sun_exposure_history || "",
+        cosmetic_product_usage: patient.cosmetic_product_usage || "",
+        occupational_exposure:
+          (latest.occupational_exposure as string) || patient.occupational_exposure || "",
+        follow_up_date: (latest.follow_up_date as string) || patient.follow_up_date || "",
+        follow_up_plan: (latest.follow_up_plan as string) || patient.follow_up_plan || "",
+        follow_up_instructions:
+          (latest.follow_up_instructions as string) || patient.follow_up_instructions || "",
       });
     }
   }, [patient, reset]);
