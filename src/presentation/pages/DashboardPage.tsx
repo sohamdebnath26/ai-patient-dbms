@@ -335,7 +335,7 @@ export function DashboardPage() {
               <h2 className="text-xl font-bold text-gray-900">Upcoming Appointments</h2>
               <button
                 onClick={() => {
-                  void navigate("/appointments");
+                  void navigate("/patients/new");
                 }}
                 className="text-brand-600 hover:text-brand-700 flex items-center gap-1 text-sm font-semibold"
               >
@@ -419,7 +419,7 @@ export function DashboardPage() {
             <div className="space-y-2">
               <button
                 onClick={() => {
-                  void navigate("/appointments/new");
+                  void navigate("/patients/new");
                 }}
                 className="bg-brand-600 hover:bg-brand-700 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold text-white"
               >
