@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useFormContext } from "react-hook-form";
 import type { PatientFormInput } from "@domain/patient";
 import { HeartPulse, X, Search } from "lucide-react";
-import { FieldError, SectionHeading } from "./helpers";
+import { SectionHeading } from "./helpers";
 import { inputClass, labelClass } from "./utils";
 import {
   getCategorySuggestions,
@@ -198,11 +198,7 @@ function TagInput({ label, category, value, onChange, placeholder }: TagInputPro
 }
 
 export function MedicalHistorySection() {
-  const {
-    register,
-    formState: { errors },
-    watch,
-  } = useFormContext<PatientFormInput>();
+  const { register, watch } = useFormContext<PatientFormInput>();
 
   const skinDiseasesVal = watch("previous_skin_diseases") as string | undefined | null;
   const surgeriesVal = watch("previous_surgeries") as string | undefined | null;
@@ -214,33 +210,6 @@ export function MedicalHistorySection() {
   return (
     <div className="space-y-5">
       <SectionHeading icon={<HeartPulse className="h-4 w-4" />} title="Medical History" />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className={labelClass}>
-            Chief Complaint <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            {...register("chief_complaint")}
-            rows={2}
-            placeholder="Primary reason for this visit"
-            className={inputClass}
-          />
-          <FieldError message={errors.chief_complaint?.message} />
-        </div>
-        <div>
-          <label className={labelClass}>
-            Present Illness <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            {...register("present_illness")}
-            rows={2}
-            placeholder="History of present illness"
-            className={inputClass}
-          />
-          <FieldError message={errors.present_illness?.message} />
-        </div>
-      </div>
 
       <div className="border-t border-gray-100 pt-4">
         <TagInput
