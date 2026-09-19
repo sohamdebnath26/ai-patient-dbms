@@ -7,11 +7,7 @@ import {
   type EditPatientFormInput,
   type UpdatePatientInput,
 } from "@domain/patient";
-import {
-  usePatient,
-  useUpdatePatient,
-  useDeregisterPatient,
-} from "@presentation/hooks/usePatients";
+import { usePatient, useUpdatePatient } from "@presentation/hooks/usePatients";
 import {
   usePatientClinicalData,
   useAddMedication,
@@ -26,7 +22,6 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
-import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import {
   PatientHeader,
   type PatientHeaderData,
@@ -42,18 +37,7 @@ import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAl
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { computeAge } from "@presentation/components/patient/utils";
 import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
-import {
-  ArrowLeft,
-  Loader2,
-  Save,
-  UserRoundX,
-  User,
-  HeartPulse,
-  Pill,
-  Sparkles,
-  Sun,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Save, User, HeartPulse, Pill, Sparkles, Sun, X } from "lucide-react";
 
 function parseTimelineSnapshots(
   raw: string | null | undefined,
@@ -105,7 +89,6 @@ export function PatientEditPage() {
   const { profile } = useProfile();
   const { user } = useAuth();
   const updateMutation = useUpdatePatient();
-  const deregisterMutation = useDeregisterPatient();
   const { data: clinical } = usePatientClinicalData(id ?? "");
   const addMedication = useAddMedication(id ?? "");
   const removeMedication = useRemoveMedication(id ?? "");
@@ -115,7 +98,6 @@ export function PatientEditPage() {
   const bookAppointment = useBookAppointment();
 
   const isReceptionist = profile?.role === "receptionist";
-  const [deregisterOpen, setDeregisterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [validationBanner, setValidationBanner] = useState<string[] | null>(null);
   const [allergyInput, setAllergyInput] = useState("");
@@ -396,17 +378,6 @@ export function PatientEditPage() {
               )}
               Save Patient
             </button>
-            {patient.status !== "deregistered" && profile?.role === "doctor" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDeregisterOpen(true);
-                }}
-                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                <UserRoundX className="h-4 w-4" /> Deregister
-              </button>
-            )}
           </div>
         </PatientHeader>
 
@@ -800,26 +771,6 @@ export function PatientEditPage() {
             </div>
           </form>
         </FormProvider>
-
-        <ConfirmDialog
-          open={deregisterOpen}
-          title="Deregister Patient"
-          message={`Are you sure you want to deregister ${patient.first_name} ${patient.last_name}? They will be removed from active views but historical records will be preserved.`}
-          confirmLabel="Deregister"
-          confirmationText="DEREGISTER"
-          loading={deregisterMutation.isPending}
-          onConfirm={() => {
-            deregisterMutation.mutate(patient.id, {
-              onSuccess: () => {
-                setDeregisterOpen(false);
-                void navigate(`/patients/${id}`);
-              },
-            });
-          }}
-          onCancel={() => {
-            setDeregisterOpen(false);
-          }}
-        />
       </div>
     </AppShell>
   );

@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { usePatient } from "@presentation/hooks/usePatients";
+import { usePatient, useDeregisterPatient } from "@presentation/hooks/usePatients";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
 import { AppShell } from "@presentation/components/AppShell";
+import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import { computeAge, formatDate } from "@presentation/components/patient/utils";
 import { SectionHeading } from "@presentation/components/patient/helpers";
-import { ArrowLeft, Pencil, Loader2, ChevronDown, Stethoscope, Pill } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+  Loader2,
+  ChevronDown,
+  Stethoscope,
+  Pill,
+  UserRoundX,
+} from "lucide-react";
 
 interface AssessmentCard {
   bodyArea: string;
@@ -77,9 +86,11 @@ export function PatientDetailPage() {
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
   const { data: clinical } = usePatientClinicalData(id ?? "");
+  const deregisterMutation = useDeregisterPatient();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSnapshots, setExpandedSnapshots] = useState<Set<string>>(new Set());
+  const [deregisterOpen, setDeregisterOpen] = useState(false);
 
   function toggleExpanded(timestamp: string) {
     setExpandedSnapshots((prev) => {
@@ -140,6 +151,17 @@ export function PatientDetailPage() {
               className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
             >
               <Pencil className="h-4 w-4" /> Start Consultation
+            </button>
+          )}
+          {patient.status !== "deregistered" && profile?.role === "doctor" && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeregisterOpen(true);
+              }}
+              className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50"
+            >
+              <UserRoundX className="h-4 w-4" /> Deregister
             </button>
           )}
         </div>
@@ -367,6 +389,26 @@ export function PatientDetailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deregisterOpen}
+        title="Deregister Patient"
+        message={`Are you sure you want to deregister ${patient.first_name} ${patient.last_name}? They will be removed from active views but historical records will be preserved.`}
+        confirmLabel="Deregister"
+        confirmationText="DEREGISTER"
+        loading={deregisterMutation.isPending}
+        onConfirm={() => {
+          deregisterMutation.mutate(patient.id, {
+            onSuccess: () => {
+              setDeregisterOpen(false);
+              void navigate("/patients");
+            },
+          });
+        }}
+        onCancel={() => {
+          setDeregisterOpen(false);
+        }}
+      />
     </AppShell>
   );
 }
