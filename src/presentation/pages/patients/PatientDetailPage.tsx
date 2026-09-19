@@ -12,7 +12,6 @@ import {
   Stethoscope,
   Pill,
   FileText,
-  FlaskConical,
   AlertTriangle,
   ChevronDown,
   ChevronUp,
@@ -21,18 +20,17 @@ import {
 } from "lucide-react";
 import { useProfile } from "@presentation/hooks/useProfile";
 import type { Encounter } from "@domain/encounter";
-import type { Medication, MedicalAlert, ClinicalNote, LabReport } from "@domain/patient";
+import type { Medication, MedicalAlert, ClinicalNote } from "@domain/patient";
 
 interface TimelineEvent {
   id: string;
   date: string;
-  type: "encounter" | "medication" | "clinical-note" | "lab-report" | "alert";
+  type: "encounter" | "medication" | "clinical-note" | "alert";
   summary: string;
   detail: string | null;
   encounter?: Encounter;
   medication?: Medication;
   clinicalNote?: ClinicalNote;
-  labReport?: LabReport;
   alert?: MedicalAlert;
 }
 
@@ -40,7 +38,6 @@ function buildTimeline(
   encounters: Encounter[] | undefined,
   medications: Medication[] | undefined,
   clinicalNotes: ClinicalNote[] | undefined,
-  labReports: LabReport[] | undefined,
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 
@@ -93,21 +90,6 @@ function buildTimeline(
     });
   }
 
-  for (const lab of labReports ?? []) {
-    const date = lab.report_date || "";
-    if (!date) continue;
-    events.push({
-      id: `lab-${lab.id}`,
-      date,
-      type: "lab-report",
-      summary: lab.result_summary ? `${lab.test_name}: ${lab.result_summary}` : lab.test_name,
-      detail: [lab.lab_name ? `Lab: ${lab.lab_name}` : null, `Status: ${lab.status}`]
-        .filter(Boolean)
-        .join(" · "),
-      labReport: lab,
-    });
-  }
-
   events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   return events;
 }
@@ -140,11 +122,6 @@ const typeConfig: Record<
     icon: FileText,
     badge: "Clinical Note",
     color: "bg-amber-100 text-amber-700",
-  },
-  "lab-report": {
-    icon: FlaskConical,
-    badge: "Lab Report",
-    color: "bg-purple-100 text-purple-700",
   },
   alert: {
     icon: AlertTriangle,
@@ -197,12 +174,7 @@ export function PatientDetailPage() {
   const canEdit = profile?.role === "doctor" || profile?.role === "receptionist";
   const patientName = `${patient.first_name} ${patient.last_name}`.trim();
 
-  const timelineEvents = buildTimeline(
-    encounters,
-    clinical?.medications,
-    clinical?.clinicalNotes,
-    clinical?.labReports,
-  );
+  const timelineEvents = buildTimeline(encounters, clinical?.medications, clinical?.clinicalNotes);
 
   const allergyAlerts = (clinical?.alerts ?? []).filter((a) => a.category === "allergy" && a.label);
 
@@ -453,18 +425,6 @@ export function PatientDetailPage() {
                                   <Field label="Objective" value={event.clinicalNote.objective} />
                                   <Field label="Assessment" value={event.clinicalNote.assessment} />
                                   <Field label="Plan" value={event.clinicalNote.plan} />
-                                </div>
-                              )}
-
-                              {event.type === "lab-report" && event.labReport && (
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                  <Field label="Test Name" value={event.labReport.test_name} />
-                                  <Field label="Status" value={event.labReport.status} />
-                                  <Field
-                                    label="Result Summary"
-                                    value={event.labReport.result_summary}
-                                  />
-                                  <Field label="Lab" value={event.labReport.lab_name} />
                                 </div>
                               )}
                             </div>
