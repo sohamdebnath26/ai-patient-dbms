@@ -372,7 +372,7 @@ export function DashboardPage() {
                     <button
                       key={apt.id}
                       onClick={() => {
-                        void navigate(`/patients/${apt.patient_id}`);
+                        void navigate(`/appointments/${apt.id}`);
                       }}
                       className="flex w-full items-center gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-gray-50"
                     >
