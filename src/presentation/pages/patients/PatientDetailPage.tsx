@@ -1,83 +1,115 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { usePatient } from "@presentation/hooks/usePatients";
+import { usePatientEncounters } from "@presentation/hooks/useEncounters";
+import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { AppShell } from "@presentation/components/AppShell";
-import { computeAge, formatDate } from "@presentation/components/patient/utils";
-import { ArrowLeft, Pencil, Loader2, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { computeAge } from "@presentation/components/patient/utils";
+import {
+  ArrowLeft,
+  Pencil,
+  Loader2,
+  Stethoscope,
+  Pill,
+  FileText,
+  FlaskConical,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Calendar,
+} from "lucide-react";
 import { useProfile } from "@presentation/hooks/useProfile";
+import type { Encounter } from "@domain/encounter";
+import type { Medication, MedicalAlert, ClinicalNote, LabReport } from "@domain/patient";
 
-interface SnapshotData {
-  first_name?: string;
-  last_name?: string;
-  dob?: string;
-  gender?: string;
-  blood_group?: string;
-  status?: string;
-  mrn?: string;
-  email?: string;
-  phone?: string;
-  address_line1?: string;
-  address_line2?: string;
-  landmark?: string;
-  city?: string;
-  district?: string;
-  state?: string;
-  country?: string;
-  postal_code?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  emergency_contact_relationship?: string;
-  chief_complaint?: string;
-  present_illness?: string;
-  chronic_conditions?: string;
-  primary_diagnosis?: string;
-  secondary_diagnosis?: string;
-  previous_skin_diseases?: string;
-  previous_surgeries?: string;
-  other_medical_conditions?: string;
-  previous_skin_cancer?: boolean;
-  medical_notes?: string;
-  skin_type?: string;
-  affected_body_areas?: string;
-  disease_severity?: string;
-  duration?: string;
-  current_flare?: boolean;
-  current_treatment?: string;
-  date_of_onset?: string;
-  symptoms?: string;
-  family_history?: string;
-  family_history_skin?: string;
-  family_history_cancer?: string;
-  smoking_status?: string;
-  alcohol_consumption?: string;
-  pregnancy_status?: string;
-  sun_exposure_history?: string;
-  cosmetic_product_usage?: string;
-  occupational_exposure?: string;
-}
-
-interface Snapshot {
-  timestamp: string;
-  data: SnapshotData;
+interface TimelineEvent {
   id: string;
+  date: string;
+  type: "encounter" | "medication" | "clinical-note" | "lab-report" | "alert";
+  summary: string;
+  detail: string | null;
+  encounter?: Encounter;
+  medication?: Medication;
+  clinicalNote?: ClinicalNote;
+  labReport?: LabReport;
+  alert?: MedicalAlert;
 }
 
-function parseSnapshots(raw: string | null | undefined): Snapshot[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed)) {
-      return (parsed as Snapshot[]).filter((s) => {
-        const item = s as Record<string, unknown>;
-        return (
-          typeof item.timestamp === "string" && typeof item.data === "object" && item.data !== null
-        );
-      });
-    }
-  } catch {
-    /* ignore */
+function buildTimeline(
+  encounters: Encounter[] | undefined,
+  medications: Medication[] | undefined,
+  clinicalNotes: ClinicalNote[] | undefined,
+  labReports: LabReport[] | undefined,
+): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  for (const enc of encounters ?? []) {
+    if (!enc.encounter_date) continue;
+    const summary = enc.chief_complaint || "Consultation";
+    events.push({
+      id: `enc-${enc.id}`,
+      date: enc.encounter_date,
+      type: "encounter",
+      summary,
+      detail: [enc.present_illness, enc.findings, enc.body_site].filter(Boolean).join("; "),
+      encounter: enc,
+    });
   }
-  return [];
+
+  for (const med of medications ?? []) {
+    const date = med.start_date || "";
+    if (!date) continue;
+    events.push({
+      id: `med-${med.id}`,
+      date,
+      type: "medication",
+      summary: med.dosage ? `${med.medication_name} ${med.dosage}` : med.medication_name,
+      detail: [
+        med.frequency,
+        med.route,
+        med.duration,
+        med.prescribing_doctor ? `Prescribed by: ${med.prescribing_doctor}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      medication: med,
+    });
+  }
+
+  for (const note of clinicalNotes ?? []) {
+    const date = note.created_at || "";
+    if (!date) continue;
+    const content = note.assessment || note.subjective || note.objective || "";
+    events.push({
+      id: `note-${note.id}`,
+      date,
+      type: "clinical-note",
+      summary: note.note_type
+        ? `${note.note_type.charAt(0).toUpperCase() + note.note_type.slice(1)} Note`
+        : "Clinical Note",
+      detail: content || null,
+      clinicalNote: note,
+    });
+  }
+
+  for (const lab of labReports ?? []) {
+    const date = lab.report_date || "";
+    if (!date) continue;
+    events.push({
+      id: `lab-${lab.id}`,
+      date,
+      type: "lab-report",
+      summary: lab.result_summary ? `${lab.test_name}: ${lab.result_summary}` : lab.test_name,
+      detail: [lab.lab_name ? `Lab: ${lab.lab_name}` : null, `Status: ${lab.status}`]
+        .filter(Boolean)
+        .join(" · "),
+      labReport: lab,
+    });
+  }
+
+  events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return events;
 }
 
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
@@ -90,164 +122,59 @@ const Field = ({ label, value }: { label: string; value: string | null | undefin
   );
 };
 
-const Section = ({
-  title,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border-b border-gray-100 pb-4">
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(!open);
-        }}
-        className="flex w-full items-center justify-between py-2 text-left"
-      >
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-        {open ? (
-          <ChevronUp className="h-5 w-5 text-gray-400" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-gray-400" />
-        )}
-      </button>
-      {open && <div className="mt-2">{children}</div>}
-    </div>
-  );
+const typeConfig: Record<
+  TimelineEvent["type"],
+  { icon: React.ComponentType<{ className?: string }>; badge: string; color: string }
+> = {
+  encounter: {
+    icon: Stethoscope,
+    badge: "Consultation",
+    color: "bg-blue-100 text-blue-700",
+  },
+  medication: {
+    icon: Pill,
+    badge: "Medication",
+    color: "bg-green-100 text-green-700",
+  },
+  "clinical-note": {
+    icon: FileText,
+    badge: "Clinical Note",
+    color: "bg-amber-100 text-amber-700",
+  },
+  "lab-report": {
+    icon: FlaskConical,
+    badge: "Lab Report",
+    color: "bg-purple-100 text-purple-700",
+  },
+  alert: {
+    icon: AlertTriangle,
+    badge: "Alert",
+    color: "bg-red-100 text-red-700",
+  },
 };
-
-function printSnapshotAsPdf(snapshot: Snapshot, patientName: string) {
-  const d = snapshot.data;
-  const date = new Date(snapshot.timestamp).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const bodyAssessments: Record<string, string>[] = [];
-  if (d.family_history) {
-    try {
-      const parsed = JSON.parse(d.family_history) as unknown;
-      if (Array.isArray(parsed)) bodyAssessments.push(...(parsed as Record<string, string>[]));
-    } catch {
-      /* ignore */
-    }
-  }
-
-  const row = (label: string, value: string | undefined | null) =>
-    value ? `<tr><td class="lbl">${label}</td><td class="val">${value}</td></tr>` : "";
-
-  const baRows = bodyAssessments
-    .map(
-      (ba, i) => `
-      <tr><td colspan="2" class="section-title">Assessment ${i + 1}</td></tr>
-      ${row("Body Area", ba.bodyArea)}
-      ${row("Finding / Lesion", ba.finding)}
-      ${row("Severity", ba.severity)}
-      ${row("Onset Date", ba.onsetDate)}
-      ${row("Duration", ba.duration)}
-      ${row("Symptoms", ba.symptoms)}
-      ${row("Morphology", ba.morphology)}
-      ${row("Distribution", ba.distribution)}
-    `,
-    )
-    .join("");
-
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>EMR - ${patientName} - ${date}</title>
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 40px; color: #111827; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  .date { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
-  .section-title { font-weight: 700; font-size: 14px; color: #1f2937; padding-top: 12px; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 4px 8px; vertical-align: top; }
-  .lbl { color: #6b7280; font-size: 12px; white-space: nowrap; width: 200px; }
-  .val { color: #111827; font-size: 13px; }
-</style></head><body>
-<h1>${patientName}</h1>
-<div class="date">${date}</div>
-<table>
-  <tr><td colspan="2" class="section-title">Personal Information</td></tr>
-  ${row("First Name", d.first_name)}${row("Last Name", d.last_name)}
-  ${row("Date of Birth", d.dob)}${row("Gender", d.gender)}
-  ${row("Blood Group", d.blood_group)}${row("MRN", d.mrn)}
-  ${row("Email", d.email)}${row("Phone", d.phone)}
-
-  <tr><td colspan="2" class="section-title">Address</td></tr>
-  ${row("Address Line 1", d.address_line1)}${row("Address Line 2", d.address_line2)}
-  ${row("Landmark", d.landmark)}${row("City", d.city)}
-  ${row("District", d.district)}${row("State", d.state)}
-  ${row("Country", d.country)}${row("Postal Code", d.postal_code)}
-
-  <tr><td colspan="2" class="section-title">Emergency Contact</td></tr>
-  ${row("Name", d.emergency_contact_name)}${row("Phone", d.emergency_contact_phone)}
-  ${row("Relationship", d.emergency_contact_relationship)}
-
-  <tr><td colspan="2" class="section-title">Medical History</td></tr>
-  ${row("Chief Complaint", d.chief_complaint)}${row("Present Illness", d.present_illness)}
-  ${row("Chronic Conditions", d.chronic_conditions)}${row("Primary Diagnosis", d.primary_diagnosis)}
-  ${row("Secondary Diagnosis", d.secondary_diagnosis)}
-  ${row("Previous Skin Diseases", d.previous_skin_diseases)}${row("Previous Surgeries", d.previous_surgeries)}
-  ${row("Other Medical Conditions", d.other_medical_conditions)}
-  ${row("Previous Skin Cancer", d.previous_skin_cancer ? "Yes" : "")}
-
-  <tr><td colspan="2" class="section-title">Dermatology Assessment</td></tr>
-  ${row("Skin Type", d.skin_type)}${row("Affected Body Areas", d.affected_body_areas)}
-  ${row("Disease Severity", d.disease_severity)}${row("Duration", d.duration)}
-  ${row("Current Flare", d.current_flare ? "Yes" : "")}${row("Current Treatment", d.current_treatment)}
-  ${row("Date of Onset", d.date_of_onset)}${row("Symptoms", d.symptoms)}
-  ${baRows}
-
-  <tr><td colspan="2" class="section-title">Family History</td></tr>
-  ${row("Family History Skin", d.family_history_skin)}${row("Family History Cancer", d.family_history_cancer)}
-
-  <tr><td colspan="2" class="section-title">Lifestyle</td></tr>
-  ${row("Smoking Status", d.smoking_status)}${row("Alcohol Consumption", d.alcohol_consumption)}
-  ${row("Pregnancy Status", d.pregnancy_status)}${row("Sun Exposure", d.sun_exposure_history)}
-  ${row("Cosmetic Product Usage", d.cosmetic_product_usage)}${row("Occupational Exposure", d.occupational_exposure)}
-
-  <tr><td colspan="2" class="section-title">Clinical Notes</td></tr>
-  ${row("Medical Notes", d.medical_notes)}
-</table>
-</body></html>`;
-
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const printWindow = window.open(url, "_blank");
-  if (printWindow) {
-    printWindow.onload = () => {
-      printWindow.print();
-      URL.revokeObjectURL(url);
-    };
-  }
-}
-
-function parseBodyAssessments(raw: string | null | undefined): Record<string, string>[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed)) return parsed as Record<string, string>[];
-  } catch {
-    /* ignore */
-  }
-  return [];
-}
 
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: patient, isLoading } = usePatient(id ?? "");
   const { profile } = useProfile();
+  const { data: encounters } = usePatientEncounters(id ?? "");
+  const { data: clinical } = usePatientClinicalData(id ?? "");
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+
+  function toggleExpand(eventId: string) {
+    setExpandedEvents((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+      } else {
+        next.add(eventId);
+      }
+      return next;
+    });
+  }
 
   if (isLoading) {
     return (
@@ -270,9 +197,14 @@ export function PatientDetailPage() {
   const canEdit = profile?.role === "doctor" || profile?.role === "receptionist";
   const patientName = `${patient.first_name} ${patient.last_name}`.trim();
 
-  const snapshots = parseSnapshots(patient.cosmetic_product_usage).sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  const timelineEvents = buildTimeline(
+    encounters,
+    clinical?.medications,
+    clinical?.clinicalNotes,
+    clinical?.labReports,
   );
+
+  const allergyAlerts = (clinical?.alerts ?? []).filter((a) => a.category === "allergy" && a.label);
 
   return (
     <AppShell>
@@ -357,167 +289,192 @@ export function PatientDetailPage() {
 
         {activeTab === "timeline" && (
           <div className="space-y-6">
-            {snapshots.length === 0 ? (
+            {allergyAlerts.length > 0 && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-red-800">Active Clinical Alerts</h3>
+                    <ul className="mt-1 list-inside list-disc text-sm text-red-700">
+                      {allergyAlerts.map((a) => (
+                        <li key={a.id}>
+                          {a.label}
+                          {a.severity ? ` (${a.severity})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {timelineEvents.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-                <Download className="mx-auto h-10 w-10 text-gray-300" />
-                <p className="mt-4 text-lg font-medium text-gray-900">No EMR records found</p>
+                <Calendar className="mx-auto h-10 w-10 text-gray-300" />
+                <p className="mt-4 text-lg font-medium text-gray-900">No clinical history yet</p>
                 <p className="mt-1 text-base text-gray-500">
-                  EMR snapshots are saved when you click Save on the patient edit page.
+                  Clinical events will appear here as consultations, medications, notes, and lab
+                  reports are recorded.
                 </p>
               </div>
             ) : (
-              snapshots.map((snapshot) => {
-                const d = snapshot.data;
-                const bodyAssessments = parseBodyAssessments(d.family_history);
+              <div className="relative">
+                <div className="absolute top-2 bottom-2 left-5 w-0.5 bg-gray-200" />
 
-                return (
-                  <div
-                    key={snapshot.timestamp}
-                    id={`snapshot-${snapshot.timestamp}`}
-                    className="rounded-xl border border-gray-200 bg-white"
-                  >
-                    <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                      <div>
-                        <p className="text-lg font-bold text-gray-900">EMR Record</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(snapshot.timestamp).toLocaleString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          printSnapshotAsPdf(snapshot, patientName);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download PDF
-                      </button>
-                    </div>
+                <div className="space-y-4">
+                  {timelineEvents.map((event) => {
+                    const config = typeConfig[event.type];
+                    const Icon = config.icon;
+                    const isExpanded = expandedEvents.has(event.id);
 
-                    <div className="space-y-1 p-6">
-                      <Section title="Personal Information" defaultOpen>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="First Name" value={d.first_name} />
-                          <Field label="Last Name" value={d.last_name} />
-                          <Field label="Date of Birth" value={formatDate(d.dob)} />
-                          <Field label="Gender" value={d.gender} />
-                          <Field label="Blood Group" value={d.blood_group} />
-                          <Field label="MRN" value={d.mrn} />
+                    return (
+                      <div key={event.id} className="relative flex gap-4">
+                        <div
+                          className={`relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white ${config.color} shadow-sm`}
+                        >
+                          <Icon className="h-4 w-4" />
                         </div>
-                      </Section>
 
-                      <Section title="Contact & Address">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="Email" value={d.email} />
-                          <Field label="Phone" value={d.phone} />
-                          <Field label="Address Line 1" value={d.address_line1} />
-                          <Field label="Address Line 2" value={d.address_line2} />
-                          <Field label="Landmark" value={d.landmark} />
-                          <Field label="City" value={d.city} />
-                          <Field label="District" value={d.district} />
-                          <Field label="State" value={d.state} />
-                          <Field label="Country" value={d.country} />
-                          <Field label="Postal Code" value={d.postal_code} />
-                        </div>
-                      </Section>
-
-                      <Section title="Emergency Contact">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                          <Field label="Name" value={d.emergency_contact_name} />
-                          <Field label="Phone" value={d.emergency_contact_phone} />
-                          <Field label="Relationship" value={d.emergency_contact_relationship} />
-                        </div>
-                      </Section>
-
-                      <Section title="Medical History">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="Chief Complaint" value={d.chief_complaint} />
-                          <Field label="Present Illness" value={d.present_illness} />
-                          <Field label="Chronic Conditions" value={d.chronic_conditions} />
-                          <Field label="Primary Diagnosis" value={d.primary_diagnosis} />
-                          <Field label="Secondary Diagnosis" value={d.secondary_diagnosis} />
-                          <Field label="Previous Skin Diseases" value={d.previous_skin_diseases} />
-                          <Field label="Previous Surgeries" value={d.previous_surgeries} />
-                          <Field
-                            label="Other Medical Conditions"
-                            value={d.other_medical_conditions}
-                          />
-                          <Field
-                            label="Previous Skin Cancer"
-                            value={d.previous_skin_cancer ? "Yes" : null}
-                          />
-                        </div>
-                      </Section>
-
-                      <Section title="Dermatology Assessment">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="Skin Type" value={d.skin_type} />
-                          <Field label="Affected Body Areas" value={d.affected_body_areas} />
-                          <Field label="Disease Severity" value={d.disease_severity} />
-                          <Field label="Duration" value={d.duration} />
-                          <Field label="Current Flare" value={d.current_flare ? "Yes" : null} />
-                          <Field label="Current Treatment" value={d.current_treatment} />
-                          <Field label="Date of Onset" value={formatDate(d.date_of_onset)} />
-                          <Field label="Symptoms" value={d.symptoms} />
-                        </div>
-                        {bodyAssessments.length > 0 && (
-                          <div className="mt-4 space-y-4">
-                            {bodyAssessments.map((ba, i) => (
-                              <div
-                                key={i}
-                                className="rounded-lg border border-gray-200 bg-gray-50/50 p-4"
-                              >
-                                <h4 className="mb-3 text-sm font-semibold text-gray-700">
-                                  Assessment {i + 1}
-                                </h4>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                  <Field label="Body Area" value={ba.bodyArea} />
-                                  <Field label="Finding / Lesion" value={ba.finding} />
-                                  <Field label="Severity" value={ba.severity} />
-                                  <Field label="Onset Date" value={formatDate(ba.onsetDate)} />
-                                  <Field label="Duration" value={ba.duration} />
-                                  <Field label="Symptoms" value={ba.symptoms} />
-                                  <Field label="Morphology" value={ba.morphology} />
-                                  <Field label="Distribution" value={ba.distribution} />
+                        <div className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              toggleExpand(event.id);
+                            }}
+                            className="w-full px-5 py-3 text-left"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${config.color}`}
+                                  >
+                                    {config.badge}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    {new Date(event.date).toLocaleDateString(undefined, {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                    {event.date.includes("T") &&
+                                      ` at ${new Date(event.date).toLocaleTimeString(undefined, {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}`}
+                                  </span>
                                 </div>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {event.summary}
+                                </p>
+                                {!isExpanded && event.detail && (
+                                  <p className="mt-0.5 truncate text-sm text-gray-500">
+                                    {event.detail}
+                                  </p>
+                                )}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </Section>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                              )}
+                            </div>
+                          </button>
 
-                      <Section title="Family History">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="Family History Skin" value={d.family_history_skin} />
-                          <Field label="Family History Cancer" value={d.family_history_cancer} />
+                          {isExpanded && (
+                            <div className="border-t border-gray-100 px-5 py-4">
+                              {event.type === "encounter" && event.encounter && (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <Field
+                                      label="Chief Complaint"
+                                      value={event.encounter.chief_complaint}
+                                    />
+                                    <Field
+                                      label="Present Illness"
+                                      value={event.encounter.present_illness}
+                                    />
+                                    <Field label="Body Site" value={event.encounter.body_site} />
+                                    <Field label="Findings" value={event.encounter.findings} />
+                                    <Field
+                                      label="Lesion Description"
+                                      value={event.encounter.lesion_description}
+                                    />
+                                    <Field label="Morphology" value={event.encounter.morphology} />
+                                    <Field
+                                      label="Distribution"
+                                      value={event.encounter.distribution}
+                                    />
+                                    <Field label="Plan" value={event.encounter.plan} />
+                                    <Field label="Status" value={event.encounter.status} />
+                                  </div>
+                                  <a
+                                    href={`/appointments/${event.encounter.appointment_id}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      if (event.encounter?.appointment_id) {
+                                        void navigate(
+                                          `/appointments/${event.encounter.appointment_id}`,
+                                        );
+                                      }
+                                    }}
+                                    className="text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 text-sm font-medium"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    View Full Consultation
+                                  </a>
+                                </div>
+                              )}
+
+                              {event.type === "medication" && event.medication && (
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                  <Field
+                                    label="Medication"
+                                    value={event.medication.medication_name}
+                                  />
+                                  <Field label="Dosage" value={event.medication.dosage} />
+                                  <Field label="Frequency" value={event.medication.frequency} />
+                                  <Field label="Route" value={event.medication.route} />
+                                  <Field label="Duration" value={event.medication.duration} />
+                                  <Field
+                                    label="Prescribing Doctor"
+                                    value={event.medication.prescribing_doctor}
+                                  />
+                                  <Field
+                                    label="Instructions"
+                                    value={event.medication.instructions}
+                                  />
+                                </div>
+                              )}
+
+                              {event.type === "clinical-note" && event.clinicalNote && (
+                                <div className="space-y-3">
+                                  <Field label="Subjective" value={event.clinicalNote.subjective} />
+                                  <Field label="Objective" value={event.clinicalNote.objective} />
+                                  <Field label="Assessment" value={event.clinicalNote.assessment} />
+                                  <Field label="Plan" value={event.clinicalNote.plan} />
+                                </div>
+                              )}
+
+                              {event.type === "lab-report" && event.labReport && (
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                  <Field label="Test Name" value={event.labReport.test_name} />
+                                  <Field label="Status" value={event.labReport.status} />
+                                  <Field
+                                    label="Result Summary"
+                                    value={event.labReport.result_summary}
+                                  />
+                                  <Field label="Lab" value={event.labReport.lab_name} />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </Section>
-
-                      <Section title="Lifestyle">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <Field label="Smoking Status" value={d.smoking_status} />
-                          <Field label="Alcohol Consumption" value={d.alcohol_consumption} />
-                          <Field label="Pregnancy Status" value={d.pregnancy_status} />
-                          <Field label="Sun Exposure History" value={d.sun_exposure_history} />
-                          <Field label="Cosmetic Product Usage" value={d.cosmetic_product_usage} />
-                          <Field label="Occupational Exposure" value={d.occupational_exposure} />
-                        </div>
-                      </Section>
-
-                      <Section title="Clinical Notes">
-                        <Field label="Medical Notes" value={d.medical_notes} />
-                      </Section>
-                    </div>
-                  </div>
-                );
-              })
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         )}
