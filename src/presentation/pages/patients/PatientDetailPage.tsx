@@ -3,23 +3,10 @@ import { useParams, useNavigate } from "react-router";
 import { usePatient } from "@presentation/hooks/usePatients";
 import { usePatientEncounters } from "@presentation/hooks/useEncounters";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
-import { useUpdatePatient } from "@presentation/hooks/usePatients";
-import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import { computeAge } from "@presentation/components/patient/utils";
 import { ArrowLeft, Pencil, Loader2, X } from "lucide-react";
 import { useProfile } from "@presentation/hooks/useProfile";
-
-interface BodyAssessment {
-  bodyArea: string;
-  finding: string;
-  severity: string;
-  onsetDate: string;
-  duration: string;
-  symptoms: string;
-  morphology: string;
-  distribution: string;
-}
 
 interface TimelineItem {
   timestamp: string;
@@ -37,28 +24,6 @@ function parseTimelineSnapshots(raw: string | null | undefined): TimelineItem[] 
     /* ignore */
   }
   return [];
-}
-
-function parseBodyAssessments(raw: string | null | undefined): BodyAssessment[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return (parsed as Record<string, unknown>[])
-      .filter((a) => typeof a.finding === "string" && a.finding)
-      .map((a) => ({
-        bodyArea: typeof a.bodyArea === "string" ? a.bodyArea : "",
-        finding: typeof a.finding === "string" ? a.finding : "",
-        severity: typeof a.severity === "string" ? a.severity : "",
-        onsetDate: typeof a.onsetDate === "string" ? a.onsetDate : "",
-        duration: typeof a.duration === "string" ? a.duration : "",
-        symptoms: typeof a.symptoms === "string" ? a.symptoms : "",
-        morphology: typeof a.morphology === "string" ? a.morphology : "",
-        distribution: typeof a.distribution === "string" ? a.distribution : "",
-      }));
-  } catch {
-    return [];
-  }
 }
 
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
@@ -82,11 +47,8 @@ export function PatientDetailPage() {
   const { profile } = useProfile();
   const { data: encounters } = usePatientEncounters(id ?? "");
   const { data: clinical } = usePatientClinicalData(id ?? "");
-  const updatePatientMutation = useUpdatePatient();
-  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
 
   if (isLoading) {
     return (
@@ -142,57 +104,6 @@ export function PatientDetailPage() {
     })),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-  async function handleCreateSnapshot() {
-    if (!id) return;
-
-    setIsSavingSnapshot(true);
-
-    const snapshotData = {
-      timestamp: new Date().toISOString(),
-      type: "snapshot" as const,
-      data: {
-        Name: `${patient.first_name} ${patient.last_name}`.trim(),
-        DOB: patient.dob,
-        Gender: patient.gender,
-        Phone: patient.phone,
-        Smoking: patient.smoking_status,
-        Alcohol: patient.alcohol_consumption,
-        Allergies: (clinical?.alerts ?? [])
-          .filter((a) => a.category === "allergy")
-          .map((a) => a.label)
-          .join(", "),
-        "Clinical Notes": patient.medical_notes,
-        "Emergency Contact": patient.emergency_contact_name,
-        "Emergency Phone": patient.emergency_contact_phone,
-        "Emergency Relationship": patient.emergency_contact_relationship,
-        Age: computeAge(patient.dob) !== null ? `${computeAge(patient.dob)} yrs` : "",
-        "Body Assessments": parseBodyAssessments(patient.family_history)
-          .map((a) => a.finding)
-          .join(", "),
-        Medications: (clinical?.medications ?? []).map((m) => m.medication_name).join(", "),
-      },
-      id: `snapshot-${Date.now()}`,
-    };
-
-    const newSnapshots = [...snapshots, snapshotData];
-
-    try {
-      await updatePatientMutation.mutateAsync({
-        id,
-        input: { cosmetic_product_usage: JSON.stringify(newSnapshots) },
-      });
-      toast.success("EMR snapshot saved successfully.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save EMR snapshot");
-    } finally {
-      setIsSavingSnapshot(false);
-    }
-  }
-
-  function handleCreateSnapshotClick() {
-    void handleCreateSnapshot();
-  }
-
   return (
     <AppShell>
       <div className="mx-auto max-w-5xl space-y-5">
@@ -206,12 +117,12 @@ export function PatientDetailPage() {
           </button>
           {canEdit && (
             <button
-              onClick={handleCreateSnapshotClick}
-              disabled={isSavingSnapshot}
-              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              onClick={() => {
+                void navigate(`/patients/${patient.id}/edit`);
+              }}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
             >
               <Pencil className="h-4 w-4" /> Start Consultation
-              {isSavingSnapshot && <Loader2 className="h-4 w-4 animate-spin" />}
             </button>
           )}
         </div>
