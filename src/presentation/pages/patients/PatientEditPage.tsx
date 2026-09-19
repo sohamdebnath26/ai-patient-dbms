@@ -305,6 +305,9 @@ export function PatientEditPage() {
       ...base,
       cosmetic_product_usage: JSON.stringify(newSnapshots),
     };
+    delete (payload as Record<string, unknown>).follow_up_date;
+    delete (payload as Record<string, unknown>).follow_up_plan;
+    delete (payload as Record<string, unknown>).follow_up_instructions;
     updateMutation.mutate(
       { id, input: payload },
       {
