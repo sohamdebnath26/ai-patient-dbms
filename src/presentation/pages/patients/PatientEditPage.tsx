@@ -469,8 +469,6 @@ export function PatientEditPage() {
                     <h2 className="text-lg font-semibold text-gray-900">Patient Overview</h2>
                   </div>
 
-                  <PatientPersonalSection register={register} errors={errors} age={age} />
-
                   <div className="border-t border-gray-100 pt-6">
                     <h3 className="mb-3 text-sm font-semibold text-gray-900">
                       Height &amp; Weight
@@ -510,6 +508,8 @@ export function PatientEditPage() {
                       </div>
                     </div>
                   </div>
+
+                  <PatientPersonalSection register={register} errors={errors} age={age} />
 
                   <div className="border-t border-gray-100 pt-6">
                     <PatientContactSection register={register} errors={errors} />
