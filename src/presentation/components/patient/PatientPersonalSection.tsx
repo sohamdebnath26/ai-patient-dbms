@@ -40,9 +40,9 @@ export function PatientPersonalSection({
           <label className={labelClass}>Gender *</label>
           <select {...register("gender")} className={inputClass}>
             <option value="">Select</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
           </select>
           <FieldError message={errors.gender?.message} />
         </div>
