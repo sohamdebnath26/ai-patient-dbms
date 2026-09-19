@@ -121,6 +121,8 @@ export function PatientEditPage() {
   const dobValue = watch("dob");
   const genderValue = watch("gender");
   const otherMedicalVal = watch("other_medical_conditions");
+  const heightCm = watch("height_cm");
+  const weightKg = watch("weight_kg");
 
   useEffect(() => {
     if (patient) {
@@ -200,6 +202,10 @@ export function PatientEditPage() {
         cosmetic_product_usage: patient.cosmetic_product_usage || "",
         occupational_exposure:
           (latest.occupational_exposure as string) || patient.occupational_exposure || "",
+        height_cm:
+          ("height_cm" in latest ? (latest.height_cm as number) : patient.height_cm) ?? undefined,
+        weight_kg:
+          ("weight_kg" in latest ? (latest.weight_kg as number) : patient.weight_kg) ?? undefined,
         follow_up_date: (latest.follow_up_date as string) || patient.follow_up_date || "",
         follow_up_plan: (latest.follow_up_plan as string) || patient.follow_up_plan || "",
         follow_up_instructions:
@@ -319,6 +325,8 @@ export function PatientEditPage() {
     delete (payload as Record<string, unknown>).follow_up_date;
     delete (payload as Record<string, unknown>).follow_up_plan;
     delete (payload as Record<string, unknown>).follow_up_instructions;
+    delete (payload as Record<string, unknown>).height_cm;
+    delete (payload as Record<string, unknown>).weight_kg;
     updateMutation.mutate(
       { id, input: payload },
       {
@@ -462,6 +470,46 @@ export function PatientEditPage() {
                   </div>
 
                   <PatientPersonalSection register={register} errors={errors} age={age} />
+
+                  <div className="border-t border-gray-100 pt-6">
+                    <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                      Height &amp; Weight
+                    </h3>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Height (cm)
+                        </label>
+                        <input
+                          type="number"
+                          {...register("height_cm")}
+                          placeholder="e.g. 170"
+                          step="0.1"
+                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Weight (kg)
+                        </label>
+                        <input
+                          type="number"
+                          {...register("weight_kg")}
+                          placeholder="e.g. 65"
+                          step="0.1"
+                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">BMI</label>
+                        <p className="mt-2 text-lg font-bold text-gray-900">
+                          {heightCm && weightKg && heightCm > 0
+                            ? (weightKg / (heightCm / 100) ** 2).toFixed(1)
+                            : "\u2014"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="border-t border-gray-100 pt-6">
                     <PatientContactSection register={register} errors={errors} />
