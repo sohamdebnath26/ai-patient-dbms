@@ -189,12 +189,77 @@ export function PatientDetailPage() {
 
         {activeTab === "timeline" && (
           <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-gray-700">Current Status</h2>
+
+            <div className="rounded-xl border border-gray-200 bg-white p-6">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">Body Assessments</h3>
+              {(encounters ?? []).length === 0 ? (
+                <p className="text-base text-gray-400">No body assessments recorded.</p>
+              ) : (
+                <div className="space-y-4">
+                  {(encounters ?? []).map((enc) => {
+                    const bodyAssessments = [
+                      { label: "Body Site", value: enc.body_site },
+                      { label: "Findings", value: enc.findings },
+                      { label: "Lesion Description", value: enc.lesion_description },
+                      { label: "Morphology", value: enc.morphology },
+                      { label: "Distribution", value: enc.distribution },
+                    ].filter((f) => f.value);
+                    if (bodyAssessments.length === 0) return null;
+                    return (
+                      <div
+                        key={enc.id}
+                        className="rounded-lg border border-gray-200 bg-gray-50/50 p-4"
+                      >
+                        <p className="mb-2 text-sm font-medium text-gray-500">
+                          {new Date(enc.encounter_date).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          {enc.encounter_number ? ` — ${enc.encounter_number}` : ""}
+                        </p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {bodyAssessments.map((ba) => (
+                            <Field key={ba.label} label={ba.label} value={ba.value} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <h3 className="mt-6 mb-4 text-lg font-bold text-gray-900">Medications</h3>
+              {(clinical?.medications ?? []).length === 0 ? (
+                <p className="text-base text-gray-400">No medications recorded.</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {(clinical?.medications ?? []).map((med) => (
+                    <div
+                      key={med.id}
+                      className="rounded-lg border border-gray-200 bg-gray-50/50 p-3"
+                    >
+                      <p className="font-medium text-gray-900">{med.medication_name}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-4 text-sm text-gray-600">
+                        {med.dosage && <span>{med.dosage}</span>}
+                        {med.frequency && <span>{med.frequency}</span>}
+                        {med.route && <span>{med.route}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <h2 className="text-lg font-semibold text-gray-700">Timeline History</h2>
+
             {timelineItems.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
                 <X className="mx-auto h-8 w-8 text-gray-400" />
                 <p className="mt-3 text-base font-medium text-gray-900">No timeline entries</p>
                 <p className="mt-1 text-base text-gray-500">
-                  Click Start Consultation to save the current EMR snapshot.
+                  Click Start Consultation to edit the EMR.
                 </p>
               </div>
             ) : (
