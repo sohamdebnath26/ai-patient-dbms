@@ -216,6 +216,30 @@ export function PatientDetailPage() {
                         {typeof s.data.symptoms === "string" && s.data.symptoms && (
                           <EMRField label="Symptoms" value={s.data.symptoms} />
                         )}
+                        {typeof s.data.present_illness === "string" && s.data.present_illness && (
+                          <EMRField label="Present Illness" value={s.data.present_illness} />
+                        )}
+                        {typeof s.data.disease_severity === "string" && s.data.disease_severity && (
+                          <EMRField label="Severity" value={s.data.disease_severity} />
+                        )}
+                        {typeof s.data.current_treatment === "string" &&
+                          s.data.current_treatment && (
+                            <EMRField label="Treatment" value={s.data.current_treatment} />
+                          )}
+                        {typeof s.data.smoking_status === "string" && s.data.smoking_status && (
+                          <EMRField label="Smoking" value={s.data.smoking_status} />
+                        )}
+                        {typeof s.data.alcohol_consumption === "string" &&
+                          s.data.alcohol_consumption && (
+                            <EMRField label="Alcohol" value={s.data.alcohol_consumption} />
+                          )}
+                        {typeof s.data.other_medical_conditions === "string" &&
+                          s.data.other_medical_conditions && (
+                            <EMRField label="Allergies" value={s.data.other_medical_conditions} />
+                          )}
+                        {typeof s.data.medical_notes === "string" && s.data.medical_notes && (
+                          <EMRField label="Clinical Notes" value={s.data.medical_notes} />
+                        )}
                       </div>
                     </div>
                   ))}
