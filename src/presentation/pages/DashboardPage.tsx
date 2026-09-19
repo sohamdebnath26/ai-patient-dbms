@@ -13,7 +13,6 @@ import {
   Clock,
   ChevronRight,
   ArrowRight,
-  Loader2,
   AlertTriangle,
   Plus,
 } from "lucide-react";
@@ -27,55 +26,6 @@ function useAuthContext(): AuthorizationContext {
     selectedOrganizationId,
     selectedClinicId,
   };
-}
-
-function useDashboardSummary(auth: AuthorizationContext) {
-  const scope = resolveAuthScope(auth);
-  return useQuery({
-    queryKey: ["dashboard", "summary", scope.column, scope.value],
-    queryFn: async () => {
-      const client = getSupabaseClient();
-      const today = new Date().toISOString().split("T")[0];
-
-      const [patientCount, apptCount, encCount, completedCount] = await Promise.all([
-        client
-          .from("patients")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "active")
-          .neq("status", "deregistered")
-          .eq(scope.column, scope.value)
-          .then((r: unknown) => (r as { count: number }).count),
-        client
-          .from("appointments")
-          .select("*", { count: "exact", head: true })
-          .eq("appointment_date", today)
-          .not("status", "in", '("cancelled","no_show")')
-          .eq(scope.column, scope.value)
-          .then((r: unknown) => (r as { count: number }).count),
-        client
-          .from("encounters")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "in_progress")
-          .eq(scope.column, scope.value)
-          .then((r: unknown) => (r as { count: number }).count),
-        client
-          .from("appointments")
-          .select("*", { count: "exact", head: true })
-          .eq("appointment_date", today)
-          .eq("status", "completed")
-          .eq(scope.column, scope.value)
-          .then((r: unknown) => (r as { count: number }).count),
-      ]);
-
-      return {
-        totalPatients: patientCount,
-        todayAppointments: apptCount,
-        activeEncounters: encCount,
-        completedToday: completedCount,
-      };
-    },
-    staleTime: 30_000,
-  });
 }
 
 function useTodayAppointments(auth: AuthorizationContext) {
@@ -157,44 +107,6 @@ function computeAge(dob: string | null): string {
   return `${Math.floor(diff / 31557600000)} yrs`;
 }
 
-function StatCardDisplay({
-  label,
-  value,
-  loading,
-  icon: Icon,
-  color,
-}: {
-  label: string;
-  value: number | undefined;
-  loading: boolean;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase">{label}</p>
-          <div className="mt-4 min-h-[44px]">
-            {loading ? (
-              <Loader2 className="h-7 w-7 animate-spin text-gray-300" />
-            ) : (
-              <p className="text-[44px] leading-none font-extrabold tracking-tight text-gray-900">
-                {value?.toLocaleString() ?? 0}
-              </p>
-            )}
-          </div>
-        </div>
-        <div
-          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${color}`}
-        >
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SectionError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center py-10 text-center">
@@ -216,11 +128,8 @@ export function DashboardPage() {
   const { profile } = useProfile();
   const navigate = useNavigate();
   const auth = useAuthContext();
-  const summary = useDashboardSummary(auth);
   const schedule = useTodayAppointments(auth);
   const recentPatients = useRecentPatients(auth);
-
-  const s = summary.data;
 
   const displayName = profile?.firstName
     ? `Dr. ${profile.firstName} ${profile.lastName}`
@@ -246,37 +155,6 @@ export function DashboardPage() {
               day: "numeric",
             })}
           </p>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCardDisplay
-            label="Active Patients"
-            value={s?.totalPatients}
-            loading={summary.isLoading}
-            icon={Users}
-            color="bg-blue-50 text-blue-600"
-          />
-          <StatCardDisplay
-            label="Today's Appointments"
-            value={s?.todayAppointments}
-            loading={summary.isLoading}
-            icon={Calendar}
-            color="bg-emerald-50 text-emerald-600"
-          />
-          <StatCardDisplay
-            label="Active Consultations"
-            value={s?.activeEncounters}
-            loading={summary.isLoading}
-            icon={Stethoscope}
-            color="bg-purple-50 text-purple-600"
-          />
-          <StatCardDisplay
-            label="Completed Today"
-            value={s?.completedToday}
-            loading={summary.isLoading}
-            icon={Calendar}
-            color="bg-amber-50 text-amber-600"
-          />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
