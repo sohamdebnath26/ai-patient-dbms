@@ -248,7 +248,7 @@ export const PatientFormSchema = z
       .min(1, "Phone is required")
       .regex(/^\+?[0-9\s\-().]{7,20}$/, "Invalid phone number"),
     mrn: z.string().min(1, "MRN is required"),
-    status: PatientStatusSchema,
+    status: PatientStatusSchema.optional(),
     address_line1: z.string().min(1, "Address Line 1 is required"),
     address_line2: z.string().optional(),
     landmark: z.string().optional(),

@@ -98,7 +98,7 @@ export function PatientEditPage() {
 
   const methods = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
-    defaultValues: { gender: "", symptoms: "", primary_diagnosis: "" },
+    defaultValues: { gender: "", symptoms: "", primary_diagnosis: "", status: "active" },
   });
 
   const {
