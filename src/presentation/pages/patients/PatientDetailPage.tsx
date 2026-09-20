@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { usePatient, useDeregisterPatient } from "@presentation/hooks/usePatients";
+import {
+  usePatient,
+  useDeregisterPatient,
+  useUpdatePatient,
+} from "@presentation/hooks/usePatients";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
 import { computeAge, formatDate } from "@presentation/components/patient/utils";
@@ -24,7 +29,11 @@ import {
   Activity,
   Smile,
   AlertTriangle,
+  Edit3,
+  Save,
+  X,
 } from "lucide-react";
+import type { UpdatePatientInput } from "@domain/patient";
 
 interface AssessmentCard {
   bodyArea: string;
@@ -89,6 +98,53 @@ const InfoField = ({ label, value }: { label: string; value: string | null | und
   );
 };
 
+const EditableField = ({
+  label,
+  value,
+  editing,
+  onChange,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  onChange?: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+}) => {
+  if (!editing && !value) return null;
+  if (!editing) {
+    return <InfoField label={label} value={value} />;
+  }
+  return (
+    <div>
+      <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{label}</p>
+      {type === "select" ? (
+        <select
+          value={value}
+          onChange={(e) => onChange?.(e.target.value)}
+          className="mt-0.5 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+        >
+          {placeholder?.split(",").map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange?.(e.target.value)}
+          placeholder={placeholder}
+          className="mt-0.5 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+        />
+      )}
+    </div>
+  );
+};
+
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
@@ -111,6 +167,85 @@ export function PatientDetailPage() {
   const [expandedSnapshots, setExpandedSnapshots] = useState<Set<string>>(new Set());
   const [deregisterOpen, setDeregisterOpen] = useState(false);
   const [showPatientInfo, setShowPatientInfo] = useState(false);
+  const [editingPatientInfo, setEditingPatientInfo] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const updatePatientMutation = useUpdatePatient();
+  const toast = useToast();
+
+  function startEditingPatientInfo() {
+    setEditForm({
+      first_name: patient.first_name || "",
+      last_name: patient.last_name || "",
+      dob: patient.dob || "",
+      gender: patient.gender || "",
+      blood_group: patient.blood_group || "",
+      mrn: patient.mrn || "",
+      phone: patient.phone || "",
+      email: patient.email || "",
+      address_line1: patient.address_line1 || patient.address || "",
+      address_line2: patient.address_line2 || "",
+      landmark: patient.landmark || "",
+      city: patient.city || "",
+      district: patient.district || "",
+      state: patient.state || "",
+      country: patient.country || "",
+      postal_code: patient.postal_code || "",
+      emergency_contact_name: patient.emergency_contact_name || "",
+      emergency_contact_phone: patient.emergency_contact_phone || "",
+      emergency_contact_relationship: patient.emergency_contact_relationship || "",
+      chief_complaint: patient.chief_complaint || "",
+      present_illness: patient.present_illness || "",
+      primary_diagnosis: patient.primary_diagnosis || "",
+      secondary_diagnosis: patient.secondary_diagnosis || "",
+      chronic_conditions: patient.chronic_conditions || "",
+      other_medical_conditions: patient.other_medical_conditions || "",
+      previous_skin_diseases: patient.previous_skin_diseases || "",
+      previous_surgeries: patient.previous_surgeries || "",
+      medical_notes: patient.medical_notes || "",
+      smoking_status: patient.smoking_status || "",
+      alcohol_consumption: patient.alcohol_consumption || "",
+      pregnancy_status: patient.pregnancy_status || "",
+      family_history: patient.family_history || "",
+      family_history_skin: patient.family_history_skin || "",
+      family_history_cancer: patient.family_history_cancer || "",
+      sun_exposure_history: patient.sun_exposure_history || "",
+      occupational_exposure: patient.occupational_exposure || "",
+      cosmetic_product_usage: patient.cosmetic_product_usage || "",
+    });
+    setEditingPatientInfo(true);
+  }
+
+  function savePatientInfo() {
+    if (!id) return;
+    const prevSkinCancer = patient.previous_skin_cancer ?? false;
+    const prevFlare = patient.current_flare ?? false;
+    const input: UpdatePatientInput = {
+      ...editForm,
+      previous_skin_cancer: prevSkinCancer,
+      current_flare: prevFlare,
+    };
+    delete (input as Record<string, unknown>).follow_up_date;
+    delete (input as Record<string, unknown>).follow_up_plan;
+    delete (input as Record<string, unknown>).follow_up_instructions;
+    delete (input as Record<string, unknown>).height_cm;
+    delete (input as Record<string, unknown>).weight_kg;
+    updatePatientMutation.mutate(
+      { id, input },
+      {
+        onSuccess: () => {
+          toast.success("Patient info updated.");
+          setEditingPatientInfo(false);
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to update");
+        },
+      },
+    );
+  }
+
+  function cancelEditingPatientInfo() {
+    setEditingPatientInfo(false);
+  }
 
   function toggleExpanded(timestamp: string) {
     setExpandedSnapshots((prev) => {
@@ -262,15 +397,47 @@ export function PatientDetailPage() {
 
         {showPatientInfo && (
           <div className="rounded-2xl border border-blue-200 bg-white p-6 shadow-lg">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
-                <Info className="h-5 w-5 text-blue-600" />
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+                  <Info className="h-5 w-5 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
+                  Patient Information
+                </h2>
               </div>
-              <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
-                Patient Information
-              </h2>
+              <div className="flex items-center gap-2">
+                {!editingPatientInfo ? (
+                  <button
+                    onClick={startEditingPatientInfo}
+                    className="inline-flex items-center gap-1.5 rounded-lg border-2 border-blue-200 px-3 py-1.5 text-sm font-bold text-blue-600 transition-colors hover:bg-blue-50"
+                  >
+                    <Edit3 className="h-4 w-4" /> Edit
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={savePatientInfo}
+                      disabled={updatePatientMutation.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {updatePatientMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save
+                    </button>
+                    <button
+                      onClick={cancelEditingPatientInfo}
+                      className="inline-flex items-center gap-1.5 rounded-lg border-2 border-gray-200 px-3 py-1.5 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-50"
+                    >
+                      <X className="h-4 w-4" /> Cancel
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-
             <div className="space-y-6">
               <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
                 <div className="mb-4 flex items-center gap-2">
@@ -280,14 +447,70 @@ export function PatientDetailPage() {
                   </h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <InfoField label="First Name" value={patient.first_name} />
-                  <InfoField label="Last Name" value={patient.last_name} />
-                  <InfoField label="Date of Birth" value={patient.dob} />
+                  <EditableField
+                    label="First Name"
+                    value={editingPatientInfo ? editForm.first_name : patient.first_name}
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, first_name: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Last Name"
+                    value={editingPatientInfo ? editForm.last_name : patient.last_name}
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, last_name: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Date of Birth"
+                    value={editingPatientInfo ? editForm.dob : (patient.dob ?? "")}
+                    editing={editingPatientInfo}
+                    type="date"
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, dob: v }));
+                    }}
+                  />
                   <InfoField label="Age" value={age !== null ? `${age} yrs` : null} />
-                  <InfoField label="Gender" value={patient.gender} />
-                  <InfoField label="Blood Group" value={patient.blood_group} />
-                  <InfoField label="MRN" value={patient.mrn} />
-                  <InfoField label="Status" value={patient.status} />
+                  <EditableField
+                    label="Gender"
+                    value={editingPatientInfo ? editForm.gender : (patient.gender ?? "")}
+                    editing={editingPatientInfo}
+                    type="select"
+                    placeholder=",male,female,other"
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, gender: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Blood Group"
+                    value={editingPatientInfo ? editForm.blood_group : (patient.blood_group ?? "")}
+                    editing={editingPatientInfo}
+                    type="select"
+                    placeholder=",A+,A-,B+,B-,AB+,AB-,O+,O-"
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, blood_group: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="MRN"
+                    value={editingPatientInfo ? editForm.mrn : patient.mrn}
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, mrn: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Status"
+                    value={editingPatientInfo ? editForm.status : patient.status}
+                    editing={editingPatientInfo}
+                    type="select"
+                    placeholder=",active,inactive,deceased,archived,deregistered"
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, status: v }));
+                    }}
+                  />
                 </div>
               </div>
 
@@ -300,8 +523,24 @@ export function PatientDetailPage() {
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    <InfoField label="Phone" value={patient.phone} />
-                    <InfoField label="Email" value={patient.email} />
+                    <EditableField
+                      label="Phone"
+                      value={editingPatientInfo ? editForm.phone : (patient.phone ?? "")}
+                      editing={editingPatientInfo}
+                      type="tel"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, phone: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Email"
+                      value={editingPatientInfo ? editForm.email : (patient.email ?? "")}
+                      editing={editingPatientInfo}
+                      type="email"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, email: v }));
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -313,14 +552,80 @@ export function PatientDetailPage() {
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    <InfoField label="Line 1" value={patient.address_line1 || patient.address} />
-                    <InfoField label="Line 2" value={patient.address_line2} />
-                    <InfoField label="Landmark" value={patient.landmark} />
-                    <InfoField label="City" value={patient.city} />
-                    <InfoField label="District" value={patient.district} />
-                    <InfoField label="State" value={patient.state} />
-                    <InfoField label="Country" value={patient.country} />
-                    <InfoField label="Postal Code" value={patient.postal_code} />
+                    <EditableField
+                      label="Line 1"
+                      value={
+                        editingPatientInfo
+                          ? (editForm.address_line1 ?? "")
+                          : ((patient.address_line1 || patient.address) ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, address_line1: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Line 2"
+                      value={
+                        editingPatientInfo
+                          ? (editForm.address_line2 ?? "")
+                          : (patient.address_line2 ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, address_line2: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Landmark"
+                      value={editingPatientInfo ? editForm.landmark : (patient.landmark ?? "")}
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, landmark: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="City"
+                      value={editingPatientInfo ? editForm.city : (patient.city ?? "")}
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, city: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="District"
+                      value={editingPatientInfo ? editForm.district : (patient.district ?? "")}
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, district: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="State"
+                      value={editingPatientInfo ? editForm.state : (patient.state ?? "")}
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, state: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Country"
+                      value={editingPatientInfo ? editForm.country : (patient.country ?? "")}
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, country: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Postal Code"
+                      value={
+                        editingPatientInfo ? editForm.postal_code : (patient.postal_code ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, postal_code: v }));
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -333,22 +638,113 @@ export function PatientDetailPage() {
                   </h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label="Chief Complaint" value={patient.chief_complaint} />
-                  <InfoField label="Present Illness" value={patient.present_illness} />
-                  <InfoField label="Primary Diagnosis" value={patient.primary_diagnosis} />
-                  <InfoField label="Secondary Diagnosis" value={patient.secondary_diagnosis} />
-                  <InfoField label="Chronic Conditions" value={patient.chronic_conditions} />
-                  <InfoField
+                  <EditableField
+                    label="Chief Complaint"
+                    value={
+                      editingPatientInfo
+                        ? editForm.chief_complaint
+                        : (patient.chief_complaint ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, chief_complaint: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Present Illness"
+                    value={
+                      editingPatientInfo
+                        ? editForm.present_illness
+                        : (patient.present_illness ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, present_illness: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Primary Diagnosis"
+                    value={
+                      editingPatientInfo
+                        ? editForm.primary_diagnosis
+                        : (patient.primary_diagnosis ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, primary_diagnosis: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Secondary Diagnosis"
+                    value={
+                      editingPatientInfo
+                        ? editForm.secondary_diagnosis
+                        : (patient.secondary_diagnosis ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, secondary_diagnosis: v }));
+                    }}
+                  />
+                  <EditableField
+                    label="Chronic Conditions"
+                    value={
+                      editingPatientInfo
+                        ? editForm.chronic_conditions
+                        : (patient.chronic_conditions ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, chronic_conditions: v }));
+                    }}
+                  />
+                  <EditableField
                     label="Other Medical Conditions"
-                    value={patient.other_medical_conditions}
+                    value={
+                      editingPatientInfo
+                        ? editForm.other_medical_conditions
+                        : (patient.other_medical_conditions ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, other_medical_conditions: v }));
+                    }}
                   />
-                  <InfoField
+                  <EditableField
                     label="Previous Skin Diseases"
-                    value={patient.previous_skin_diseases}
+                    value={
+                      editingPatientInfo
+                        ? editForm.previous_skin_diseases
+                        : (patient.previous_skin_diseases ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
+                    }}
                   />
-                  <InfoField label="Previous Surgeries" value={patient.previous_surgeries} />
+                  <EditableField
+                    label="Previous Surgeries"
+                    value={
+                      editingPatientInfo
+                        ? editForm.previous_surgeries
+                        : (patient.previous_surgeries ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, previous_surgeries: v }));
+                    }}
+                  />
                   {patient.previous_skin_cancer && (
-                    <InfoField label="Skin Cancer History" value={patient.medical_notes} />
+                    <EditableField
+                      label="Skin Cancer History"
+                      value={
+                        editingPatientInfo ? editForm.medical_notes : (patient.medical_notes ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, medical_notes: v }));
+                      }}
+                    />
                   )}
                 </div>
               </div>
@@ -362,25 +758,121 @@ export function PatientDetailPage() {
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    <InfoField label="Smoking Status" value={patient.smoking_status} />
-                    <InfoField label="Alcohol Consumption" value={patient.alcohol_consumption} />
-                    {patient.gender?.toLowerCase() === "female" && (
-                      <InfoField label="Pregnancy Status" value={patient.pregnancy_status} />
+                    <EditableField
+                      label="Smoking Status"
+                      value={
+                        editingPatientInfo
+                          ? editForm.smoking_status
+                          : (patient.smoking_status ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      type="select"
+                      placeholder=",never,former,current"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, smoking_status: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Alcohol Consumption"
+                      value={
+                        editingPatientInfo
+                          ? editForm.alcohol_consumption
+                          : (patient.alcohol_consumption ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      type="select"
+                      placeholder=",none,occasional,moderate,heavy"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, alcohol_consumption: v }));
+                      }}
+                    />
+                    {(patient.gender?.toLowerCase() === "female" || editingPatientInfo) && (
+                      <EditableField
+                        label="Pregnancy Status"
+                        value={
+                          editingPatientInfo
+                            ? editForm.pregnancy_status
+                            : (patient.pregnancy_status ?? "")
+                        }
+                        editing={editingPatientInfo}
+                        type="select"
+                        placeholder=",not_pregnant,pregnant,unknown"
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, pregnancy_status: v }));
+                        }}
+                      />
                     )}
-                    <InfoField label="Family History" value={patient.family_history} />
-                    <InfoField label="Family History (Skin)" value={patient.family_history_skin} />
-                    <InfoField
+                    <EditableField
+                      label="Family History"
+                      value={
+                        editingPatientInfo
+                          ? editForm.family_history
+                          : (patient.family_history ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, family_history: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Family History (Skin)"
+                      value={
+                        editingPatientInfo
+                          ? editForm.family_history_skin
+                          : (patient.family_history_skin ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, family_history_skin: v }));
+                      }}
+                    />
+                    <EditableField
                       label="Family History (Cancer)"
-                      value={patient.family_history_cancer}
+                      value={
+                        editingPatientInfo
+                          ? editForm.family_history_cancer
+                          : (patient.family_history_cancer ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, family_history_cancer: v }));
+                      }}
                     />
-                    <InfoField label="Sun Exposure History" value={patient.sun_exposure_history} />
-                    <InfoField
+                    <EditableField
+                      label="Sun Exposure History"
+                      value={
+                        editingPatientInfo
+                          ? editForm.sun_exposure_history
+                          : (patient.sun_exposure_history ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, sun_exposure_history: v }));
+                      }}
+                    />
+                    <EditableField
                       label="Occupational Exposure"
-                      value={patient.occupational_exposure}
+                      value={
+                        editingPatientInfo
+                          ? editForm.occupational_exposure
+                          : (patient.occupational_exposure ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, occupational_exposure: v }));
+                      }}
                     />
-                    <InfoField
+                    <EditableField
                       label="Cosmetic Product Usage"
-                      value={patient.cosmetic_product_usage}
+                      value={
+                        editingPatientInfo
+                          ? editForm.cosmetic_product_usage
+                          : (patient.cosmetic_product_usage ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, cosmetic_product_usage: v }));
+                      }}
                     />
                   </div>
                 </div>
@@ -393,11 +885,42 @@ export function PatientDetailPage() {
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    <InfoField label="Name" value={patient.emergency_contact_name} />
-                    <InfoField label="Phone" value={patient.emergency_contact_phone} />
-                    <InfoField
+                    <EditableField
+                      label="Name"
+                      value={
+                        editingPatientInfo
+                          ? editForm.emergency_contact_name
+                          : (patient.emergency_contact_name ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, emergency_contact_name: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Phone"
+                      value={
+                        editingPatientInfo
+                          ? editForm.emergency_contact_phone
+                          : (patient.emergency_contact_phone ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      type="tel"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, emergency_contact_phone: v }));
+                      }}
+                    />
+                    <EditableField
                       label="Relationship"
-                      value={patient.emergency_contact_relationship}
+                      value={
+                        editingPatientInfo
+                          ? editForm.emergency_contact_relationship
+                          : (patient.emergency_contact_relationship ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, emergency_contact_relationship: v }));
+                      }}
                     />
                   </div>
                 </div>
