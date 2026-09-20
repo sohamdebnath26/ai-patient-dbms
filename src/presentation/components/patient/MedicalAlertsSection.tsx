@@ -8,7 +8,6 @@ import type { PatientFormSectionProps } from "./types";
 interface MedicalAlertsSectionProps extends PatientFormSectionProps {
   alerts: MedicalAlert[];
   pendingAlerts: MedicalAlert[];
-  chronicConditions: string;
   onAddAlert?: (alert: MedicalAlert) => void;
   onRemoveAlert?: (id: string) => void;
 }
@@ -21,21 +20,15 @@ const CATEGORY_OPTIONS = [
 ];
 
 export function MedicalAlertsSection({
-  register,
+  register: _register,
   alerts,
   pendingAlerts,
-  chronicConditions,
   onAddAlert,
   onRemoveAlert,
 }: MedicalAlertsSectionProps) {
   const [category, setCategory] = useState("allergy");
   const [label, setLabel] = useState("");
   const [severity, setSeverity] = useState("moderate");
-
-  const chronicTokens = chronicConditions
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
 
   function handleAdd() {
     if (!label.trim() || !onAddAlert) return;
@@ -48,7 +41,7 @@ export function MedicalAlertsSection({
     setLabel("");
   }
 
-  const total = alerts.length + pendingAlerts.length + chronicTokens.length;
+  const total = alerts.length + pendingAlerts.length;
 
   return (
     <div className="space-y-3">
@@ -90,14 +83,6 @@ export function MedicalAlertsSection({
                 <X className="h-3 w-3" />
               </button>
             )}
-          </span>
-        ))}
-        {chronicTokens.map((token) => (
-          <span
-            key={token}
-            className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700"
-          >
-            {token}
           </span>
         ))}
         {total === 0 && <p className="text-sm text-gray-400">No known alerts.</p>}
@@ -159,16 +144,6 @@ export function MedicalAlertsSection({
           </button>
         </div>
       )}
-
-      <div>
-        <label className={labelClass}>Chronic Conditions</label>
-        <input
-          {...register("chronic_conditions")}
-          placeholder="e.g. Diabetes, Hypertension, Pregnancy, Immunocompromised"
-          className={inputClass}
-        />
-        <p className="mt-1 text-xs text-gray-400">Separate multiple conditions with commas.</p>
-      </div>
     </div>
   );
 }

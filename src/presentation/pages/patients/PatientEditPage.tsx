@@ -768,7 +768,6 @@ export function PatientEditPage() {
                       errors={errors}
                       alerts={clinical?.alerts ?? []}
                       pendingAlerts={[]}
-                      chronicConditions={patient.chronic_conditions ?? ""}
                     />
                     <div className="border-t border-gray-100 pt-6">
                       <ClinicalNotesSection

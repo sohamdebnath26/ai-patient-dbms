@@ -203,6 +203,7 @@ export function MedicalHistorySection() {
   const skinDiseasesVal = watch("previous_skin_diseases") as string | undefined | null;
   const surgeriesVal = watch("previous_surgeries") as string | undefined | null;
   const otherConditionsVal = watch("other_medical_conditions") as string | undefined | null;
+  const chronicVal = watch("chronic_conditions") as string | undefined | null;
   const hasCancer = watch("previous_skin_cancer") as boolean | undefined | null;
 
   const { setValue } = useFormContext<PatientFormInput>();
@@ -244,6 +245,18 @@ export function MedicalHistorySection() {
             setValue("other_medical_conditions", v, { shouldValidate: false });
           }}
           placeholder="Search or type conditions..."
+        />
+      </div>
+
+      <div>
+        <TagInput
+          label="Chronic Conditions"
+          category="condition"
+          value={chronicVal ?? ""}
+          onChange={(v) => {
+            setValue("chronic_conditions", v, { shouldValidate: false });
+          }}
+          placeholder="Search or type chronic conditions..."
         />
       </div>
 
