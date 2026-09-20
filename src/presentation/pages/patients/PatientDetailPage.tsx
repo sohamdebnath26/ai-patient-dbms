@@ -75,7 +75,7 @@ const Field = ({ label, value }: { label: string; value: string | null | undefin
   return (
     <div>
       <span className="text-sm font-medium text-gray-500">{label}</span>
-      <p className="text-base text-gray-900">{value}</p>
+      <p className="text-base text-gray-900">{value.replace(/_/g, " ")}</p>
     </div>
   );
 };
