@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import type { UpdatePatientInput } from "@domain/patient";
+import { useRef, useEffect } from "react";
 
 interface AssessmentCard {
   bodyArea: string;
@@ -83,6 +84,175 @@ function formatTimestamp(iso: string): string {
   const mm = minutes.toString().padStart(2, "0");
   return `${day} ${month} ${year} \u2022 ${h12}:${mm} ${ampm}`;
 }
+
+const MultiSelectField = ({
+  label,
+  value,
+  editing,
+  onChange,
+  suggestions,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  onChange?: (v: string) => void;
+  suggestions: string[];
+}) => {
+  const [inputText, setInputText] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const tags = value
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const filtered = inputText.trim()
+    ? suggestions.filter(
+        (s) => s.toLowerCase().includes(inputText.trim().toLowerCase()) && !tags.includes(s),
+      )
+    : [];
+
+  useEffect(() => {
+    if (!showDropdown) return;
+    function handler(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+    };
+  }, [showDropdown]);
+
+  if (!editing && tags.length === 0) return null;
+  if (!editing) {
+    return <InfoField label={label} value={value} />;
+  }
+
+  function addTag(tag: string) {
+    const trimmed = tag.trim();
+    if (!trimmed || tags.includes(trimmed)) {
+      setInputText("");
+      setShowDropdown(false);
+      return;
+    }
+    onChange?.([...tags, trimmed].join(", "));
+    setInputText("");
+    setShowDropdown(false);
+  }
+
+  function removeTag(tag: string) {
+    onChange?.(tags.filter((t) => t !== tag).join(", "));
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!showDropdown || filtered.length === 0) {
+      if (e.key === "Enter" && inputText.trim()) {
+        e.preventDefault();
+        addTag(inputText);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.min(prev + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const sel = filtered[highlightIdx];
+      if (sel) {
+        addTag(sel);
+      } else if (inputText.trim()) {
+        addTag(inputText);
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  }
+
+  const inputClass =
+    "min-w-[80px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none";
+
+  return (
+    <div ref={containerRef} className="relative">
+      <p className="text-[11px] font-semibold text-gray-500">{label}</p>
+      <div className="mt-1 flex min-h-[38px] flex-wrap items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => {
+                removeTag(tag);
+              }}
+              className="text-blue-400 hover:text-blue-600"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputText}
+          onChange={(e) => {
+            setInputText(e.target.value);
+            if (e.target.value.trim()) {
+              setHighlightIdx(0);
+              setShowDropdown(true);
+            } else {
+              setShowDropdown(false);
+            }
+          }}
+          onFocus={() => {
+            if (inputText.trim()) setShowDropdown(true);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={tags.length === 0 ? "Type to search..." : "Add more..."}
+          className={inputClass}
+        />
+      </div>
+
+      {showDropdown && (
+        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+          {filtered.map((s, i) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                addTag(s);
+              }}
+              className={`flex w-full items-center px-3 py-2 text-left text-sm ${
+                i === highlightIdx ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+          {filtered.length === 0 && inputText.trim() && (
+            <button
+              type="button"
+              onClick={() => {
+                addTag(inputText.trim());
+              }}
+              className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50"
+            >
+              <span>+</span>
+              <span>Add &quot;{inputText.trim()}&quot;</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const InfoField = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
@@ -218,6 +388,46 @@ const CHRONIC_SUGGESTIONS = [
   "Multiple Sclerosis",
   "Parkinson's Disease",
   "HIV",
+];
+
+const FAMILY_SKIN_SUGGESTIONS = [
+  "Eczema",
+  "Psoriasis",
+  "Atopic Dermatitis",
+  "Melanoma",
+  "Basal Cell Carcinoma",
+  "Squamous Cell Carcinoma",
+  "Vitiligo",
+  "Alopecia Areata",
+  "Acne Vulgaris",
+  "Rosacea",
+  "Lupus Erythematosus",
+  "Dermatomyositis",
+  "Scleroderma",
+  "Neurofibromatosis",
+  "Xeroderma Pigmentosum",
+];
+
+const FAMILY_CANCER_SUGGESTIONS = [
+  "Breast Cancer",
+  "Colorectal Cancer",
+  "Lung Cancer",
+  "Prostate Cancer",
+  "Pancreatic Cancer",
+  "Leukemia",
+  "Lymphoma",
+  "Ovarian Cancer",
+  "Cervical Cancer",
+  "Liver Cancer",
+  "Stomach Cancer",
+  "Bladder Cancer",
+  "Thyroid Cancer",
+  "Renal Cell Carcinoma",
+  "Multiple Myeloma",
+  "Brain Tumor",
+  "Esophageal Cancer",
+  "Bone Cancer",
+  "Testicular Cancer",
 ];
 
 const AutoCompleteField = ({
@@ -754,7 +964,7 @@ export function PatientDetailPage() {
                     setEditForm((p) => ({ ...p, chronic_conditions: v }));
                   }}
                 />
-                <AutoCompleteField
+                <MultiSelectField
                   label="Previous Skin Diseases"
                   value={
                     editingPatientInfo
@@ -767,7 +977,7 @@ export function PatientDetailPage() {
                     setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
                   }}
                 />
-                <AutoCompleteField
+                <MultiSelectField
                   label="Previous Surgeries"
                   value={
                     editingPatientInfo
@@ -778,6 +988,19 @@ export function PatientDetailPage() {
                   suggestions={SURGERY_SUGGESTIONS}
                   onChange={(v) => {
                     setEditForm((p) => ({ ...p, previous_surgeries: v }));
+                  }}
+                />
+                <MultiSelectField
+                  label="Other Med Conditions"
+                  value={
+                    editingPatientInfo
+                      ? editForm.other_medical_conditions
+                      : (patient.other_medical_conditions ?? "")
+                  }
+                  editing={editingPatientInfo}
+                  suggestions={CHRONIC_SUGGESTIONS}
+                  onChange={(v) => {
+                    setEditForm((p) => ({ ...p, other_medical_conditions: v }));
                   }}
                 />
                 {patient.previous_skin_cancer && (
@@ -859,7 +1082,7 @@ export function PatientDetailPage() {
                         setEditForm((p) => ({ ...p, family_history: v }));
                       }}
                     />
-                    <EditableField
+                    <MultiSelectField
                       label="Family Hx (Skin)"
                       value={
                         editingPatientInfo
@@ -867,11 +1090,12 @@ export function PatientDetailPage() {
                           : (patient.family_history_skin ?? "")
                       }
                       editing={editingPatientInfo}
+                      suggestions={FAMILY_SKIN_SUGGESTIONS}
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, family_history_skin: v }));
                       }}
                     />
-                    <EditableField
+                    <MultiSelectField
                       label="Family Hx (Cancer)"
                       value={
                         editingPatientInfo
@@ -879,6 +1103,7 @@ export function PatientDetailPage() {
                           : (patient.family_history_cancer ?? "")
                       }
                       editing={editingPatientInfo}
+                      suggestions={FAMILY_CANCER_SUGGESTIONS}
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, family_history_cancer: v }));
                       }}
