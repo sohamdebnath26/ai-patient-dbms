@@ -430,43 +430,6 @@ const FAMILY_CANCER_SUGGESTIONS = [
   "Testicular Cancer",
 ];
 
-const AutoCompleteField = ({
-  label,
-  value,
-  editing,
-  onChange,
-  suggestions,
-}: {
-  label: string;
-  value: string;
-  editing: boolean;
-  onChange?: (v: string) => void;
-  suggestions: string[];
-}) => {
-  if (!editing && !value) return null;
-  if (!editing) {
-    return <InfoField label={label} value={value} />;
-  }
-  const listId = `list-${label.replace(/\s/g, "-")}`;
-  return (
-    <div>
-      <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{label}</p>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        list={listId}
-        className="mt-0.5 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
-      />
-      <datalist id={listId}>
-        {suggestions.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-    </div>
-  );
-};
-
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
@@ -951,7 +914,7 @@ export function PatientDetailPage() {
                 <span className="h-px flex-1 bg-gray-200" />
               </h3>
               <div className="grid gap-3 sm:grid-cols-3">
-                <AutoCompleteField
+                <MultiSelectField
                   label="Chronic Conditions"
                   value={
                     editingPatientInfo
