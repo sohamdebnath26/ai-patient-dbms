@@ -25,10 +25,6 @@ import {
   Mail,
   MapPin,
   Info,
-  Heart,
-  Activity,
-  Smile,
-  AlertTriangle,
   Edit3,
   Save,
   X,
@@ -554,15 +550,14 @@ export function PatientDetailPage() {
                 )}
               </div>
             </div>
-            <div className="space-y-6">
-              <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <Smile className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-sm font-bold tracking-wide text-amber-600 uppercase">
-                    Demographics
-                  </h3>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-5">
+              <div>
+                <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
+                  <span className="h-px flex-1 bg-gray-200" />
+                  Demographics
+                  <span className="h-px flex-1 bg-gray-200" />
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-4">
                   <EditableField
                     label="First Name"
                     value={editingPatientInfo ? editForm.first_name : patient.first_name}
@@ -630,15 +625,15 @@ export function PatientDetailPage() {
                 </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-sky-50 p-5">
-                  <div className="mb-4 flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-blue-500" />
-                    <h3 className="text-sm font-bold tracking-wide text-blue-600 uppercase">
-                      Contact Details
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
+              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
+                <span className="h-px flex-1 bg-gray-200" />
+                Contact &amp; Address
+                <span className="h-px flex-1 bg-gray-200" />
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                  <p className="mb-2 text-[11px] font-bold text-gray-400">CONTACT</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Phone"
                       value={editingPatientInfo ? editForm.phone : (patient.phone ?? "")}
@@ -659,15 +654,9 @@ export function PatientDetailPage() {
                     />
                   </div>
                 </div>
-
-                <div className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-purple-50 p-5">
-                  <div className="mb-4 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-violet-500" />
-                    <h3 className="text-sm font-bold tracking-wide text-violet-600 uppercase">
-                      Address
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
+                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                  <p className="mb-2 text-[11px] font-bold text-gray-400">ADDRESS</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Line 1"
                       value={
@@ -745,78 +734,77 @@ export function PatientDetailPage() {
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-emerald-500" />
-                  <h3 className="text-sm font-bold tracking-wide text-emerald-600 uppercase">
-                    Medical History
-                  </h3>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <AutoCompleteField
-                    label="Chronic Conditions"
+
+              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
+                <span className="h-px flex-1 bg-gray-200" />
+                Medical History
+                <span className="h-px flex-1 bg-gray-200" />
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <AutoCompleteField
+                  label="Chronic Conditions"
+                  value={
+                    editingPatientInfo
+                      ? editForm.chronic_conditions
+                      : (patient.chronic_conditions ?? "")
+                  }
+                  editing={editingPatientInfo}
+                  suggestions={CHRONIC_SUGGESTIONS}
+                  onChange={(v) => {
+                    setEditForm((p) => ({ ...p, chronic_conditions: v }));
+                  }}
+                />
+                <AutoCompleteField
+                  label="Previous Skin Diseases"
+                  value={
+                    editingPatientInfo
+                      ? editForm.previous_skin_diseases
+                      : (patient.previous_skin_diseases ?? "")
+                  }
+                  editing={editingPatientInfo}
+                  suggestions={SKIN_DISEASE_SUGGESTIONS}
+                  onChange={(v) => {
+                    setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
+                  }}
+                />
+                <AutoCompleteField
+                  label="Previous Surgeries"
+                  value={
+                    editingPatientInfo
+                      ? editForm.previous_surgeries
+                      : (patient.previous_surgeries ?? "")
+                  }
+                  editing={editingPatientInfo}
+                  suggestions={SURGERY_SUGGESTIONS}
+                  onChange={(v) => {
+                    setEditForm((p) => ({ ...p, previous_surgeries: v }));
+                  }}
+                />
+                {patient.previous_skin_cancer && (
+                  <EditableField
+                    label="Skin Cancer History"
                     value={
-                      editingPatientInfo
-                        ? editForm.chronic_conditions
-                        : (patient.chronic_conditions ?? "")
+                      editingPatientInfo ? editForm.medical_notes : (patient.medical_notes ?? "")
                     }
                     editing={editingPatientInfo}
-                    suggestions={CHRONIC_SUGGESTIONS}
                     onChange={(v) => {
-                      setEditForm((p) => ({ ...p, chronic_conditions: v }));
+                      setEditForm((p) => ({ ...p, medical_notes: v }));
                     }}
                   />
-                  <AutoCompleteField
-                    label="Previous Skin Diseases"
-                    value={
-                      editingPatientInfo
-                        ? editForm.previous_skin_diseases
-                        : (patient.previous_skin_diseases ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    suggestions={SKIN_DISEASE_SUGGESTIONS}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
-                    }}
-                  />
-                  <AutoCompleteField
-                    label="Previous Surgeries"
-                    value={
-                      editingPatientInfo
-                        ? editForm.previous_surgeries
-                        : (patient.previous_surgeries ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    suggestions={SURGERY_SUGGESTIONS}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, previous_surgeries: v }));
-                    }}
-                  />
-                  {patient.previous_skin_cancer && (
-                    <EditableField
-                      label="Skin Cancer History"
-                      value={
-                        editingPatientInfo ? editForm.medical_notes : (patient.medical_notes ?? "")
-                      }
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, medical_notes: v }));
-                      }}
-                    />
-                  )}
-                </div>
+                )}
               </div>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50 to-pink-50 p-5">
-                  <div className="mb-4 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-rose-500" />
-                    <h3 className="text-sm font-bold tracking-wide text-rose-600 uppercase">
-                      Lifestyle &amp; Family
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
+
+              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
+                <span className="h-px flex-1 bg-gray-200" />
+                Lifestyle, Family &amp; Emergency
+                <span className="h-px flex-1 bg-gray-200" />
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                  <p className="mb-2 text-[11px] font-bold text-gray-400">LIFESTYLE</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
-                      label="Smoking Status"
+                      label="Smoking"
                       value={
                         editingPatientInfo
                           ? editForm.smoking_status
@@ -830,7 +818,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <EditableField
-                      label="Alcohol Consumption"
+                      label="Alcohol"
                       value={
                         editingPatientInfo
                           ? editForm.alcohol_consumption
@@ -845,7 +833,7 @@ export function PatientDetailPage() {
                     />
                     {(patient.gender?.toLowerCase() === "female" || editingPatientInfo) && (
                       <EditableField
-                        label="Pregnancy Status"
+                        label="Pregnancy"
                         value={
                           editingPatientInfo
                             ? editForm.pregnancy_status
@@ -860,7 +848,7 @@ export function PatientDetailPage() {
                       />
                     )}
                     <EditableField
-                      label="Family History"
+                      label="Family Hx"
                       value={
                         editingPatientInfo
                           ? editForm.family_history
@@ -872,7 +860,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <EditableField
-                      label="Family History (Skin)"
+                      label="Family Hx (Skin)"
                       value={
                         editingPatientInfo
                           ? editForm.family_history_skin
@@ -884,7 +872,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <EditableField
-                      label="Family History (Cancer)"
+                      label="Family Hx (Cancer)"
                       value={
                         editingPatientInfo
                           ? editForm.family_history_cancer
@@ -895,8 +883,11 @@ export function PatientDetailPage() {
                         setEditForm((p) => ({ ...p, family_history_cancer: v }));
                       }}
                     />
+                  </div>
+                  <p className="mt-3 mb-2 text-[11px] font-bold text-gray-400">EXPOSURE</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
-                      label="Sun Exposure History"
+                      label="Sun Exposure"
                       value={
                         editingPatientInfo
                           ? editForm.sun_exposure_history
@@ -908,7 +899,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <EditableField
-                      label="Occupational Exposure"
+                      label="Occupational"
                       value={
                         editingPatientInfo
                           ? editForm.occupational_exposure
@@ -920,7 +911,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <EditableField
-                      label="Cosmetic Product Usage"
+                      label="Cosmetic Usage"
                       value={
                         editingPatientInfo
                           ? editForm.cosmetic_product_usage
@@ -933,15 +924,9 @@ export function PatientDetailPage() {
                     />
                   </div>
                 </div>
-
-                <div className="rounded-xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-sky-50 p-5">
-                  <div className="mb-4 flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-cyan-500" />
-                    <h3 className="text-sm font-bold tracking-wide text-cyan-600 uppercase">
-                      Emergency Contact
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
+                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+                  <p className="mb-2 text-[11px] font-bold text-gray-400">EMERGENCY CONTACT</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Name"
                       value={
