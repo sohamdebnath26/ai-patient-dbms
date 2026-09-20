@@ -298,8 +298,6 @@ export function PatientEditPage() {
     delete (payload as Record<string, unknown>).follow_up_date;
     delete (payload as Record<string, unknown>).follow_up_plan;
     delete (payload as Record<string, unknown>).follow_up_instructions;
-    delete (payload as Record<string, unknown>).height_cm;
-    delete (payload as Record<string, unknown>).weight_kg;
     updateMutation.mutate(
       { id, input: payload },
       {

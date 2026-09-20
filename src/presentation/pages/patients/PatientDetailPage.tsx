@@ -511,12 +511,12 @@ export function PatientDetailPage() {
       ...editForm,
       previous_skin_cancer: prevSkinCancer,
       current_flare: prevFlare,
+      height_cm: editForm.height_cm ? parseFloat(editForm.height_cm) : null,
+      weight_kg: editForm.weight_kg ? parseFloat(editForm.weight_kg) : null,
     };
     delete (input as Record<string, unknown>).follow_up_date;
     delete (input as Record<string, unknown>).follow_up_plan;
     delete (input as Record<string, unknown>).follow_up_instructions;
-    delete (input as Record<string, unknown>).height_cm;
-    delete (input as Record<string, unknown>).weight_kg;
     updatePatientMutation.mutate(
       { id, input },
       {
