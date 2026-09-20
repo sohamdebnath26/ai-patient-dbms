@@ -380,13 +380,13 @@ export function PatientEditPage() {
           onClick={() => {
             void navigate(`/patients/${id}`);
           }}
-          className="inline-flex items-center gap-1 text-base text-gray-600 hover:text-gray-900"
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Patient
         </button>
 
         {isReceptionist && (
-          <div className="rounded-md bg-yellow-50 px-4 py-2 text-sm text-yellow-700">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
             As a receptionist, you can only edit demographic information.
           </div>
         )}
@@ -405,7 +405,7 @@ export function PatientEditPage() {
               type="submit"
               form="edit-patient-form"
               disabled={updateMutation.isPending}
-              className="bg-brand-600 hover:bg-brand-700 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-emerald-200 transition-all hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg disabled:opacity-50"
             >
               {updateMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -418,17 +418,17 @@ export function PatientEditPage() {
         </PatientHeader>
 
         {updateMutation.isError && (
-          <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
             {updateMutation.error.message}
           </div>
         )}
 
         {validationBanner && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm">
-            <p className="font-semibold text-red-800">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm">
+            <p className="font-bold text-rose-700">
               Please complete all required fields before saving.
             </p>
-            <ul className="mt-1 list-disc pl-5 text-red-600">
+            <ul className="mt-1.5 list-disc pl-5 font-medium text-rose-500">
               {validationBanner.map((f) => (
                 <li key={f}>{f}</li>
               ))}
@@ -437,7 +437,7 @@ export function PatientEditPage() {
         )}
 
         <FormProvider {...methods}>
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-100 p-1">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-gray-100 p-1.5">
             <div className="flex gap-0.5">
               {TABS.map((tab) => (
                 <button
@@ -446,10 +446,10 @@ export function PatientEditPage() {
                   onClick={() => {
                     setActiveTab(tab.key);
                   }}
-                  className={`flex-shrink-0 rounded-md px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
+                  className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-bold whitespace-nowrap transition-all duration-150 ${
                     activeTab === tab.key
-                      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                      : "text-gray-600 hover:bg-white/60 hover:text-gray-900"
+                      ? "bg-white text-emerald-700 shadow-sm ring-1 ring-gray-200"
+                      : "text-gray-500 hover:bg-white/60 hover:text-gray-700"
                   }`}
                 >
                   {tab.label}
@@ -460,12 +460,14 @@ export function PatientEditPage() {
 
           {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
           <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit, onValidationFailed)}>
-            <div className="animate-fade-in rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="animate-fade-in rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
               {activeTab === "overview" && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <User className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Patient Overview</h2>
+                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                      Patient Overview
+                    </h2>
                   </div>
 
                   <div className="border-t border-gray-100 pt-6">
@@ -529,7 +531,9 @@ export function PatientEditPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <HeartPulse className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Medical History</h2>
+                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                      Medical History
+                    </h2>
                   </div>
 
                   <MedicalHistorySection />
@@ -544,7 +548,7 @@ export function PatientEditPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Sun className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Dermatology</h2>
+                    <h2 className="text-lg font-bold tracking-tight text-gray-900">Dermatology</h2>
                   </div>
 
                   <DermatologySection />
@@ -732,7 +736,7 @@ export function PatientEditPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Pill className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Medications</h2>
+                    <h2 className="text-lg font-bold tracking-tight text-gray-900">Medications</h2>
                   </div>
 
                   <MedicationSection
@@ -758,7 +762,9 @@ export function PatientEditPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Sparkles className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Doctor&apos;s Notes</h2>
+                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
+                      Doctor&apos;s Notes
+                    </h2>
                   </div>
 
                   <ClinicalNotesSection
@@ -775,7 +781,7 @@ export function PatientEditPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Sparkles className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
                       Follow up Date and Plans
                     </h2>
                   </div>
