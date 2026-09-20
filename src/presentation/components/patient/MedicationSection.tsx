@@ -176,7 +176,12 @@ export function MedicationSection({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!showSuggestions || suggestions.length === 0) return;
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+      }
+      return;
+    }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();

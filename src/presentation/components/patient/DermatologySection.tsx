@@ -131,9 +131,11 @@ function TagInput({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!open || filtered.length === 0) {
-      if (e.key === "Enter" && input.trim() && allowCustom) {
+      if (e.key === "Enter") {
         e.preventDefault();
-        addTag(input);
+        if (input.trim() && allowCustom) {
+          addTag(input);
+        }
       }
       return;
     }
@@ -263,7 +265,12 @@ function SearchableTagInput({
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (!open || filtered.length === 0) return;
+    if (!open || filtered.length === 0) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlight((p) => Math.min(p + 1, filtered.length - 1));
