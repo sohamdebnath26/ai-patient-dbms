@@ -43,10 +43,31 @@ function mapToAppointment(raw: AppointmentRow): Appointment {
 }
 
 export class SupabaseAppointmentRepository implements IAppointmentRepository {
+  private async markOverdueAsNoShow(auth: AuthorizationContext): Promise<void> {
+    const client = getSupabaseClient();
+    const scope = resolveAuthScope(auth);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const cutoff = yesterday.toISOString().slice(0, 10);
+
+    const { error } = await client
+      .from("appointments")
+      .update({ status: "no_show" })
+      .eq(scope.column, scope.value)
+      .lte("appointment_date", cutoff)
+      .not("status", "in", '("completed","cancelled","no_show")');
+
+    if (error) {
+      // Silently ignore – non-critical cleanup
+      console.warn("Failed to mark overdue appointments:", error.message);
+    }
+  }
+
   async search(
     params: AppointmentSearchParams,
     auth: AuthorizationContext,
   ): Promise<AppointmentListPage> {
+    await this.markOverdueAsNoShow(auth);
     const client = getSupabaseClient();
     const offset = (params.page - 1) * params.limit;
     const scope = resolveAuthScope(auth);
