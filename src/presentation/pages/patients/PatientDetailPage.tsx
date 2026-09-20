@@ -258,8 +258,8 @@ const InfoField = ({ label, value }: { label: string; value: string | null | und
   if (!value) return null;
   return (
     <div>
-      <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold text-gray-800">{value.replace(/_/g, " ")}</p>
+      <p className="text-[11px] font-semibold text-gray-500">{label}</p>
+      <p className="text-sm font-medium text-gray-900">{value.replace(/_/g, " ")}</p>
     </div>
   );
 };
@@ -285,12 +285,12 @@ const EditableField = ({
   }
   return (
     <div>
-      <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{label}</p>
+      <p className="text-[11px] font-semibold text-gray-500">{label}</p>
       {type === "select" ? (
         <select
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
-          className="mt-0.5 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+          className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 focus:outline-none"
         >
           {placeholder?.split(",").map((opt) => (
             <option key={opt} value={opt}>
@@ -304,7 +304,7 @@ const EditableField = ({
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
-          className="mt-0.5 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+          className="mt-1 block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 focus:outline-none"
         />
       )}
     </div>
@@ -496,6 +496,8 @@ export function PatientDetailPage() {
       sun_exposure_history: patient.sun_exposure_history || "",
       occupational_exposure: patient.occupational_exposure || "",
       cosmetic_product_usage: patient.cosmetic_product_usage || "",
+      height_cm: patient.height_cm != null ? String(patient.height_cm) : "",
+      weight_kg: patient.weight_kg != null ? String(patient.weight_kg) : "",
     });
     setEditingPatientInfo(true);
   }
@@ -723,271 +725,355 @@ export function PatientDetailPage() {
                 )}
               </div>
             </div>
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
-                  <span className="h-px flex-1 bg-gray-200" />
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
                   Demographics
-                  <span className="h-px flex-1 bg-gray-200" />
                 </h3>
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <EditableField
-                    label="First Name"
-                    value={editingPatientInfo ? editForm.first_name : patient.first_name}
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, first_name: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Last Name"
-                    value={editingPatientInfo ? editForm.last_name : patient.last_name}
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, last_name: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Date of Birth"
-                    value={editingPatientInfo ? editForm.dob : (patient.dob ?? "")}
-                    editing={editingPatientInfo}
-                    type="date"
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, dob: v }));
-                    }}
-                  />
-                  <InfoField label="Age" value={age !== null ? `${age} yrs` : null} />
-                  <EditableField
-                    label="Gender"
-                    value={editingPatientInfo ? editForm.gender : (patient.gender ?? "")}
-                    editing={editingPatientInfo}
-                    type="select"
-                    placeholder=",male,female,other"
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, gender: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Blood Group"
-                    value={editingPatientInfo ? editForm.blood_group : (patient.blood_group ?? "")}
-                    editing={editingPatientInfo}
-                    type="select"
-                    placeholder=",A+,A-,B+,B-,AB+,AB-,O+,O-"
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, blood_group: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="MRN"
-                    value={editingPatientInfo ? editForm.mrn : patient.mrn}
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, mrn: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Status"
-                    value={editingPatientInfo ? editForm.status : patient.status}
-                    editing={editingPatientInfo}
-                    type="select"
-                    placeholder=",active,inactive,deceased,archived,deregistered"
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, status: v }));
-                    }}
-                  />
-                </div>
-              </div>
-
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
-                <span className="h-px flex-1 bg-gray-200" />
-                Contact &amp; Address
-                <span className="h-px flex-1 bg-gray-200" />
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                  <p className="mb-2 text-[11px] font-bold text-gray-400">CONTACT</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="grid gap-3 sm:grid-cols-4">
                     <EditableField
-                      label="Phone"
-                      value={editingPatientInfo ? editForm.phone : (patient.phone ?? "")}
+                      label="First Name"
+                      value={editingPatientInfo ? editForm.first_name : patient.first_name}
                       editing={editingPatientInfo}
-                      type="tel"
                       onChange={(v) => {
-                        setEditForm((p) => ({ ...p, phone: v }));
+                        setEditForm((p) => ({ ...p, first_name: v }));
                       }}
                     />
                     <EditableField
-                      label="Email"
-                      value={editingPatientInfo ? editForm.email : (patient.email ?? "")}
+                      label="Last Name"
+                      value={editingPatientInfo ? editForm.last_name : patient.last_name}
                       editing={editingPatientInfo}
-                      type="email"
                       onChange={(v) => {
-                        setEditForm((p) => ({ ...p, email: v }));
+                        setEditForm((p) => ({ ...p, last_name: v }));
                       }}
                     />
-                  </div>
-                </div>
-                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                  <p className="mb-2 text-[11px] font-bold text-gray-400">ADDRESS</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
-                      label="Line 1"
+                      label="Date of Birth"
+                      value={editingPatientInfo ? editForm.dob : (patient.dob ?? "")}
+                      editing={editingPatientInfo}
+                      type="date"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, dob: v }));
+                      }}
+                    />
+                    <InfoField label="Age" value={age !== null ? `${age} yrs` : null} />
+                    <EditableField
+                      label="Gender"
+                      value={editingPatientInfo ? editForm.gender : (patient.gender ?? "")}
+                      editing={editingPatientInfo}
+                      type="select"
+                      placeholder=",male,female,other"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, gender: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Blood Group"
                       value={
-                        editingPatientInfo
-                          ? (editForm.address_line1 ?? "")
-                          : ((patient.address_line1 || patient.address) ?? "")
+                        editingPatientInfo ? editForm.blood_group : (patient.blood_group ?? "")
                       }
                       editing={editingPatientInfo}
+                      type="select"
+                      placeholder=",A+,A-,B+,B-,AB+,AB-,O+,O-"
                       onChange={(v) => {
-                        setEditForm((p) => ({ ...p, address_line1: v }));
+                        setEditForm((p) => ({ ...p, blood_group: v }));
                       }}
                     />
                     <EditableField
-                      label="Line 2"
-                      value={
-                        editingPatientInfo
-                          ? (editForm.address_line2 ?? "")
-                          : (patient.address_line2 ?? "")
-                      }
+                      label="MRN"
+                      value={editingPatientInfo ? editForm.mrn : patient.mrn}
                       editing={editingPatientInfo}
                       onChange={(v) => {
-                        setEditForm((p) => ({ ...p, address_line2: v }));
+                        setEditForm((p) => ({ ...p, mrn: v }));
                       }}
                     />
                     <EditableField
-                      label="Landmark"
-                      value={editingPatientInfo ? editForm.landmark : (patient.landmark ?? "")}
+                      label="Status"
+                      value={editingPatientInfo ? editForm.status : patient.status}
                       editing={editingPatientInfo}
+                      type="select"
+                      placeholder=",active,inactive,deceased,archived,deregistered"
                       onChange={(v) => {
-                        setEditForm((p) => ({ ...p, landmark: v }));
-                      }}
-                    />
-                    <EditableField
-                      label="City"
-                      value={editingPatientInfo ? editForm.city : (patient.city ?? "")}
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, city: v }));
-                      }}
-                    />
-                    <EditableField
-                      label="District"
-                      value={editingPatientInfo ? editForm.district : (patient.district ?? "")}
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, district: v }));
-                      }}
-                    />
-                    <EditableField
-                      label="State"
-                      value={editingPatientInfo ? editForm.state : (patient.state ?? "")}
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, state: v }));
-                      }}
-                    />
-                    <EditableField
-                      label="Country"
-                      value={editingPatientInfo ? editForm.country : (patient.country ?? "")}
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, country: v }));
-                      }}
-                    />
-                    <EditableField
-                      label="Postal Code"
-                      value={
-                        editingPatientInfo ? editForm.postal_code : (patient.postal_code ?? "")
-                      }
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, postal_code: v }));
+                        setEditForm((p) => ({ ...p, status: v }));
                       }}
                     />
                   </div>
                 </div>
               </div>
 
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
-                <span className="h-px flex-1 bg-gray-200" />
-                Medical History
-                <span className="h-px flex-1 bg-gray-200" />
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <MultiSelectField
-                  label="Chronic Conditions"
-                  value={
-                    editingPatientInfo
-                      ? editForm.chronic_conditions
-                      : (patient.chronic_conditions ?? "")
-                  }
-                  editing={editingPatientInfo}
-                  suggestions={CHRONIC_SUGGESTIONS}
-                  onChange={(v) => {
-                    setEditForm((p) => ({ ...p, chronic_conditions: v }));
-                  }}
-                />
-                <MultiSelectField
-                  label="Previous Skin Diseases"
-                  value={
-                    editingPatientInfo
-                      ? editForm.previous_skin_diseases
-                      : (patient.previous_skin_diseases ?? "")
-                  }
-                  editing={editingPatientInfo}
-                  suggestions={SKIN_DISEASE_SUGGESTIONS}
-                  onChange={(v) => {
-                    setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
-                  }}
-                />
-                <MultiSelectField
-                  label="Previous Surgeries"
-                  value={
-                    editingPatientInfo
-                      ? editForm.previous_surgeries
-                      : (patient.previous_surgeries ?? "")
-                  }
-                  editing={editingPatientInfo}
-                  suggestions={SURGERY_SUGGESTIONS}
-                  onChange={(v) => {
-                    setEditForm((p) => ({ ...p, previous_surgeries: v }));
-                  }}
-                />
-                <MultiSelectField
-                  label="Other Med Conditions"
-                  value={
-                    editingPatientInfo
-                      ? editForm.other_medical_conditions
-                      : (patient.other_medical_conditions ?? "")
-                  }
-                  editing={editingPatientInfo}
-                  suggestions={CHRONIC_SUGGESTIONS}
-                  onChange={(v) => {
-                    setEditForm((p) => ({ ...p, other_medical_conditions: v }));
-                  }}
-                />
-                {patient.previous_skin_cancer && (
-                  <EditableField
-                    label="Skin Cancer History"
-                    value={
-                      editingPatientInfo ? editForm.medical_notes : (patient.medical_notes ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, medical_notes: v }));
-                    }}
-                  />
-                )}
+              <div>
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                  Contact &amp; Address
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3.5">
+                    <p className="mb-2 text-[10px] font-extrabold tracking-wider text-gray-400">
+                      CONTACT
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <EditableField
+                        label="Phone"
+                        value={editingPatientInfo ? editForm.phone : (patient.phone ?? "")}
+                        editing={editingPatientInfo}
+                        type="tel"
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, phone: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="Email"
+                        value={editingPatientInfo ? editForm.email : (patient.email ?? "")}
+                        editing={editingPatientInfo}
+                        type="email"
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, email: v }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3.5">
+                    <p className="mb-2 text-[10px] font-extrabold tracking-wider text-gray-400">
+                      ADDRESS
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <EditableField
+                        label="Line 1"
+                        value={
+                          editingPatientInfo
+                            ? (editForm.address_line1 ?? "")
+                            : ((patient.address_line1 || patient.address) ?? "")
+                        }
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, address_line1: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="Line 2"
+                        value={
+                          editingPatientInfo
+                            ? (editForm.address_line2 ?? "")
+                            : (patient.address_line2 ?? "")
+                        }
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, address_line2: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="Landmark"
+                        value={editingPatientInfo ? editForm.landmark : (patient.landmark ?? "")}
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, landmark: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="City"
+                        value={editingPatientInfo ? editForm.city : (patient.city ?? "")}
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, city: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="District"
+                        value={editingPatientInfo ? editForm.district : (patient.district ?? "")}
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, district: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="State"
+                        value={editingPatientInfo ? editForm.state : (patient.state ?? "")}
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, state: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="Country"
+                        value={editingPatientInfo ? editForm.country : (patient.country ?? "")}
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, country: v }));
+                        }}
+                      />
+                      <EditableField
+                        label="Postal Code"
+                        value={
+                          editingPatientInfo ? editForm.postal_code : (patient.postal_code ?? "")
+                        }
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, postal_code: v }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-wider text-gray-400 uppercase">
-                <span className="h-px flex-1 bg-gray-200" />
-                Lifestyle, Family &amp; Emergency
-                <span className="h-px flex-1 bg-gray-200" />
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                  <p className="mb-2 text-[11px] font-bold text-gray-400">LIFESTYLE</p>
+              <div>
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                  Physical Measurements
+                </h3>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <EditableField
+                      label="Height (cm)"
+                      value={
+                        editingPatientInfo
+                          ? editForm.height_cm
+                          : (patient.height_cm ?? "").toString()
+                      }
+                      editing={editingPatientInfo}
+                      type="number"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, height_cm: v }));
+                      }}
+                    />
+                    <EditableField
+                      label="Weight (kg)"
+                      value={
+                        editingPatientInfo
+                          ? editForm.weight_kg
+                          : (patient.weight_kg ?? "").toString()
+                      }
+                      editing={editingPatientInfo}
+                      type="number"
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, weight_kg: v }));
+                      }}
+                    />
+                    <div>
+                      <InfoField
+                        label="BMI"
+                        value={(() => {
+                          const h = editingPatientInfo
+                            ? parseFloat(editForm.height_cm)
+                            : (patient.height_cm ?? 0);
+                          const w = editingPatientInfo
+                            ? parseFloat(editForm.weight_kg)
+                            : (patient.weight_kg ?? 0);
+                          if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
+                          return null;
+                        })()}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                  Medical History
+                </h3>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <MultiSelectField
+                      label="Chronic Conditions"
+                      value={
+                        editingPatientInfo
+                          ? editForm.chronic_conditions
+                          : (patient.chronic_conditions ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      suggestions={CHRONIC_SUGGESTIONS}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, chronic_conditions: v }));
+                      }}
+                    />
+                    <MultiSelectField
+                      label="Previous Skin Diseases"
+                      value={
+                        editingPatientInfo
+                          ? editForm.previous_skin_diseases
+                          : (patient.previous_skin_diseases ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      suggestions={SKIN_DISEASE_SUGGESTIONS}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
+                      }}
+                    />
+                    <MultiSelectField
+                      label="Previous Surgeries"
+                      value={
+                        editingPatientInfo
+                          ? editForm.previous_surgeries
+                          : (patient.previous_surgeries ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      suggestions={SURGERY_SUGGESTIONS}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, previous_surgeries: v }));
+                      }}
+                    />
+                    <MultiSelectField
+                      label="Other Med Conditions"
+                      value={
+                        editingPatientInfo
+                          ? editForm.other_medical_conditions
+                          : (patient.other_medical_conditions ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      suggestions={CHRONIC_SUGGESTIONS}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, other_medical_conditions: v }));
+                      }}
+                    />
+                    <MultiSelectField
+                      label="Family Hx (Skin)"
+                      value={
+                        editingPatientInfo
+                          ? editForm.family_history_skin
+                          : (patient.family_history_skin ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      suggestions={FAMILY_SKIN_SUGGESTIONS}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, family_history_skin: v }));
+                      }}
+                    />
+                    <MultiSelectField
+                      label="Family Hx (Cancer)"
+                      value={
+                        editingPatientInfo
+                          ? editForm.family_history_cancer
+                          : (patient.family_history_cancer ?? "")
+                      }
+                      editing={editingPatientInfo}
+                      suggestions={FAMILY_CANCER_SUGGESTIONS}
+                      onChange={(v) => {
+                        setEditForm((p) => ({ ...p, family_history_cancer: v }));
+                      }}
+                    />
+                    {patient.previous_skin_cancer && (
+                      <EditableField
+                        label="Skin Cancer History"
+                        value={
+                          editingPatientInfo
+                            ? editForm.medical_notes
+                            : (patient.medical_notes ?? "")
+                        }
+                        editing={editingPatientInfo}
+                        onChange={(v) => {
+                          setEditForm((p) => ({ ...p, medical_notes: v }));
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                  Lifestyle &amp; Exposures
+                </h3>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Smoking"
@@ -1034,7 +1120,7 @@ export function PatientDetailPage() {
                       />
                     )}
                     <EditableField
-                      label="Family Hx"
+                      label="Family History"
                       value={
                         editingPatientInfo
                           ? editForm.family_history
@@ -1045,35 +1131,6 @@ export function PatientDetailPage() {
                         setEditForm((p) => ({ ...p, family_history: v }));
                       }}
                     />
-                    <MultiSelectField
-                      label="Family Hx (Skin)"
-                      value={
-                        editingPatientInfo
-                          ? editForm.family_history_skin
-                          : (patient.family_history_skin ?? "")
-                      }
-                      editing={editingPatientInfo}
-                      suggestions={FAMILY_SKIN_SUGGESTIONS}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, family_history_skin: v }));
-                      }}
-                    />
-                    <MultiSelectField
-                      label="Family Hx (Cancer)"
-                      value={
-                        editingPatientInfo
-                          ? editForm.family_history_cancer
-                          : (patient.family_history_cancer ?? "")
-                      }
-                      editing={editingPatientInfo}
-                      suggestions={FAMILY_CANCER_SUGGESTIONS}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, family_history_cancer: v }));
-                      }}
-                    />
-                  </div>
-                  <p className="mt-3 mb-2 text-[11px] font-bold text-gray-400">EXPOSURE</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Sun Exposure"
                       value={
@@ -1087,7 +1144,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <EditableField
-                      label="Occupational"
+                      label="Occupational Exposure"
                       value={
                         editingPatientInfo
                           ? editForm.occupational_exposure
@@ -1112,8 +1169,13 @@ export function PatientDetailPage() {
                     />
                   </div>
                 </div>
-                <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
-                  <p className="mb-2 text-[11px] font-bold text-gray-400">EMERGENCY CONTACT</p>
+              </div>
+
+              <div>
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                  Emergency Contact
+                </h3>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <EditableField
                       label="Name"
