@@ -1311,23 +1311,29 @@ export function PatientDetailPage() {
                     Physical Measurements
                   </p>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <InfoField
-                      label="Height (cm)"
-                      value={patient.height_cm != null ? String(patient.height_cm) : null}
-                    />
-                    <InfoField
-                      label="Weight (kg)"
-                      value={patient.weight_kg != null ? String(patient.weight_kg) : null}
-                    />
-                    <InfoField
-                      label="BMI"
-                      value={(() => {
-                        const h = patient.height_cm;
-                        const w = patient.weight_kg;
-                        if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
-                        return null;
-                      })()}
-                    />
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-500">Height (cm)</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {patient.height_cm != null ? patient.height_cm : "\u2014"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-500">Weight (kg)</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {patient.weight_kg != null ? patient.weight_kg : "\u2014"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-500">BMI</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {(() => {
+                          const h = patient.height_cm;
+                          const w = patient.weight_kg;
+                          if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
+                          return "\u2014";
+                        })()}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
