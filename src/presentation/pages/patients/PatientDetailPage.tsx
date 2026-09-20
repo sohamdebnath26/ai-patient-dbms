@@ -449,6 +449,7 @@ export function PatientDetailPage() {
   const deregisterMutation = useDeregisterPatient();
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [overviewSubTab, setOverviewSubTab] = useState("details");
   const [expandedSnapshots, setExpandedSnapshots] = useState<Set<string>>(new Set());
   const [deregisterOpen, setDeregisterOpen] = useState(false);
   const [showPatientInfo, setShowPatientInfo] = useState(false);
@@ -1251,40 +1252,145 @@ export function PatientDetailPage() {
 
         {activeTab === "overview" && (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="rounded-xl border border-amber-50 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
-                <p className="text-xs font-bold tracking-wider text-amber-500 uppercase">
-                  Demographics
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <Field label="Age" value={age !== null ? `${age} yrs` : null} />
-                  <Field label="Gender" value={patient.gender} />
-                  <Field label="Blood Group" value={patient.blood_group} />
-                  <Field label="MRN" value={patient.mrn} />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-blue-50 bg-gradient-to-br from-blue-50 to-sky-50 p-4">
-                <p className="text-xs font-bold tracking-wider text-blue-500 uppercase">
-                  Contact Details
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <Field label="Phone" value={patient.phone} />
-                  <Field label="Email" value={patient.email} />
-                </div>
-              </div>
+            <div className="mb-4 flex gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1">
+              <button
+                onClick={() => {
+                  setOverviewSubTab("details");
+                }}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-bold transition-all ${
+                  overviewSubTab === "details"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Patient Details
+              </button>
+              <button
+                onClick={() => {
+                  setOverviewSubTab("medical");
+                }}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-bold transition-all ${
+                  overviewSubTab === "medical"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Medical History
+              </button>
+              <button
+                onClick={() => {
+                  setOverviewSubTab("family");
+                }}
+                className={`flex-1 rounded-md px-4 py-2 text-sm font-bold transition-all ${
+                  overviewSubTab === "family"
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Family &amp; Alerts
+              </button>
             </div>
 
-            <div className="mt-4 rounded-xl border border-violet-50 bg-gradient-to-br from-violet-50 to-purple-50 p-4">
-              <p className="text-xs font-bold tracking-wider text-violet-500 uppercase">
-                Emergency Contact
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <Field label="Name" value={patient.emergency_contact_name} />
-                <Field label="Phone" value={patient.emergency_contact_phone} />
-                <Field label="Relationship" value={patient.emergency_contact_relationship} />
+            {overviewSubTab === "details" && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                  <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
+                    Identification
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <InfoField label="Name" value={patientName} />
+                    <InfoField label="MRN" value={patient.mrn} />
+                    <InfoField label="Age" value={age !== null ? `${age} yrs` : null} />
+                    <InfoField label="Gender" value={patient.gender} />
+                    <InfoField label="Blood Group" value={patient.blood_group} />
+                    <InfoField label="Status" value={patient.status} />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                  <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
+                    Physical Measurements
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <InfoField
+                      label="Height (cm)"
+                      value={patient.height_cm != null ? String(patient.height_cm) : null}
+                    />
+                    <InfoField
+                      label="Weight (kg)"
+                      value={patient.weight_kg != null ? String(patient.weight_kg) : null}
+                    />
+                    <InfoField
+                      label="BMI"
+                      value={(() => {
+                        const h = patient.height_cm;
+                        const w = patient.weight_kg;
+                        if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
+                        return null;
+                      })()}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {overviewSubTab === "medical" && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
+                  Conditions &amp; History
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <InfoField label="Chronic Conditions" value={patient.chronic_conditions} />
+                  <InfoField
+                    label="Previous Skin Diseases"
+                    value={patient.previous_skin_diseases}
+                  />
+                  <InfoField
+                    label="Other Medical Conditions"
+                    value={patient.other_medical_conditions}
+                  />
+                  <InfoField label="Previous Surgeries" value={patient.previous_surgeries} />
+                  {patient.previous_skin_cancer && (
+                    <InfoField label="Skin Cancer History" value={patient.medical_notes} />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {overviewSubTab === "family" && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                  <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
+                    Family History
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <InfoField label="Family Hx (Skin)" value={patient.family_history_skin} />
+                    <InfoField label="Family Hx (Cancer)" value={patient.family_history_cancer} />
+                    <InfoField label="Family History" value={patient.family_history} />
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+                  <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
+                    Alerts &amp; Allergies
+                  </p>
+                  {(clinical?.alerts ?? []).filter((a) => a.category === "allergy").length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(clinical?.alerts ?? [])
+                        .filter((a) => a.category === "allergy")
+                        .map((a) => (
+                          <span
+                            key={a.id}
+                            className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700"
+                          >
+                            {a.label}
+                          </span>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">No known allergies.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
