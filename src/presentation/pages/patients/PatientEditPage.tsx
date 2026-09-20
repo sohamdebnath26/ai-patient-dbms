@@ -26,17 +26,11 @@ import {
   PatientHeader,
   type PatientHeaderData,
 } from "@presentation/components/patient/PatientHeader";
-import { PatientPersonalSection } from "@presentation/components/patient/PatientPersonalSection";
-import { PatientContactSection } from "@presentation/components/patient/PatientContactSection";
-import { PatientAddressSection } from "@presentation/components/patient/PatientAddressSection";
-import { MedicalHistorySection } from "@presentation/components/patient/MedicalHistorySection";
-import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
-import { computeAge } from "@presentation/components/patient/utils";
 import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
-import { ArrowLeft, Loader2, Save, User, HeartPulse, Pill, Sparkles, Sun, X } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Pill, Sparkles, Sun, X } from "lucide-react";
 
 function parseTimelineSnapshots(
   raw: string | null | undefined,
@@ -52,9 +46,7 @@ function parseTimelineSnapshots(
 }
 
 const TABS = [
-  { key: "overview", label: "Patient Overview" },
   { key: "dermatology", label: "Dermatology" },
-  { key: "medical-history", label: "Medical History" },
   { key: "medications", label: "Medications" },
   { key: "alerts", label: "Doctor's Notes" },
   { key: "follow-up-plans", label: "Follow up Date and Plans" },
@@ -63,19 +55,6 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 const FIELD_TAB_MAP: Record<string, { tab: TabKey; label: string }> = {
-  first_name: { tab: "overview", label: "First Name" },
-  last_name: { tab: "overview", label: "Last Name" },
-  dob: { tab: "overview", label: "Date of Birth" },
-  gender: { tab: "overview", label: "Gender" },
-  mrn: { tab: "overview", label: "MRN" },
-  phone: { tab: "overview", label: "Phone" },
-  address_line1: { tab: "overview", label: "Address Line 1" },
-  city: { tab: "overview", label: "City" },
-  state: { tab: "overview", label: "State" },
-  country: { tab: "overview", label: "Country" },
-  postal_code: { tab: "overview", label: "Postal Code" },
-  chief_complaint: { tab: "medical-history", label: "Chief Complaint" },
-  present_illness: { tab: "medical-history", label: "Present Illness" },
   current_treatment: { tab: "dermatology", label: "Current Treatment" },
   date_of_onset: { tab: "dermatology", label: "Date of Onset" },
   symptoms: { tab: "dermatology", label: "Symptoms" },
@@ -97,7 +76,7 @@ export function PatientEditPage() {
   const bookAppointment = useBookAppointment();
 
   const isReceptionist = profile?.role === "receptionist";
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>("dermatology");
   const [validationBanner, setValidationBanner] = useState<string[] | null>(null);
   const [allergyInput, setAllergyInput] = useState("");
   const [allergyOpen, setAllergyOpen] = useState(false);
@@ -117,11 +96,8 @@ export function PatientEditPage() {
     formState: { errors },
   } = methods;
 
-  const dobValue = watch("dob");
   const genderValue = watch("gender");
   const otherMedicalVal = watch("other_medical_conditions");
-  const heightCm = watch("height_cm");
-  const weightKg = watch("weight_kg");
 
   useEffect(() => {
     if (patient) {
@@ -254,8 +230,6 @@ export function PatientEditPage() {
       setActiveTab(missing[0].tab);
     }
   }
-
-  const age = useMemo(() => computeAge(dobValue), [dobValue]);
 
   const medicationSuggestionService = useMemo(() => new SupabaseMedicationSuggestionService(), []);
 
@@ -461,89 +435,6 @@ export function PatientEditPage() {
           {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
           <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit, onValidationFailed)}>
             <div className="animate-fade-in rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
-              {activeTab === "overview" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <User className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                      Patient Overview
-                    </h2>
-                  </div>
-
-                  <div className="border-t border-gray-100 pt-6">
-                    <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                      Height &amp; Weight
-                    </h3>
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Height (cm)
-                        </label>
-                        <input
-                          type="number"
-                          {...register("height_cm")}
-                          placeholder="e.g. 170"
-                          step="0.1"
-                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Weight (kg)
-                        </label>
-                        <input
-                          type="number"
-                          {...register("weight_kg")}
-                          placeholder="e.g. 65"
-                          step="0.1"
-                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">BMI</label>
-                        <p className="mt-2 text-lg font-bold text-gray-900">
-                          {heightCm && weightKg && heightCm > 0
-                            ? (weightKg / (heightCm / 100) ** 2).toFixed(1)
-                            : "\u2014"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <PatientPersonalSection register={register} errors={errors} age={age} />
-
-                  <div className="border-t border-gray-100 pt-6">
-                    <PatientContactSection register={register} errors={errors} />
-                  </div>
-
-                  <div className="border-t border-gray-100 pt-6">
-                    <PatientAddressSection
-                      register={register}
-                      errors={errors}
-                      setValue={setValue}
-                      watch={watch}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "medical-history" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <HeartPulse className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                      Medical History
-                    </h2>
-                  </div>
-
-                  <MedicalHistorySection />
-
-                  <div className="border-t border-gray-100 pt-6">
-                    <FamilyHistorySection />
-                  </div>
-                </div>
-              )}
-
               {activeTab === "dermatology" && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">

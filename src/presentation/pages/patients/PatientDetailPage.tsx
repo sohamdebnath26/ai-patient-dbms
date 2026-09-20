@@ -19,6 +19,11 @@ import {
   Phone,
   Mail,
   MapPin,
+  Info,
+  Heart,
+  Activity,
+  Smile,
+  AlertTriangle,
 } from "lucide-react";
 
 interface AssessmentCard {
@@ -74,6 +79,16 @@ function formatTimestamp(iso: string): string {
   return `${day} ${month} ${year} \u2022 ${h12}:${mm} ${ampm}`;
 }
 
+const InfoField = ({ label, value }: { label: string; value: string | null | undefined }) => {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-gray-800">{value.replace(/_/g, " ")}</p>
+    </div>
+  );
+};
+
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
@@ -95,6 +110,7 @@ export function PatientDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [expandedSnapshots, setExpandedSnapshots] = useState<Set<string>>(new Set());
   const [deregisterOpen, setDeregisterOpen] = useState(false);
+  const [showPatientInfo, setShowPatientInfo] = useState(false);
 
   function toggleExpanded(timestamp: string) {
     setExpandedSnapshots((prev) => {
@@ -159,6 +175,18 @@ export function PatientDetailPage() {
                 <Pencil className="h-4 w-4" /> Start Consultation
               </button>
             )}
+            <button
+              onClick={() => {
+                setShowPatientInfo(!showPatientInfo);
+              }}
+              className={`inline-flex items-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-bold transition-all ${
+                showPatientInfo
+                  ? "border-blue-400 bg-blue-50 text-blue-700 shadow-md"
+                  : "border-blue-200 text-blue-600 hover:bg-blue-50"
+              }`}
+            >
+              <Info className="h-4 w-4" /> Patient Info
+            </button>
             {patient.status !== "deregistered" && profile?.role === "doctor" && (
               <button
                 type="button"
@@ -231,6 +259,152 @@ export function PatientDetailPage() {
             </div>
           </div>
         </div>
+
+        {showPatientInfo && (
+          <div className="rounded-2xl border border-blue-200 bg-white p-6 shadow-lg">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+                <Info className="h-5 w-5 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-extrabold tracking-tight text-gray-900">
+                Patient Information
+              </h2>
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Smile className="h-4 w-4 text-amber-500" />
+                  <h3 className="text-sm font-bold tracking-wide text-amber-600 uppercase">
+                    Demographics
+                  </h3>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <InfoField label="First Name" value={patient.first_name} />
+                  <InfoField label="Last Name" value={patient.last_name} />
+                  <InfoField label="Date of Birth" value={patient.dob} />
+                  <InfoField label="Age" value={age !== null ? `${age} yrs` : null} />
+                  <InfoField label="Gender" value={patient.gender} />
+                  <InfoField label="Blood Group" value={patient.blood_group} />
+                  <InfoField label="MRN" value={patient.mrn} />
+                  <InfoField label="Status" value={patient.status} />
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-sky-50 p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-blue-500" />
+                    <h3 className="text-sm font-bold tracking-wide text-blue-600 uppercase">
+                      Contact Details
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <InfoField label="Phone" value={patient.phone} />
+                    <InfoField label="Email" value={patient.email} />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-purple-50 p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-violet-500" />
+                    <h3 className="text-sm font-bold tracking-wide text-violet-600 uppercase">
+                      Address
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <InfoField label="Line 1" value={patient.address_line1 || patient.address} />
+                    <InfoField label="Line 2" value={patient.address_line2} />
+                    <InfoField label="Landmark" value={patient.landmark} />
+                    <InfoField label="City" value={patient.city} />
+                    <InfoField label="District" value={patient.district} />
+                    <InfoField label="State" value={patient.state} />
+                    <InfoField label="Country" value={patient.country} />
+                    <InfoField label="Postal Code" value={patient.postal_code} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-emerald-500" />
+                  <h3 className="text-sm font-bold tracking-wide text-emerald-600 uppercase">
+                    Medical History
+                  </h3>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <InfoField label="Chief Complaint" value={patient.chief_complaint} />
+                  <InfoField label="Present Illness" value={patient.present_illness} />
+                  <InfoField label="Primary Diagnosis" value={patient.primary_diagnosis} />
+                  <InfoField label="Secondary Diagnosis" value={patient.secondary_diagnosis} />
+                  <InfoField label="Chronic Conditions" value={patient.chronic_conditions} />
+                  <InfoField
+                    label="Other Medical Conditions"
+                    value={patient.other_medical_conditions}
+                  />
+                  <InfoField
+                    label="Previous Skin Diseases"
+                    value={patient.previous_skin_diseases}
+                  />
+                  <InfoField label="Previous Surgeries" value={patient.previous_surgeries} />
+                  {patient.previous_skin_cancer && (
+                    <InfoField label="Skin Cancer History" value={patient.medical_notes} />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50 to-pink-50 p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-rose-500" />
+                    <h3 className="text-sm font-bold tracking-wide text-rose-600 uppercase">
+                      Lifestyle &amp; Family
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <InfoField label="Smoking Status" value={patient.smoking_status} />
+                    <InfoField label="Alcohol Consumption" value={patient.alcohol_consumption} />
+                    {patient.gender?.toLowerCase() === "female" && (
+                      <InfoField label="Pregnancy Status" value={patient.pregnancy_status} />
+                    )}
+                    <InfoField label="Family History" value={patient.family_history} />
+                    <InfoField label="Family History (Skin)" value={patient.family_history_skin} />
+                    <InfoField
+                      label="Family History (Cancer)"
+                      value={patient.family_history_cancer}
+                    />
+                    <InfoField label="Sun Exposure History" value={patient.sun_exposure_history} />
+                    <InfoField
+                      label="Occupational Exposure"
+                      value={patient.occupational_exposure}
+                    />
+                    <InfoField
+                      label="Cosmetic Product Usage"
+                      value={patient.cosmetic_product_usage}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-sky-50 p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-cyan-500" />
+                    <h3 className="text-sm font-bold tracking-wide text-cyan-600 uppercase">
+                      Emergency Contact
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <InfoField label="Name" value={patient.emergency_contact_name} />
+                    <InfoField label="Phone" value={patient.emergency_contact_phone} />
+                    <InfoField
+                      label="Relationship"
+                      value={patient.emergency_contact_relationship}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1">
           <button
