@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   usePatient,
@@ -30,7 +30,6 @@ import {
   X,
 } from "lucide-react";
 import type { UpdatePatientInput } from "@domain/patient";
-import { useRef, useEffect } from "react";
 
 interface AssessmentCard {
   bodyArea: string;
@@ -455,21 +454,8 @@ export function PatientDetailPage() {
   const [showPatientInfo, setShowPatientInfo] = useState(false);
   const [editingPatientInfo, setEditingPatientInfo] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
-  const [measurements, setMeasurements] = useState<{ height: string; weight: string }>({
-    height: "",
-    weight: "",
-  });
   const updatePatientMutation = useUpdatePatient();
   const toast = useToast();
-
-  useEffect(() => {
-    if (patient) {
-      setMeasurements({
-        height: patient.height_cm != null ? String(patient.height_cm) : "",
-        weight: patient.weight_kg != null ? String(patient.weight_kg) : "",
-      });
-    }
-  }, [patient]);
 
   function startEditingPatientInfo() {
     setEditForm({
@@ -530,8 +516,6 @@ export function PatientDetailPage() {
     delete (input as Record<string, unknown>).follow_up_date;
     delete (input as Record<string, unknown>).follow_up_plan;
     delete (input as Record<string, unknown>).follow_up_instructions;
-    delete (input as Record<string, unknown>).height_cm;
-    delete (input as Record<string, unknown>).weight_kg;
     updatePatientMutation.mutate(
       { id, input },
       {
@@ -944,17 +928,14 @@ export function PatientDetailPage() {
                       value={
                         editingPatientInfo
                           ? editForm.height_cm
-                          : measurements.height !== ""
-                            ? measurements.height
-                            : patient.height_cm != null
-                              ? String(patient.height_cm)
-                              : ""
+                          : patient.height_cm != null
+                            ? String(patient.height_cm)
+                            : ""
                       }
                       editing={editingPatientInfo}
                       type="number"
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, height_cm: v }));
-                        setMeasurements((m) => ({ ...m, height: v }));
                       }}
                     />
                     <EditableField
@@ -962,17 +943,14 @@ export function PatientDetailPage() {
                       value={
                         editingPatientInfo
                           ? editForm.weight_kg
-                          : measurements.weight !== ""
-                            ? measurements.weight
-                            : patient.weight_kg != null
-                              ? String(patient.weight_kg)
-                              : ""
+                          : patient.weight_kg != null
+                            ? String(patient.weight_kg)
+                            : ""
                       }
                       editing={editingPatientInfo}
                       type="number"
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, weight_kg: v }));
-                        setMeasurements((m) => ({ ...m, weight: v }));
                       }}
                     />
                     <div>
@@ -981,14 +959,10 @@ export function PatientDetailPage() {
                         {(() => {
                           const h = editingPatientInfo
                             ? parseFloat(editForm.height_cm)
-                            : isNaN(parseFloat(measurements.height))
-                              ? (patient.height_cm ?? 0)
-                              : parseFloat(measurements.height);
+                            : (patient.height_cm ?? 0);
                           const w = editingPatientInfo
                             ? parseFloat(editForm.weight_kg)
-                            : isNaN(parseFloat(measurements.weight))
-                              ? (patient.weight_kg ?? 0)
-                              : parseFloat(measurements.weight);
+                            : (patient.weight_kg ?? 0);
                           if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
                           return "\u2014";
                         })()}
@@ -1343,33 +1317,22 @@ export function PatientDetailPage() {
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">Height (cm)</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {measurements.height !== ""
-                          ? measurements.height
-                          : patient.height_cm != null
-                            ? patient.height_cm
-                            : "\u2014"}
+                        {patient.height_cm != null ? patient.height_cm : "\u2014"}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">Weight (kg)</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {measurements.weight !== ""
-                          ? measurements.weight
-                          : patient.weight_kg != null
-                            ? patient.weight_kg
-                            : "\u2014"}
+                        {patient.weight_kg != null ? patient.weight_kg : "\u2014"}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">BMI</p>
                       <p className="text-sm font-medium text-gray-900">
                         {(() => {
-                          const h = parseFloat(measurements.height);
-                          const w = parseFloat(measurements.weight);
-                          const hVal = isNaN(h) ? patient.height_cm : h;
-                          const wVal = isNaN(w) ? patient.weight_kg : w;
-                          if (hVal && wVal && hVal > 0)
-                            return (wVal / (hVal / 100) ** 2).toFixed(1);
+                          const h = patient.height_cm;
+                          const w = patient.weight_kg;
+                          if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
                           return "\u2014";
                         })()}
                       </p>

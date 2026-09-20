@@ -72,6 +72,8 @@ interface PatientRow {
   sun_exposure_history: string | null;
   cosmetic_product_usage: string | null;
   occupational_exposure: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
 }
 
 interface SupabaseError {
@@ -248,6 +250,8 @@ export class SupabasePatientRepository implements IPatientRepository {
         sun_exposure_history: input.sun_exposure_history ?? null,
         cosmetic_product_usage: input.cosmetic_product_usage ?? null,
         occupational_exposure: input.occupational_exposure ?? null,
+        height_cm: input.height_cm ?? null,
+        weight_kg: input.weight_kg ?? null,
       })
       .select("*")
       .single()) as unknown as {
