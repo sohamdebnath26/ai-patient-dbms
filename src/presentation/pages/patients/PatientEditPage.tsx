@@ -33,7 +33,6 @@ import { MedicalHistorySection } from "@presentation/components/patient/MedicalH
 import { FamilyHistorySection } from "@presentation/components/patient/FamilyHistorySection";
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
-import { MedicalAlertsSection } from "@presentation/components/patient/MedicalAlertsSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { computeAge } from "@presentation/components/patient/utils";
 import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
@@ -57,7 +56,7 @@ const TABS = [
   { key: "dermatology", label: "Dermatology" },
   { key: "medical-history", label: "Medical History" },
   { key: "medications", label: "Medications" },
-  { key: "alerts", label: "Alerts & Notes" },
+  { key: "alerts", label: "Doctor's Notes" },
   { key: "follow-up-plans", label: "Follow up Date and Plans" },
 ] as const;
 
@@ -759,26 +758,16 @@ export function PatientEditPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Sparkles className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-semibold text-gray-900">Alerts & Notes</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Doctor&apos;s Notes</h2>
                   </div>
 
-                  <div className="space-y-6">
-                    <MedicalAlertsSection
-                      register={register}
-                      errors={errors}
-                      alerts={clinical?.alerts ?? []}
-                      pendingAlerts={[]}
-                    />
-                    <div className="border-t border-gray-100 pt-6">
-                      <ClinicalNotesSection
-                        notes={clinical?.clinicalNotes ?? []}
-                        adding={addNote.isPending}
-                        onAdd={(input) => {
-                          addNote.mutate(input);
-                        }}
-                      />
-                    </div>
-                  </div>
+                  <ClinicalNotesSection
+                    notes={clinical?.clinicalNotes ?? []}
+                    adding={addNote.isPending}
+                    onAdd={(input) => {
+                      addNote.mutate(input);
+                    }}
+                  />
                 </div>
               )}
 
