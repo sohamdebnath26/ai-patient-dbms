@@ -951,9 +951,9 @@ export function PatientDetailPage() {
                       }}
                     />
                     <div>
-                      <InfoField
-                        label="BMI"
-                        value={(() => {
+                      <p className="text-[11px] font-semibold text-gray-500">BMI</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {(() => {
                           const h = editingPatientInfo
                             ? parseFloat(editForm.height_cm)
                             : (patient.height_cm ?? 0);
@@ -961,9 +961,9 @@ export function PatientDetailPage() {
                             ? parseFloat(editForm.weight_kg)
                             : (patient.weight_kg ?? 0);
                           if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
-                          return null;
+                          return "\u2014";
                         })()}
-                      />
+                      </p>
                     </div>
                   </div>
                 </div>
