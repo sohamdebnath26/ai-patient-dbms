@@ -944,8 +944,11 @@ export function PatientDetailPage() {
                       value={
                         editingPatientInfo
                           ? editForm.height_cm
-                          : measurements.height ||
-                            (patient.height_cm != null ? String(patient.height_cm) : "")
+                          : measurements.height !== ""
+                            ? measurements.height
+                            : patient.height_cm != null
+                              ? String(patient.height_cm)
+                              : ""
                       }
                       editing={editingPatientInfo}
                       type="number"
@@ -959,8 +962,11 @@ export function PatientDetailPage() {
                       value={
                         editingPatientInfo
                           ? editForm.weight_kg
-                          : measurements.weight ||
-                            (patient.weight_kg != null ? String(patient.weight_kg) : "")
+                          : measurements.weight !== ""
+                            ? measurements.weight
+                            : patient.weight_kg != null
+                              ? String(patient.weight_kg)
+                              : ""
                       }
                       editing={editingPatientInfo}
                       type="number"
@@ -975,10 +981,14 @@ export function PatientDetailPage() {
                         {(() => {
                           const h = editingPatientInfo
                             ? parseFloat(editForm.height_cm)
-                            : parseFloat(measurements.height) || (patient.height_cm ?? 0);
+                            : isNaN(parseFloat(measurements.height))
+                              ? (patient.height_cm ?? 0)
+                              : parseFloat(measurements.height);
                           const w = editingPatientInfo
                             ? parseFloat(editForm.weight_kg)
-                            : parseFloat(measurements.weight) || (patient.weight_kg ?? 0);
+                            : isNaN(parseFloat(measurements.weight))
+                              ? (patient.weight_kg ?? 0)
+                              : parseFloat(measurements.weight);
                           if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
                           return "\u2014";
                         })()}
@@ -1333,24 +1343,33 @@ export function PatientDetailPage() {
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">Height (cm)</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {measurements.height ||
-                          (patient.height_cm != null ? patient.height_cm : "\u2014")}
+                        {measurements.height !== ""
+                          ? measurements.height
+                          : patient.height_cm != null
+                            ? patient.height_cm
+                            : "\u2014"}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">Weight (kg)</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {measurements.weight ||
-                          (patient.weight_kg != null ? patient.weight_kg : "\u2014")}
+                        {measurements.weight !== ""
+                          ? measurements.weight
+                          : patient.weight_kg != null
+                            ? patient.weight_kg
+                            : "\u2014"}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold text-gray-500">BMI</p>
                       <p className="text-sm font-medium text-gray-900">
                         {(() => {
-                          const h = parseFloat(measurements.height) || patient.height_cm;
-                          const w = parseFloat(measurements.weight) || patient.weight_kg;
-                          if (h && w && h > 0) return (w / (h / 100) ** 2).toFixed(1);
+                          const h = parseFloat(measurements.height);
+                          const w = parseFloat(measurements.weight);
+                          const hVal = isNaN(h) ? patient.height_cm : h;
+                          const wVal = isNaN(w) ? patient.weight_kg : w;
+                          if (hVal && wVal && hVal > 0)
+                            return (wVal / (hVal / 100) ** 2).toFixed(1);
                           return "\u2014";
                         })()}
                       </p>
@@ -1508,6 +1527,35 @@ export function PatientDetailPage() {
                                       ))}
                                     </div>
                                   )}
+                                </div>
+
+                                <div>
+                                  <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                                    Medical Alerts
+                                  </h3>
+                                  <div className="rounded-lg border border-gray-200 bg-white p-4">
+                                    {(clinical?.alerts ?? []).length > 0 ? (
+                                      <div className="flex flex-wrap gap-2">
+                                        {(clinical?.alerts ?? []).map((alert) => (
+                                          <span
+                                            key={alert.id}
+                                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                                              alert.category === "allergy"
+                                                ? "border-red-200 bg-red-50 text-red-700"
+                                                : "border-yellow-200 bg-yellow-50 text-yellow-700"
+                                            }`}
+                                          >
+                                            {alert.category === "allergy" ? "Allergy" : "Alert"}:{" "}
+                                            {alert.label}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-gray-400">
+                                        No known alerts or allergies.
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
 
                                 <div>
