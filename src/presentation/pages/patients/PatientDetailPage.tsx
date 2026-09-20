@@ -145,6 +145,122 @@ const EditableField = ({
   );
 };
 
+const SKIN_DISEASE_SUGGESTIONS = [
+  "Eczema",
+  "Psoriasis",
+  "Acne Vulgaris",
+  "Rosacea",
+  "Atopic Dermatitis",
+  "Contact Dermatitis",
+  "Seborrheic Dermatitis",
+  "Urticaria",
+  "Vitiligo",
+  "Melasma",
+  "Actinic Keratosis",
+  "Basal Cell Carcinoma",
+  "Squamous Cell Carcinoma",
+  "Melanoma",
+  "Dermatofibroma",
+  "Keratosis Pilaris",
+  "Lichen Planus",
+  "Pityriasis Rosea",
+  "Tinea",
+  "Cellulitis",
+  "Impetigo",
+  "Herpes Zoster",
+  "Warts",
+  "Molluscum Contagiosum",
+  "Alopecia Areata",
+];
+
+const SURGERY_SUGGESTIONS = [
+  "Appendectomy",
+  "Cholecystectomy",
+  "C-Section",
+  "Hysterectomy",
+  "Tonsillectomy",
+  "Knee Arthroscopy",
+  "Hip Replacement",
+  "Cataract Surgery",
+  "Skin Excision",
+  "Mohs Surgery",
+  "Cryotherapy",
+  "Laser Surgery",
+  "Skin Graft",
+  "Blepharoplasty",
+  "Rhinoplasty",
+  "Hernia Repair",
+  "Thyroidectomy",
+  "Coronary Bypass",
+  "Angioplasty",
+  "Biopsy",
+];
+
+const CHRONIC_SUGGESTIONS = [
+  "Diabetes Mellitus",
+  "Hypertension",
+  "Asthma",
+  "COPD",
+  "Hypothyroidism",
+  "Hyperthyroidism",
+  "Rheumatoid Arthritis",
+  "Osteoarthritis",
+  "Osteoporosis",
+  "Coronary Artery Disease",
+  "Chronic Kidney Disease",
+  "Liver Cirrhosis",
+  "Epilepsy",
+  "Migraine",
+  "Anemia",
+  "Depression",
+  "Anxiety Disorder",
+  "Sleep Apnea",
+  "GERD",
+  "IBS",
+  "Crohn's Disease",
+  "Ulcerative Colitis",
+  "Multiple Sclerosis",
+  "Parkinson's Disease",
+  "HIV",
+];
+
+const AutoCompleteField = ({
+  label,
+  value,
+  editing,
+  onChange,
+  suggestions,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  onChange?: (v: string) => void;
+  suggestions: string[];
+}) => {
+  if (!editing && !value) return null;
+  if (!editing) {
+    return <InfoField label={label} value={value} />;
+  }
+  const listId = `list-${label.replace(/\s/g, "-")}`;
+  return (
+    <div>
+      <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">{label}</p>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        list={listId}
+        className="mt-0.5 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-sm font-semibold text-gray-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+      />
+      <datalist id={listId}>
+        {suggestions.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+    </div>
+  );
+};
+
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
@@ -629,7 +745,6 @@ export function PatientDetailPage() {
                   </div>
                 </div>
               </div>
-
               <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
                 <div className="mb-4 flex items-center gap-2">
                   <Heart className="h-4 w-4 text-emerald-500" />
@@ -638,55 +753,7 @@ export function PatientDetailPage() {
                   </h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <EditableField
-                    label="Chief Complaint"
-                    value={
-                      editingPatientInfo
-                        ? editForm.chief_complaint
-                        : (patient.chief_complaint ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, chief_complaint: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Present Illness"
-                    value={
-                      editingPatientInfo
-                        ? editForm.present_illness
-                        : (patient.present_illness ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, present_illness: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Primary Diagnosis"
-                    value={
-                      editingPatientInfo
-                        ? editForm.primary_diagnosis
-                        : (patient.primary_diagnosis ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, primary_diagnosis: v }));
-                    }}
-                  />
-                  <EditableField
-                    label="Secondary Diagnosis"
-                    value={
-                      editingPatientInfo
-                        ? editForm.secondary_diagnosis
-                        : (patient.secondary_diagnosis ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, secondary_diagnosis: v }));
-                    }}
-                  />
-                  <EditableField
+                  <AutoCompleteField
                     label="Chronic Conditions"
                     value={
                       editingPatientInfo
@@ -694,23 +761,12 @@ export function PatientDetailPage() {
                         : (patient.chronic_conditions ?? "")
                     }
                     editing={editingPatientInfo}
+                    suggestions={CHRONIC_SUGGESTIONS}
                     onChange={(v) => {
                       setEditForm((p) => ({ ...p, chronic_conditions: v }));
                     }}
                   />
-                  <EditableField
-                    label="Other Medical Conditions"
-                    value={
-                      editingPatientInfo
-                        ? editForm.other_medical_conditions
-                        : (patient.other_medical_conditions ?? "")
-                    }
-                    editing={editingPatientInfo}
-                    onChange={(v) => {
-                      setEditForm((p) => ({ ...p, other_medical_conditions: v }));
-                    }}
-                  />
-                  <EditableField
+                  <AutoCompleteField
                     label="Previous Skin Diseases"
                     value={
                       editingPatientInfo
@@ -718,11 +774,12 @@ export function PatientDetailPage() {
                         : (patient.previous_skin_diseases ?? "")
                     }
                     editing={editingPatientInfo}
+                    suggestions={SKIN_DISEASE_SUGGESTIONS}
                     onChange={(v) => {
                       setEditForm((p) => ({ ...p, previous_skin_diseases: v }));
                     }}
                   />
-                  <EditableField
+                  <AutoCompleteField
                     label="Previous Surgeries"
                     value={
                       editingPatientInfo
@@ -730,6 +787,7 @@ export function PatientDetailPage() {
                         : (patient.previous_surgeries ?? "")
                     }
                     editing={editingPatientInfo}
+                    suggestions={SURGERY_SUGGESTIONS}
                     onChange={(v) => {
                       setEditForm((p) => ({ ...p, previous_surgeries: v }));
                     }}
@@ -748,7 +806,6 @@ export function PatientDetailPage() {
                   )}
                 </div>
               </div>
-
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="rounded-xl border border-rose-100 bg-gradient-to-br from-rose-50 to-pink-50 p-5">
                   <div className="mb-4 flex items-center gap-2">
