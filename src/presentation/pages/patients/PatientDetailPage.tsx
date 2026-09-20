@@ -522,6 +522,7 @@ export function PatientDetailPage() {
         onSuccess: () => {
           toast.success("Patient info updated.");
           setEditingPatientInfo(false);
+          setShowPatientInfo(false);
         },
         onError: (err) => {
           toast.error(err instanceof Error ? err.message : "Failed to update");
@@ -607,7 +608,7 @@ export function PatientDetailPage() {
                   : "border-blue-200 text-blue-600 hover:bg-blue-50"
               }`}
             >
-              <Info className="h-4 w-4" /> Patient Info
+              <Info className="h-4 w-4" /> {showPatientInfo ? "Click to Hide" : "Patient Info"}
             </button>
             {patient.status !== "deregistered" && profile?.role === "doctor" && (
               <button
