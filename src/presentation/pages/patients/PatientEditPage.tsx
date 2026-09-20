@@ -45,6 +45,26 @@ function parseTimelineSnapshots(
   return [];
 }
 
+const COMMON_ALLERGENS = [
+  "Dust",
+  "Pollen",
+  "Fish",
+  "Shellfish",
+  "Peanuts",
+  "Tree Nuts",
+  "Milk",
+  "Eggs",
+  "Soy",
+  "Wheat",
+  "Penicillin",
+  "Sulfa Drugs",
+  "Latex",
+  "Insect Stings",
+  "Animal Dander",
+  "Mold",
+  "Fragrances",
+];
+
 const TABS = [
   { key: "dermatology", label: "Dermatology" },
   { key: "medications", label: "Medications" },
@@ -483,31 +503,48 @@ export function PatientEditPage() {
                           onFocus={() => {
                             if (allergyInput.trim().length >= 1) setAllergyOpen(true);
                           }}
+                          onKeyDown={(e) => {
+                            if (!allergyOpen) return;
+                            const filtered = COMMON_ALLERGENS.filter(
+                              (a) =>
+                                !(otherMedicalVal ?? "")
+                                  .split(",")
+                                  .map((t) => t.trim())
+                                  .filter(Boolean)
+                                  .includes(a) &&
+                                a.toLowerCase().includes(allergyInput.trim().toLowerCase()),
+                            );
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const tags = (otherMedicalVal ?? "")
+                                .split(",")
+                                .map((t) => t.trim())
+                                .filter(Boolean);
+                              if (filtered.length > 0) {
+                                setValue(
+                                  "other_medical_conditions",
+                                  [...tags, filtered[0]].join(", "),
+                                  { shouldValidate: false },
+                                );
+                              } else if (allergyInput.trim()) {
+                                setValue(
+                                  "other_medical_conditions",
+                                  [...tags, allergyInput.trim()].join(", "),
+                                  { shouldValidate: false },
+                                );
+                              }
+                              setAllergyInput("");
+                              setAllergyOpen(false);
+                            } else if (e.key === "Escape") {
+                              setAllergyOpen(false);
+                            }
+                          }}
                           placeholder="Add allergy..."
                           className="min-w-[120px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
                         />
                       </div>
                       {allergyOpen &&
                         (() => {
-                          const COMMON_ALLERGENS = [
-                            "Dust",
-                            "Pollen",
-                            "Fish",
-                            "Shellfish",
-                            "Peanuts",
-                            "Tree Nuts",
-                            "Milk",
-                            "Eggs",
-                            "Soy",
-                            "Wheat",
-                            "Penicillin",
-                            "Sulfa Drugs",
-                            "Latex",
-                            "Insect Stings",
-                            "Animal Dander",
-                            "Mold",
-                            "Fragrances",
-                          ];
                           const tags = (otherMedicalVal ?? "")
                             .split(",")
                             .map((t) => t.trim())

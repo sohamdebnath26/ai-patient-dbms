@@ -88,9 +88,11 @@ function TagInput({ label, category, value, onChange, placeholder }: TagInputPro
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!showSuggestions || suggestions.length === 0) {
-      if (e.key === "Enter" && input.trim()) {
+      if (e.key === "Enter") {
         e.preventDefault();
-        addTag(input);
+        if (input.trim()) {
+          addTag(input);
+        }
       }
       return;
     }

@@ -149,9 +149,11 @@ const MultiSelectField = ({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!showDropdown || filtered.length === 0) {
-      if (e.key === "Enter" && inputText.trim()) {
+      if (e.key === "Enter") {
         e.preventDefault();
-        addTag(inputText);
+        if (inputText.trim()) {
+          addTag(inputText);
+        }
       }
       return;
     }
