@@ -623,8 +623,6 @@ export function PatientDetailPage() {
       chronic_conditions: patient.chronic_conditions || "",
       previous_skin_diseases: patient.previous_skin_diseases || "",
       previous_surgeries: patient.previous_surgeries || "",
-      other_medical_conditions: patient.other_medical_conditions || "",
-      medical_notes: patient.medical_notes || "",
     });
     setEditingMedicalHistory(true);
   }
@@ -1557,22 +1555,6 @@ export function PatientDetailPage() {
                     suggestions={SURGERY_SUGGESTIONS}
                     onChange={(v) => {
                       setMedicalHistoryForm((p) => ({ ...p, previous_surgeries: v }));
-                    }}
-                  />
-                  <MultiSelectField
-                    label="Other Med Conditions"
-                    value={
-                      editingMedicalHistory
-                        ? medicalHistoryForm.other_medical_conditions
-                        : (patient.other_medical_conditions ?? "")
-                    }
-                    editing={editingMedicalHistory}
-                    suggestions={CHRONIC_SUGGESTIONS}
-                    onChange={(v) => {
-                      setMedicalHistoryForm((p) => ({
-                        ...p,
-                        other_medical_conditions: v,
-                      }));
                     }}
                   />
                 </div>
