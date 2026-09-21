@@ -571,7 +571,6 @@ export function PatientDetailPage() {
       smoking_status: patient.smoking_status || "",
       alcohol_consumption: patient.alcohol_consumption || "",
       pregnancy_status: patient.pregnancy_status || "",
-      family_history: patient.family_history || "",
       family_history_skin: patient.family_history_skin || "",
       family_history_cancer: patient.family_history_cancer || "",
       sun_exposure_history: patient.sun_exposure_history || "",
@@ -1206,18 +1205,6 @@ export function PatientDetailPage() {
                         }}
                       />
                     )}
-                    <EditableField
-                      label="Family History"
-                      value={
-                        editingPatientInfo
-                          ? editForm.family_history
-                          : (patient.family_history ?? "")
-                      }
-                      editing={editingPatientInfo}
-                      onChange={(v) => {
-                        setEditForm((p) => ({ ...p, family_history: v }));
-                      }}
-                    />
                     <MultiSelectField
                       label="Sun Exposure"
                       value={
