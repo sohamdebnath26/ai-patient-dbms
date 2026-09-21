@@ -108,9 +108,11 @@ const MultiSelectField = ({
     .filter(Boolean);
 
   const filtered = inputText.trim()
-    ? suggestions.filter(
-        (s) => s.toLowerCase().includes(inputText.trim().toLowerCase()) && !tags.includes(s),
-      )
+    ? suggestions
+        .filter(
+          (s) => s.toLowerCase().includes(inputText.trim().toLowerCase()) && !tags.includes(s),
+        )
+        .slice(0, 5)
     : [];
 
   useEffect(() => {
@@ -429,6 +431,60 @@ const FAMILY_CANCER_SUGGESTIONS = [
   "Esophageal Cancer",
   "Bone Cancer",
   "Testicular Cancer",
+];
+
+const SUN_EXPOSURE_SUGGESTIONS = [
+  "Minimal",
+  "Moderate",
+  "High",
+  "Very High",
+  "Outdoor Occupation",
+  "Beach / Swimming",
+  "Tanning Beds",
+  "Childhood Sunburns",
+  "Chronic Recreational",
+  "Sun-Protective Practices",
+  "UV Therapy History",
+];
+
+const ENVIRONMENTAL_EXPOSURE_SUGGESTIONS = [
+  "Chemicals",
+  "Asbestos",
+  "Heavy Metals",
+  "Radiation",
+  "Pesticides / Herbicides",
+  "Industrial Solvents",
+  "Air Pollution",
+  "Coal / Silica Dust",
+  "Petroleum Products",
+  "Textile Dyes",
+  "Plastics / Resins",
+  "Mining Exposure",
+  "Construction Dust",
+  "Welding Fumes",
+];
+
+const COSMETIC_PRODUCT_SUGGESTIONS = [
+  "Foundation",
+  "Concealer",
+  "Sunscreen",
+  "Moisturizer",
+  "Face Wash / Cleanser",
+  "Toner",
+  "Serum",
+  "Retinoids / Retinol",
+  "Chemical Peels",
+  "Hair Dye / Bleach",
+  "Perfume / Fragrance",
+  "Deodorant / Antiperspirant",
+  "Nail Polish / Gel",
+  "Makeup Remover",
+  "Exfoliant / Scrub",
+  "BB / CC Cream",
+  "Powder",
+  "Lipstick / Lip Balm",
+  "Eye Makeup",
+  "Henna / Mehndi",
 ];
 
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
@@ -1138,7 +1194,7 @@ export function PatientDetailPage() {
                         setEditForm((p) => ({ ...p, family_history: v }));
                       }}
                     />
-                    <EditableField
+                    <MultiSelectField
                       label="Sun Exposure"
                       value={
                         editingPatientInfo
@@ -1146,30 +1202,33 @@ export function PatientDetailPage() {
                           : (patient.sun_exposure_history ?? "")
                       }
                       editing={editingPatientInfo}
+                      suggestions={SUN_EXPOSURE_SUGGESTIONS}
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, sun_exposure_history: v }));
                       }}
                     />
-                    <EditableField
-                      label="Occupational Exposure"
+                    <MultiSelectField
+                      label="Environmental Exposure"
                       value={
                         editingPatientInfo
                           ? editForm.occupational_exposure
                           : (patient.occupational_exposure ?? "")
                       }
                       editing={editingPatientInfo}
+                      suggestions={ENVIRONMENTAL_EXPOSURE_SUGGESTIONS}
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, occupational_exposure: v }));
                       }}
                     />
-                    <EditableField
-                      label="Cosmetic Usage"
+                    <MultiSelectField
+                      label="Cosmetic & Personal Care Products"
                       value={
                         editingPatientInfo
                           ? editForm.cosmetic_product_usage
                           : (patient.cosmetic_product_usage ?? "")
                       }
                       editing={editingPatientInfo}
+                      suggestions={COSMETIC_PRODUCT_SUGGESTIONS}
                       onChange={(v) => {
                         setEditForm((p) => ({ ...p, cosmetic_product_usage: v }));
                       }}

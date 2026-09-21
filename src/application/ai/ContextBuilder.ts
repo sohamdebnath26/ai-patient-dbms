@@ -88,7 +88,7 @@ export class ContextBuilder {
     if (patient.cosmetic_product_usage)
       sections.push(`Cosmetic Product Usage: ${patient.cosmetic_product_usage}`);
     if (patient.occupational_exposure)
-      sections.push(`Occupational Exposure: ${patient.occupational_exposure}`);
+      sections.push(`Environmental Exposure: ${patient.occupational_exposure}`);
 
     if (context.allergies.length > 0) {
       fetchedTopics.push("allergy");
