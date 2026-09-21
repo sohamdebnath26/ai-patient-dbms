@@ -28,6 +28,7 @@ import {
   Edit3,
   Save,
   X,
+  XCircle,
 } from "lucide-react";
 import type { UpdatePatientInput } from "@domain/patient";
 
@@ -688,7 +689,8 @@ export function PatientDetailPage() {
                   : "border-blue-200 text-blue-600 hover:bg-blue-50"
               }`}
             >
-              <Info className="h-4 w-4" /> {showPatientInfo ? "Click to Hide" : "Patient Info"}
+              {showPatientInfo ? <XCircle className="h-4 w-4" /> : <Info className="h-4 w-4" />}{" "}
+              {showPatientInfo ? "Click to Hide" : "Patient Info"}
             </button>
             {patient.status !== "deregistered" && profile?.role === "doctor" && (
               <button
