@@ -615,6 +615,43 @@ export function PatientDetailPage() {
     setEditingPatientInfo(false);
   }
 
+  const [editingMedicalHistory, setEditingMedicalHistory] = useState(false);
+  const [medicalHistoryForm, setMedicalHistoryForm] = useState<Record<string, string>>({});
+
+  function startEditingMedicalHistory() {
+    setMedicalHistoryForm({
+      chronic_conditions: patient.chronic_conditions || "",
+      previous_skin_diseases: patient.previous_skin_diseases || "",
+      previous_surgeries: patient.previous_surgeries || "",
+      other_medical_conditions: patient.other_medical_conditions || "",
+      medical_notes: patient.medical_notes || "",
+    });
+    setEditingMedicalHistory(true);
+  }
+
+  function saveMedicalHistory() {
+    if (!id) return;
+    const input: UpdatePatientInput = {
+      ...medicalHistoryForm,
+    };
+    updatePatientMutation.mutate(
+      { id, input },
+      {
+        onSuccess: () => {
+          toast.success("Medical history updated.");
+          setEditingMedicalHistory(false);
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to update");
+        },
+      },
+    );
+  }
+
+  function cancelEditingMedicalHistory() {
+    setEditingMedicalHistory(false);
+  }
+
   function toggleExpanded(timestamp: string) {
     setExpandedSnapshots((prev) => {
       const next = new Set(prev);
@@ -1054,7 +1091,7 @@ export function PatientDetailPage() {
 
               <div>
                 <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
-                  Medical History
+                  Previous Disease &amp; Surgeries
                 </h3>
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -1448,23 +1485,96 @@ export function PatientDetailPage() {
 
             {overviewSubTab === "medical" && (
               <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-                <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
-                  Conditions &amp; History
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <InfoField label="Chronic Conditions" value={patient.chronic_conditions} />
-                  <InfoField
-                    label="Previous Skin Diseases"
-                    value={patient.previous_skin_diseases}
-                  />
-                  <InfoField
-                    label="Other Medical Conditions"
-                    value={patient.other_medical_conditions}
-                  />
-                  <InfoField label="Previous Surgeries" value={patient.previous_surgeries} />
-                  {patient.previous_skin_cancer && (
-                    <InfoField label="Skin Cancer History" value={patient.medical_notes} />
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
+                    Conditions &amp; History
+                  </p>
+                  {!editingMedicalHistory ? (
+                    <button
+                      onClick={startEditingMedicalHistory}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-bold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                    >
+                      <Edit3 className="h-3 w-3" /> Edit
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={saveMedicalHistory}
+                        disabled={updatePatientMutation.isPending}
+                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {updatePatientMutation.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Save className="h-3 w-3" />
+                        )}
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditingMedicalHistory}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-bold text-gray-500 transition-colors hover:bg-gray-100"
+                      >
+                        <X className="h-3 w-3" /> Cancel
+                      </button>
+                    </div>
                   )}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <MultiSelectField
+                    label="Chronic Conditions"
+                    value={
+                      editingMedicalHistory
+                        ? medicalHistoryForm.chronic_conditions
+                        : (patient.chronic_conditions ?? "")
+                    }
+                    editing={editingMedicalHistory}
+                    suggestions={CHRONIC_SUGGESTIONS}
+                    onChange={(v) => {
+                      setMedicalHistoryForm((p) => ({ ...p, chronic_conditions: v }));
+                    }}
+                  />
+                  <MultiSelectField
+                    label="Previous Skin Diseases"
+                    value={
+                      editingMedicalHistory
+                        ? medicalHistoryForm.previous_skin_diseases
+                        : (patient.previous_skin_diseases ?? "")
+                    }
+                    editing={editingMedicalHistory}
+                    suggestions={SKIN_DISEASE_SUGGESTIONS}
+                    onChange={(v) => {
+                      setMedicalHistoryForm((p) => ({ ...p, previous_skin_diseases: v }));
+                    }}
+                  />
+                  <MultiSelectField
+                    label="Previous Surgeries"
+                    value={
+                      editingMedicalHistory
+                        ? medicalHistoryForm.previous_surgeries
+                        : (patient.previous_surgeries ?? "")
+                    }
+                    editing={editingMedicalHistory}
+                    suggestions={SURGERY_SUGGESTIONS}
+                    onChange={(v) => {
+                      setMedicalHistoryForm((p) => ({ ...p, previous_surgeries: v }));
+                    }}
+                  />
+                  <MultiSelectField
+                    label="Other Med Conditions"
+                    value={
+                      editingMedicalHistory
+                        ? medicalHistoryForm.other_medical_conditions
+                        : (patient.other_medical_conditions ?? "")
+                    }
+                    editing={editingMedicalHistory}
+                    suggestions={CHRONIC_SUGGESTIONS}
+                    onChange={(v) => {
+                      setMedicalHistoryForm((p) => ({
+                        ...p,
+                        other_medical_conditions: v,
+                      }));
+                    }}
+                  />
                 </div>
               </div>
             )}
