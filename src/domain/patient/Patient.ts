@@ -316,7 +316,10 @@ export const PatientFormSchema = z
       (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
       z.coerce.number().nonnegative().optional(),
     ),
-    follow_up_date: z.string().optional(),
+    follow_up_date: z.string().refine((v) => {
+      if (!v) return true;
+      return v >= new Date().toISOString().slice(0, 10);
+    }, "Follow-up date cannot be in the past"),
     follow_up_plan: z.string().optional(),
     follow_up_instructions: z.string().optional(),
   })
