@@ -164,18 +164,87 @@ export function PatientEditPage() {
 
   function onValidationFailed(errs: FieldErrors<EditPatientFormInput>) {
     const missing: { label: string; tab: TabKey }[] = [];
-    for (const field of Object.keys(FIELD_TAB_MAP)) {
-      if (errs[field as keyof EditPatientFormInput]) {
+
+    // Map all form fields to their respective tab information (key + label)
+    const errorFieldToTabMap: Record<string, { key: TabKey; label: string }> = {
+      ...FIELD_TAB_MAP,
+      follow_up_date: { key: "follow-up-plans", label: "Follow up Date" },
+      follow_up_plan: { key: "follow-up-plans", label: "Follow up Plan" },
+      follow_up_instructions: { key: "follow-up-plans", label: "Follow up Instructions" },
+      chronic_conditions: { key: "dermatology", label: "Chronic Conditions" },
+      primary_diagnosis: { key: "dermatology", label: "Primary Diagnosis" },
+      secondary_diagnosis: { key: "dermatology", label: "Secondary Diagnosis" },
+      skin_type: { key: "dermatology", label: "Skin Type" },
+      affected_body_areas: { key: "dermatology", label: "Affected Body Areas" },
+      disease_severity: { key: "dermatology", label: "Disease Severity" },
+      duration: { key: "dermatology", label: "Duration" },
+      current_flare: { key: "dermatology", label: "Current Flare" },
+      previous_skin_cancer: { key: "dermatology", label: "Previous Skin Cancer" },
+      current_treatment: { key: "dermatology", label: "Current Treatment" },
+      medical_notes: { key: "dermatology", label: "Medical Notes" },
+      chief_complaint: { key: "dermatology", label: "Chief Complaint" },
+      present_illness: { key: "dermatology", label: "Present Illness" },
+      previous_skin_diseases: { key: "dermatology", label: "Previous Skin Diseases" },
+      previous_surgeries: { key: "dermatology", label: "Previous Surgeries" },
+      other_medical_conditions: { key: "dermatology", label: "Other Medical Conditions" },
+      family_history: { key: "dermatology", label: "Family History" },
+      family_history_skin: { key: "dermatology", label: "Family History (Skin)" },
+      family_history_cancer: { key: "dermatology", label: "Family History (Cancer)" },
+      smoking_status: { key: "dermatology", label: "Smoking Status" },
+      alcohol_consumption: { key: "dermatology", label: "Alcohol Consumption" },
+      pregnancy_status: { key: "dermatology", label: "Pregnancy Status" },
+      date_of_onset: { key: "dermatology", label: "Date of Onset" },
+      symptoms: { key: "dermatology", label: "Symptoms" },
+      sun_exposure_history: { key: "dermatology", label: "Sun Exposure" },
+      cosmetic_product_usage: { key: "dermatology", label: "Cosmetic Usage" },
+      occupational_exposure: { key: "dermatology", label: "Occupational Exposure" },
+      height_cm: { key: "dermatology", label: "Height (cm)" },
+      weight_cm: { key: "dermatology", label: "Weight (kg)" },
+      first_name: { key: "dermatology", label: "First Name" },
+      last_name: { key: "dermatology", label: "Last Name" },
+      dob: { key: "dermatology", label: "Date of Birth" },
+      gender: { key: "dermatology", label: "Gender" },
+      blood_group: { key: "dermatology", label: "Blood Group" },
+      email: { key: "dermatology", label: "Email" },
+      phone: { key: "dermatology", label: "Phone" },
+      mrn: { key: "dermatology", label: "MRN" },
+      status: { key: "dermatology", label: "Status" },
+      address_line1: { key: "dermatology", label: "Address Line 1" },
+      address_line2: { key: "dermatology", label: "Address Line 2" },
+      landmark: { key: "dermatology", label: "Landmark" },
+      city: { key: "dermatology", label: "City" },
+      district: { key: "dermatology", label: "District" },
+      state: { key: "dermatology", label: "State" },
+      country: { key: "dermatology", label: "Country" },
+      postal_code: { key: "dermatology", label: "Postal Code" },
+      emergency_contact_name: { key: "dermatology", label: "Emergency Contact Name" },
+      emergency_contact_phone: { key: "dermatology", label: "Emergency Contact Phone" },
+      emergency_contact_relationship: {
+        key: "dermatology",
+        label: "Emergency Contact Relationship",
+      },
+    };
+
+    for (const field of Object.keys(errs)) {
+      const fieldKey = field as keyof EditPatientFormInput;
+      const tabInfo = errorFieldToTabMap[fieldKey];
+      if (tabInfo) {
         missing.push({
-          label: FIELD_TAB_MAP[field].label,
-          tab: FIELD_TAB_MAP[field].tab,
+          label: tabInfo.label,
+          tab: tabInfo.key,
         });
       }
     }
+
     if (missing.length > 0) {
-      setValidationBanner(missing.map((m) => m.label));
-      if (!FIELD_TAB_MAP[Object.keys(errs)[0] as keyof EditPatientFormInput]) return;
-      setActiveTab(missing[0].tab);
+      const uniqueMissing = missing.filter(
+        (item, index, self) =>
+          index === self.findIndex((t) => t.label === item.label && t.tab === item.tab),
+      );
+      setValidationBanner(uniqueMissing.map((m) => m.label));
+      if (uniqueMissing.length > 0) {
+        setActiveTab(uniqueMissing[0].tab);
+      }
     }
   }
 
