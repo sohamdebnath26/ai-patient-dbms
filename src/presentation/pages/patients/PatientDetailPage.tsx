@@ -7,6 +7,9 @@ import {
 } from "@presentation/hooks/usePatients";
 import { usePatientClinicalData } from "@presentation/hooks/useClinical";
 import { useProfile } from "@presentation/hooks/useProfile";
+import { useAuth } from "@presentation/hooks/useAuth";
+import { useCompleteLatestAppointment } from "@presentation/hooks/useAppointments";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@presentation/hooks/useToast";
 import { AppShell } from "@presentation/components/AppShell";
 import { ConfirmDialog } from "@presentation/components/ConfirmDialog";
@@ -527,6 +530,9 @@ export function PatientDetailPage() {
   const { profile } = useProfile();
   const { data: clinical } = usePatientClinicalData(id ?? "");
   const deregisterMutation = useDeregisterPatient();
+  const { user } = useAuth();
+  const completeLatestAppointment = useCompleteLatestAppointment();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [overviewSubTab, setOverviewSubTab] = useState("details");
@@ -672,7 +678,22 @@ export function PatientDetailPage() {
           <div className="flex items-center gap-2">
             {canEdit && (
               <button
-                onClick={() => void navigate(`/patients/${patient.id}/edit`)}
+                onClick={() => {
+                  void (async () => {
+                    if (user?.id) {
+                      try {
+                        await completeLatestAppointment.mutateAsync({
+                          patientId: patient.id,
+                          userId: user.id,
+                        });
+                      } catch {
+                        /* proceed even if no active appointment */
+                      }
+                    }
+                    void queryClient.invalidateQueries({ queryKey: ["clinical", patient.id] });
+                    void navigate(`/patients/${patient.id}/edit`);
+                  })();
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-amber-200 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-lg"
               >
                 <Pencil className="h-4 w-4" /> Start Consultation
