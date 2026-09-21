@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useRef } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useForm, FormProvider, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,7 @@ import { DermatologySection } from "@presentation/components/patient/Dermatology
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
-import { ArrowLeft, Loader2, Save, Pill, Sparkles, Sun, X } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Pill, Sparkles, Sun } from "lucide-react";
 
 function parseTimelineSnapshots(
   raw: string | null | undefined,
@@ -44,26 +44,6 @@ function parseTimelineSnapshots(
   }
   return [];
 }
-
-const COMMON_ALLERGENS = [
-  "Dust",
-  "Pollen",
-  "Fish",
-  "Shellfish",
-  "Peanuts",
-  "Tree Nuts",
-  "Milk",
-  "Eggs",
-  "Soy",
-  "Wheat",
-  "Penicillin",
-  "Sulfa Drugs",
-  "Latex",
-  "Insect Stings",
-  "Animal Dander",
-  "Mold",
-  "Fragrances",
-];
 
 const TABS = [
   { key: "dermatology", label: "Dermatology" },
@@ -98,9 +78,6 @@ export function PatientEditPage() {
   const isReceptionist = profile?.role === "receptionist";
   const [activeTab, setActiveTab] = useState<TabKey>("dermatology");
   const [validationBanner, setValidationBanner] = useState<string[] | null>(null);
-  const [allergyInput, setAllergyInput] = useState("");
-  const [allergyOpen, setAllergyOpen] = useState(false);
-  const allergyRef = useRef<HTMLDivElement>(null);
 
   const methods = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
@@ -111,100 +88,64 @@ export function PatientEditPage() {
     register,
     handleSubmit,
     reset,
-    watch,
-    setValue,
     formState: { errors },
   } = methods;
 
-  const genderValue = watch("gender");
-  const otherMedicalVal = watch("other_medical_conditions");
-
   useEffect(() => {
     if (patient) {
-      const snapshots = parseTimelineSnapshots(patient.cosmetic_product_usage);
-      const sorted = [...snapshots].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
-      const latest = sorted.length > 0 ? sorted[0].data : ({} as Record<string, unknown>);
-
       reset({
-        first_name: (latest.first_name as string) || patient.first_name,
-        last_name: (latest.last_name as string) || patient.last_name,
-        dob: (latest.dob as string) || patient.dob || "",
-        gender: (latest.gender as string) || patient.gender || "",
-        blood_group: (latest.blood_group as string) || patient.blood_group || "",
-        email: (latest.email as string) || patient.email || "",
-        phone: (latest.phone as string) || patient.phone || "",
-        mrn: (latest.mrn as string) || patient.mrn,
-        status: (latest.status as string) || patient.status,
-        address_line1:
-          (latest.address_line1 as string) || patient.address_line1 || patient.address || "",
-        address_line2: (latest.address_line2 as string) || patient.address_line2 || "",
-        landmark: (latest.landmark as string) || patient.landmark || "",
-        city: (latest.city as string) || patient.city || "",
-        district: (latest.district as string) || patient.district || "",
-        state: (latest.state as string) || patient.state || "",
-        country: (latest.country as string) || patient.country || "",
-        postal_code: (latest.postal_code as string) || patient.postal_code || "",
-        emergency_contact_name:
-          (latest.emergency_contact_name as string) || patient.emergency_contact_name || "",
-        emergency_contact_phone:
-          (latest.emergency_contact_phone as string) || patient.emergency_contact_phone || "",
-        emergency_contact_relationship:
-          (latest.emergency_contact_relationship as string) ||
-          patient.emergency_contact_relationship ||
-          "",
-        chronic_conditions:
-          (latest.chronic_conditions as string) || patient.chronic_conditions || "",
-        primary_diagnosis: (latest.primary_diagnosis as string) || patient.primary_diagnosis || "",
-        secondary_diagnosis:
-          (latest.secondary_diagnosis as string) || patient.secondary_diagnosis || "",
-        skin_type: (latest.skin_type as string) || patient.skin_type || "",
-        affected_body_areas:
-          (latest.affected_body_areas as string) || patient.affected_body_areas || "",
-        disease_severity: (latest.disease_severity as string) || patient.disease_severity || "",
-        duration: (latest.duration as string) || patient.duration || "",
-        current_flare:
-          ("current_flare" in latest ? (latest.current_flare as boolean) : patient.current_flare) ??
-          false,
-        previous_skin_cancer:
-          ("previous_skin_cancer" in latest
-            ? (latest.previous_skin_cancer as boolean)
-            : patient.previous_skin_cancer) ?? false,
-        current_treatment: (latest.current_treatment as string) || patient.current_treatment || "",
-        medical_notes: (latest.medical_notes as string) || patient.medical_notes || "",
-        chief_complaint: (latest.chief_complaint as string) || patient.chief_complaint || "",
-        present_illness: (latest.present_illness as string) || patient.present_illness || "",
-        previous_skin_diseases:
-          (latest.previous_skin_diseases as string) || patient.previous_skin_diseases || "",
-        previous_surgeries:
-          (latest.previous_surgeries as string) || patient.previous_surgeries || "",
-        other_medical_conditions:
-          (latest.other_medical_conditions as string) || patient.other_medical_conditions || "",
-        family_history: (latest.family_history as string) || patient.family_history || "",
-        family_history_skin:
-          (latest.family_history_skin as string) || patient.family_history_skin || "",
-        family_history_cancer:
-          (latest.family_history_cancer as string) || patient.family_history_cancer || "",
-        smoking_status: (latest.smoking_status as string) || patient.smoking_status || "",
-        alcohol_consumption:
-          (latest.alcohol_consumption as string) || patient.alcohol_consumption || "",
-        pregnancy_status: (latest.pregnancy_status as string) || patient.pregnancy_status || "",
-        date_of_onset: (latest.date_of_onset as string) || patient.date_of_onset || "",
-        symptoms: (latest.symptoms as string) || patient.symptoms || "",
-        sun_exposure_history:
-          (latest.sun_exposure_history as string) || patient.sun_exposure_history || "",
+        first_name: patient.first_name,
+        last_name: patient.last_name,
+        dob: patient.dob || "",
+        gender: patient.gender || "",
+        blood_group: patient.blood_group || "",
+        email: patient.email || "",
+        phone: patient.phone || "",
+        mrn: patient.mrn,
+        status: patient.status,
+        address_line1: patient.address_line1 || patient.address || "",
+        address_line2: patient.address_line2 || "",
+        landmark: patient.landmark || "",
+        city: patient.city || "",
+        district: patient.district || "",
+        state: patient.state || "",
+        country: patient.country || "",
+        postal_code: patient.postal_code || "",
+        emergency_contact_name: patient.emergency_contact_name || "",
+        emergency_contact_phone: patient.emergency_contact_phone || "",
+        emergency_contact_relationship: patient.emergency_contact_relationship || "",
+        chronic_conditions: "",
+        primary_diagnosis: patient.primary_diagnosis || "",
+        secondary_diagnosis: patient.secondary_diagnosis || "",
+        skin_type: "",
+        affected_body_areas: "",
+        disease_severity: patient.disease_severity || "",
+        duration: "",
+        current_flare: patient.current_flare ?? false,
+        previous_skin_cancer: patient.previous_skin_cancer ?? false,
+        current_treatment: "",
+        medical_notes: patient.medical_notes || "",
+        chief_complaint: patient.chief_complaint || "",
+        present_illness: "",
+        previous_skin_diseases: patient.previous_skin_diseases || "",
+        previous_surgeries: patient.previous_surgeries || "",
+        other_medical_conditions: patient.other_medical_conditions || "",
+        family_history: patient.family_history || "",
+        family_history_skin: patient.family_history_skin || "",
+        family_history_cancer: patient.family_history_cancer || "",
+        smoking_status: patient.smoking_status || "",
+        alcohol_consumption: patient.alcohol_consumption || "",
+        pregnancy_status: patient.pregnancy_status || "",
+        date_of_onset: "",
+        symptoms: "",
+        sun_exposure_history: patient.sun_exposure_history || "",
         cosmetic_product_usage: patient.cosmetic_product_usage || "",
-        occupational_exposure:
-          (latest.occupational_exposure as string) || patient.occupational_exposure || "",
-        height_cm:
-          ("height_cm" in latest ? (latest.height_cm as number) : patient.height_cm) ?? undefined,
-        weight_kg:
-          ("weight_kg" in latest ? (latest.weight_kg as number) : patient.weight_kg) ?? undefined,
-        follow_up_date: (latest.follow_up_date as string) || patient.follow_up_date || "",
-        follow_up_plan: (latest.follow_up_plan as string) || patient.follow_up_plan || "",
-        follow_up_instructions:
-          (latest.follow_up_instructions as string) || patient.follow_up_instructions || "",
+        occupational_exposure: patient.occupational_exposure || "",
+        height_cm: patient.height_cm ?? undefined,
+        weight_kg: patient.weight_kg ?? undefined,
+        follow_up_date: patient.follow_up_date || "",
+        follow_up_plan: patient.follow_up_plan || "",
+        follow_up_instructions: patient.follow_up_instructions || "",
       });
     }
   }, [patient, reset]);
@@ -220,19 +161,6 @@ export function PatientEditPage() {
       };
     }
   }, [updateMutation.isPending]);
-
-  useEffect(() => {
-    if (!allergyOpen) return;
-    function handler(e: MouseEvent) {
-      if (allergyRef.current && !allergyRef.current.contains(e.target as Node)) {
-        setAllergyOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-    };
-  }, [allergyOpen]);
 
   function onValidationFailed(errs: FieldErrors<EditPatientFormInput>) {
     const missing: { label: string; tab: TabKey }[] = [];
@@ -473,200 +401,6 @@ export function PatientEditPage() {
                   </div>
 
                   <DermatologySection />
-
-                  <div className="border-t border-gray-100 pt-6">
-                    <h3 className="mb-4 text-base font-semibold text-gray-900">Allergic to:</h3>
-                    <div ref={allergyRef} className="relative">
-                      <div className="focus-within:border-brand-500 focus-within:ring-brand-500 flex min-h-[38px] flex-wrap items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 focus-within:ring-1">
-                        {(() => {
-                          const tags = (otherMedicalVal ?? "")
-                            .split(",")
-                            .map((t) => t.trim())
-                            .filter(Boolean);
-                          return tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="bg-brand-50 text-brand-700 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium"
-                            >
-                              {tag}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setValue(
-                                    "other_medical_conditions",
-                                    tags.filter((t) => t !== tag).join(", "),
-                                    { shouldValidate: false },
-                                  );
-                                }}
-                                className="text-brand-400 hover:text-brand-600"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ));
-                        })()}
-                        <input
-                          type="text"
-                          value={allergyInput}
-                          onChange={(e) => {
-                            setAllergyInput(e.target.value);
-                            setAllergyOpen(e.target.value.trim().length >= 1);
-                          }}
-                          onFocus={() => {
-                            if (allergyInput.trim().length >= 1) setAllergyOpen(true);
-                          }}
-                          onKeyDown={(e) => {
-                            if (!allergyOpen) return;
-                            const filtered = COMMON_ALLERGENS.filter(
-                              (a) =>
-                                !(otherMedicalVal ?? "")
-                                  .split(",")
-                                  .map((t) => t.trim())
-                                  .filter(Boolean)
-                                  .includes(a) &&
-                                a.toLowerCase().includes(allergyInput.trim().toLowerCase()),
-                            );
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const tags = (otherMedicalVal ?? "")
-                                .split(",")
-                                .map((t) => t.trim())
-                                .filter(Boolean);
-                              if (filtered.length > 0) {
-                                setValue(
-                                  "other_medical_conditions",
-                                  [...tags, filtered[0]].join(", "),
-                                  { shouldValidate: false },
-                                );
-                              } else if (allergyInput.trim()) {
-                                setValue(
-                                  "other_medical_conditions",
-                                  [...tags, allergyInput.trim()].join(", "),
-                                  { shouldValidate: false },
-                                );
-                              }
-                              setAllergyInput("");
-                              setAllergyOpen(false);
-                            } else if (e.key === "Escape") {
-                              setAllergyOpen(false);
-                            }
-                          }}
-                          placeholder="Add allergy..."
-                          className="min-w-[120px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                        />
-                      </div>
-                      {allergyOpen &&
-                        (() => {
-                          const tags = (otherMedicalVal ?? "")
-                            .split(",")
-                            .map((t) => t.trim())
-                            .filter(Boolean);
-                          const suggestions = COMMON_ALLERGENS.filter(
-                            (a) =>
-                              !tags.includes(a) &&
-                              a.toLowerCase().includes(allergyInput.trim().toLowerCase()),
-                          );
-                          if (suggestions.length === 0 && allergyInput.trim().length >= 1) {
-                            return (
-                              <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setValue(
-                                      "other_medical_conditions",
-                                      [...tags, allergyInput.trim()].join(", "),
-                                      { shouldValidate: false },
-                                    );
-                                    setAllergyInput("");
-                                    setAllergyOpen(false);
-                                  }}
-                                  className="text-brand-600 hover:bg-brand-50 flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-                                >
-                                  <span className="text-brand-600">+</span>
-                                  <span>Add &quot;{allergyInput.trim()}&quot;</span>
-                                </button>
-                              </div>
-                            );
-                          }
-                          if (suggestions.length > 0) {
-                            return (
-                              <div className="absolute z-50 mt-1 max-h-44 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                                {suggestions.map((s) => (
-                                  <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => {
-                                      setValue(
-                                        "other_medical_conditions",
-                                        [...tags, s].join(", "),
-                                        { shouldValidate: false },
-                                      );
-                                      setAllergyInput("");
-                                      setAllergyOpen(false);
-                                    }}
-                                    className="hover:bg-brand-50 flex w-full items-center px-3 py-2 text-left text-sm"
-                                  >
-                                    {s}
-                                  </button>
-                                ))}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-gray-100 pt-6">
-                    <h3 className="mb-4 text-base font-semibold text-gray-900">Lifestyle</h3>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Smoking Status
-                        </label>
-                        <select
-                          {...register("smoking_status")}
-                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                        >
-                          <option value="">Select</option>
-                          <option value="never">Never</option>
-                          <option value="former">Former</option>
-                          <option value="current">Current</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Alcohol Consumption
-                        </label>
-                        <select
-                          {...register("alcohol_consumption")}
-                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                        >
-                          <option value="">Select</option>
-                          <option value="none">None</option>
-                          <option value="occasional">Occasional</option>
-                          <option value="moderate">Moderate</option>
-                          <option value="heavy">Heavy</option>
-                        </select>
-                      </div>
-                      {genderValue.toLowerCase() === "female" && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Pregnancy Status
-                          </label>
-                          <select
-                            {...register("pregnancy_status")}
-                            className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                          >
-                            <option value="">Select</option>
-                            <option value="not_pregnant">Not Pregnant</option>
-                            <option value="pregnant">Pregnant</option>
-                            <option value="unknown">Unknown</option>
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
               )}
 
