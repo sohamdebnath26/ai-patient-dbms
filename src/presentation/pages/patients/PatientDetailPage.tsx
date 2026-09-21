@@ -1089,7 +1089,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <MultiSelectField
-                      label="Family Hx (Skin)"
+                      label="Family History (Skin)"
                       value={
                         editingPatientInfo
                           ? editForm.family_history_skin
@@ -1102,7 +1102,7 @@ export function PatientDetailPage() {
                       }}
                     />
                     <MultiSelectField
-                      label="Family Hx (Cancer)"
+                      label="Family History (Cancer)"
                       value={
                         editingPatientInfo
                           ? editForm.family_history_cancer
@@ -1433,8 +1433,11 @@ export function PatientDetailPage() {
                     Family History
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <InfoField label="Family Hx (Skin)" value={patient.family_history_skin} />
-                    <InfoField label="Family Hx (Cancer)" value={patient.family_history_cancer} />
+                    <InfoField label="Family History (Skin)" value={patient.family_history_skin} />
+                    <InfoField
+                      label="Family History (Cancer)"
+                      value={patient.family_history_cancer}
+                    />
                     <InfoField label="Family History" value={patient.family_history} />
                   </div>
                 </div>
