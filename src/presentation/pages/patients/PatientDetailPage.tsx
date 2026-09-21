@@ -487,6 +487,28 @@ const COSMETIC_PRODUCT_SUGGESTIONS = [
   "Henna / Mehndi",
 ];
 
+const COMMON_ALLERGENS = [
+  "Dust",
+  "Pollen",
+  "Fish",
+  "Shellfish",
+  "Peanuts",
+  "Tree Nuts",
+  "Milk",
+  "Eggs",
+  "Soy",
+  "Wheat",
+  "Penicillin",
+  "Sulfa Drugs",
+  "Latex",
+  "Insect Stings",
+  "Animal Dander",
+  "Mold",
+  "Fragrances",
+  "NSAIDs",
+  "Aspirin",
+];
+
 const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
   if (!value) return null;
   return (
@@ -1239,6 +1261,27 @@ export function PatientDetailPage() {
 
               <div>
                 <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
+                  Allergies
+                </h3>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <MultiSelectField
+                    label="Known Allergies"
+                    value={
+                      editingPatientInfo
+                        ? editForm.other_medical_conditions
+                        : (patient.other_medical_conditions ?? "")
+                    }
+                    editing={editingPatientInfo}
+                    suggestions={COMMON_ALLERGENS}
+                    onChange={(v) => {
+                      setEditForm((p) => ({ ...p, other_medical_conditions: v }));
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2.5 flex items-center gap-2 text-[10px] font-extrabold tracking-widest text-gray-500 uppercase">
                   Emergency Contact
                 </h3>
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -1443,24 +1486,32 @@ export function PatientDetailPage() {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
                   <p className="mb-3 text-[10px] font-extrabold tracking-widest text-gray-400 uppercase">
-                    Alerts &amp; Allergies
+                    Allergies
                   </p>
-                  {(clinical?.alerts ?? []).filter((a) => a.category === "allergy").length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {(clinical?.alerts ?? [])
-                        .filter((a) => a.category === "allergy")
-                        .map((a) => (
+                  {(() => {
+                    const clinicalAllergies = (clinical?.alerts ?? [])
+                      .filter((a) => a.category === "allergy")
+                      .map((a) => a.label);
+                    const patientAllergies = (patient.other_medical_conditions ?? "")
+                      .split(",")
+                      .map((t) => t.trim())
+                      .filter(Boolean);
+                    const allAllergies = [...new Set([...clinicalAllergies, ...patientAllergies])];
+                    return allAllergies.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {allAllergies.map((allergy) => (
                           <span
-                            key={a.id}
+                            key={allergy}
                             className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700"
                           >
-                            {a.label}
+                            {allergy}
                           </span>
                         ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400">No known allergies.</p>
-                  )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">No known allergies.</p>
+                    );
+                  })()}
                 </div>
               </div>
             )}
