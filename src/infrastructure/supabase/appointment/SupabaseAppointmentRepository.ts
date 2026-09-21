@@ -143,6 +143,7 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
         appointment_time: input.appointment_time ?? null,
         duration_minutes: input.duration_minutes,
         type: input.type,
+        status: "scheduled",
         reason: input.reason ?? null,
         notes: input.notes ?? null,
         created_by: auth.userId,

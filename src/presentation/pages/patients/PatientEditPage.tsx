@@ -322,24 +322,36 @@ export function PatientEditPage() {
       { id, input: payload },
       {
         onSuccess: () => {
-          if (user?.id) {
-            completeAppointment.mutate({ patientId: id, userId: user.id });
-          }
-          if (data.follow_up_date && user?.id) {
-            bookAppointment.mutate({
-              input: {
-                patient_id: id,
-                appointment_date: data.follow_up_date,
-                duration_minutes: 30,
-                type: "in_person",
-                reason: data.follow_up_plan || "Follow-up consultation",
-                notes: data.follow_up_instructions || undefined,
-              },
-              userId: user.id,
-            });
-          }
-          toast.success("Patient saved successfully.");
-          void navigate("/patients");
+          void (async () => {
+            if (user?.id) {
+              try {
+                await completeAppointment.mutateAsync({ patientId: id, userId: user.id });
+              } catch {
+                /* no active appointment to complete */
+              }
+            }
+            if (data.follow_up_date && user?.id) {
+              try {
+                await bookAppointment.mutateAsync({
+                  input: {
+                    patient_id: id,
+                    appointment_date: data.follow_up_date,
+                    duration_minutes: 30,
+                    type: "in_person",
+                    reason: data.follow_up_plan || "Follow-up consultation",
+                    notes: data.follow_up_instructions || undefined,
+                  },
+                  userId: user.id,
+                });
+              } catch (err) {
+                toast.error(
+                  err instanceof Error ? err.message : "Failed to schedule follow-up appointment",
+                );
+              }
+            }
+            toast.success("Patient saved successfully.");
+            void navigate("/patients");
+          })();
         },
       },
     );
