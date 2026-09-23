@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react
 import type { AuthStatus, AuthState } from "@domain/auth/AuthState";
 import type { User } from "@domain/auth/User";
 import type { AuthSession } from "@domain/auth/User";
+import type { AuthChangeEvent } from "@application/ports/IAuthRepository";
 import { AuthService } from "@application/auth/AuthService";
 import { SupabaseAuthRepository } from "@infrastructure/supabase/auth/SupabaseAuthRepository";
 import { AuthContext } from "../contexts/AuthContext";
@@ -18,10 +19,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     status: getInitialStatus(),
     user: null,
     error: null,
+    passwordRecovery: false,
   });
 
   const updateState = useCallback(
-    (patch: { status?: AuthStatus; user?: User | null; error?: string | null }) => {
+    (patch: {
+      status?: AuthStatus;
+      user?: User | null;
+      error?: string | null;
+      passwordRecovery?: boolean;
+    }) => {
       setState((prev) => ({ ...prev, ...patch }));
     },
     [],
@@ -50,14 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const unsubscribe = authService.onAuthStateChange((session: AuthSession | null) => {
-      if (cancelled) return;
-      if (session) {
-        updateState({ status: "authenticated", user: session.user });
-      } else {
-        updateState({ status: "unauthenticated", user: null });
-      }
-    });
+    const unsubscribe = authService.onAuthStateChange(
+      (event: AuthChangeEvent, session: AuthSession | null) => {
+        if (cancelled) return;
+        if (session) {
+          updateState({
+            status: "authenticated",
+            user: session.user,
+            passwordRecovery: event === "PASSWORD_RECOVERY",
+          });
+        } else {
+          updateState({ status: "unauthenticated", user: null, passwordRecovery: false });
+        }
+      },
+    );
 
     void init();
 

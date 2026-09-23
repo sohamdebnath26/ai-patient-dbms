@@ -1,4 +1,8 @@
-import type { IAuthRepository, Credentials } from "@application/ports/IAuthRepository";
+import type {
+  IAuthRepository,
+  Credentials,
+  AuthChangeEvent,
+} from "@application/ports/IAuthRepository";
 import type { AuthSession, AuthError } from "@domain/auth";
 import { mapSupabaseError } from "@domain/auth";
 import { getSupabaseClient } from "../client";
@@ -39,6 +43,9 @@ export class SupabaseAuthRepository implements IAuthRepository {
     const { error } = await client.auth.signUp({
       email: credentials.email,
       password: credentials.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/login`,
+      },
     });
     if (error) return { error: mapSupabaseError(error) };
     return { error: null };
@@ -105,19 +112,8 @@ export class SupabaseAuthRepository implements IAuthRepository {
     return { error: null };
   }
 
-  async resetPassword(
-    accessToken: string,
-    newPassword: string,
-  ): Promise<{ error: AuthError | null }> {
+  async resetPassword(newPassword: string): Promise<{ error: AuthError | null }> {
     const client = getSupabaseClient();
-    const { data, error: sessionError } = await client.auth.setSession({
-      access_token: accessToken,
-      refresh_token: accessToken,
-    });
-    if (sessionError) return { error: mapSupabaseError(sessionError) };
-    if (!data.session)
-      return { error: { code: "session-expired", message: "Invalid or expired reset link." } };
-
     const { error } = await client.auth.updateUser({ password: newPassword });
     if (error) return { error: mapSupabaseError(error) };
     return { error: null };
@@ -130,10 +126,12 @@ export class SupabaseAuthRepository implements IAuthRepository {
     return { session: toAuthSession(data.session), error: null };
   }
 
-  onAuthStateChange(callback: (session: AuthSession | null) => void): () => void {
+  onAuthStateChange(
+    callback: (event: AuthChangeEvent, session: AuthSession | null) => void,
+  ): () => void {
     const client = getSupabaseClient();
-    const { data } = client.auth.onAuthStateChange((_event, session) => {
-      callback(toAuthSession(session));
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      callback(event as AuthChangeEvent, toAuthSession(session));
     });
     return () => {
       data.subscription.unsubscribe();

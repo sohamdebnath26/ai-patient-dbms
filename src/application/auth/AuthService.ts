@@ -1,4 +1,8 @@
-import type { IAuthRepository, Credentials } from "@application/ports/IAuthRepository";
+import type {
+  IAuthRepository,
+  Credentials,
+  AuthChangeEvent,
+} from "@application/ports/IAuthRepository";
 import type { AuthSession, AuthError } from "@domain/auth";
 
 export class AuthService {
@@ -32,11 +36,8 @@ export class AuthService {
     return { success: true, error: null };
   }
 
-  async resetPassword(
-    accessToken: string,
-    newPassword: string,
-  ): Promise<{ success: boolean; error: AuthError | null }> {
-    const { error } = await this.authRepository.resetPassword(accessToken, newPassword);
+  async resetPassword(newPassword: string): Promise<{ success: boolean; error: AuthError | null }> {
+    const { error } = await this.authRepository.resetPassword(newPassword);
     if (error) return { success: false, error };
     return { success: true, error: null };
   }
@@ -45,7 +46,9 @@ export class AuthService {
     return this.authRepository.getSession();
   }
 
-  onAuthStateChange(callback: (session: AuthSession | null) => void): () => void {
+  onAuthStateChange(
+    callback: (event: AuthChangeEvent, session: AuthSession | null) => void,
+  ): () => void {
     return this.authRepository.onAuthStateChange(callback);
   }
 }

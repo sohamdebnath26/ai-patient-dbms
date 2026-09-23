@@ -1,36 +1,31 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@presentation/hooks/useAuth";
-import { Link, useSearchParams, useNavigate } from "react-router";
-import { Loader2, Activity, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Loader2, Activity, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export function ResetPasswordPage() {
-  const { resetPassword } = useAuth();
-  const [searchParams] = useSearchParams();
+  const { resetPassword, isAuthenticated, isLoading, isPasswordRecovery, logout } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-
-  const accessToken = searchParams.get("access_token");
-  const type = searchParams.get("type");
+  const [notRecovery, setNotRecovery] = useState(false);
 
   useEffect(() => {
-    if (!accessToken || type !== "recovery") {
+    if (!isLoading && isAuthenticated && !isPasswordRecovery) {
+      setNotRecovery(true);
+    }
+    if (!isLoading && !isAuthenticated) {
       setError("Invalid or expired reset link. Please request a new one.");
     }
-  }, [accessToken, type]);
+  }, [isLoading, isAuthenticated, isPasswordRecovery]);
 
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-
-    if (!accessToken) {
-      setError("Invalid or expired reset link.");
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -42,23 +37,32 @@ export function ResetPasswordPage() {
       return;
     }
 
-    setLoading(true);
-    resetPassword(accessToken, password)
-      .then(({ error: resetError }) => {
-        setLoading(false);
+    setSubmitting(true);
+    resetPassword(password)
+      .then(async ({ error: resetError }) => {
+        setSubmitting(false);
         if (resetError) {
           setError(resetError.message);
           return;
         }
         setDone(true);
+        await logout();
         setTimeout(() => {
           void navigate("/auth/login");
         }, 3000);
       })
       .catch(() => {
         setError("An unexpected error occurred.");
-        setLoading(false);
+        setSubmitting(false);
       });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <Loader2 className="text-brand-600 h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (done) {
@@ -87,11 +91,22 @@ export function ResetPasswordPage() {
           <h1 className="text-xl font-semibold text-gray-900">Set new password</h1>
         </div>
 
+        {notRecovery && !error && (
+          <div className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>
+                This page is for password recovery only. Please use the link from your email.
+              </span>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>
         )}
 
-        {accessToken && type === "recovery" && !error && (
+        {isAuthenticated && isPasswordRecovery && !error && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -130,10 +145,10 @@ export function ResetPasswordPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="bg-brand-600 hover:bg-brand-700 focus:ring-brand-500 flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
             </button>
           </form>
         )}

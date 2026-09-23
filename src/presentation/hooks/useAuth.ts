@@ -39,8 +39,8 @@ export function useAuth() {
   );
 
   const resetPassword = useCallback(
-    async (accessToken: string, newPassword: string): Promise<{ error: AuthError | null }> => {
-      const { error } = await service.resetPassword(accessToken, newPassword);
+    async (newPassword: string): Promise<{ error: AuthError | null }> => {
+      const { error } = await service.resetPassword(newPassword);
       return { error };
     },
     [service],
@@ -51,6 +51,7 @@ export function useAuth() {
     user: state.user,
     isAuthenticated: state.status === "authenticated",
     isLoading: state.status === "loading",
+    isPasswordRecovery: state.passwordRecovery,
     login,
     signup,
     logout,
