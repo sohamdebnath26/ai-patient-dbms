@@ -333,7 +333,9 @@ export function DashboardPage() {
               <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-teal-600" />
-                  <h2 className="text-sm font-bold text-slate-900">Today &amp; Upcoming Schedule</h2>
+                  <h2 className="text-sm font-bold text-slate-900">
+                    Today &amp; Upcoming Schedule
+                  </h2>
                 </div>
                 <button
                   type="button"
@@ -370,7 +372,7 @@ export function DashboardPage() {
                       key={apt.id}
                       className="flex items-center justify-between py-2.5 text-xs hover:bg-slate-50/80"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-slate-100 font-bold text-slate-700">
                           {(apt.patient?.first_name ?? "?").charAt(0)}
                           {(apt.patient?.last_name ?? "").charAt(0)}
@@ -381,7 +383,7 @@ export function DashboardPage() {
                             onClick={() => {
                               void navigate(`/patients/${apt.patient_id}`);
                             }}
-                            className="text-left font-semibold text-slate-900 hover:text-teal-700 truncate block"
+                            className="block truncate text-left font-semibold text-slate-900 hover:text-teal-700"
                           >
                             {apt.patient?.first_name ?? "Patient"} {apt.patient?.last_name ?? ""}
                           </button>
@@ -466,13 +468,13 @@ export function DashboardPage() {
                       }}
                       className="flex w-full items-center justify-between py-2.5 text-left text-xs hover:bg-slate-50"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-teal-50 font-bold text-teal-800">
                           {p.first_name.charAt(0)}
                           {p.last_name.charAt(0)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-slate-900 truncate">
+                          <p className="truncate font-semibold text-slate-900">
                             {p.first_name} {p.last_name}
                           </p>
                           <p className="text-[11px] text-slate-400">

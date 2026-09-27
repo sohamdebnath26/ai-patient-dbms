@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-base font-bold tracking-tight text-slate-900">ClinicOS</span>
-              <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-700 uppercase tracking-wider">
+              <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-teal-700 uppercase">
                 Derm
               </span>
             </div>
@@ -103,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800 font-semibold"
+                        ? "bg-teal-50 font-semibold text-teal-800"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`
                   }
@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800 font-semibold"
+                        ? "bg-teal-50 font-semibold text-teal-800"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`
                   }
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800 font-semibold"
+                        ? "bg-teal-50 font-semibold text-teal-800"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`
                   }
@@ -161,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800 font-semibold"
+                        ? "bg-teal-50 font-semibold text-teal-800"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`
                   }
@@ -194,7 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-teal-50 text-teal-800 font-semibold"
+                        ? "bg-teal-50 font-semibold text-teal-800"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`
                   }
@@ -260,7 +260,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {i > 0 && <ChevronRight className="h-3 w-3 text-slate-300" />}
                     <span
                       className={
-                        i === arr.length - 1 ? "font-semibold text-slate-700 capitalize" : "capitalize"
+                        i === arr.length - 1
+                          ? "font-semibold text-slate-700 capitalize"
+                          : "capitalize"
                       }
                     >
                       {segment.replace(/-/g, " ")}
