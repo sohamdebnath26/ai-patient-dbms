@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@presentation/hooks/useAuth";
 import { useProfile } from "@presentation/hooks/useProfile";
@@ -5,8 +6,9 @@ import { useUpcomingAppointments } from "@presentation/hooks/useAppointments";
 import { useSelectedOrganizationStore } from "@presentation/stores/selectedOrganizationStore";
 import { resolveAuthScope } from "@domain/patient";
 import type { AuthorizationContext } from "@domain/patient";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { AppShell } from "@presentation/components/AppShell";
+import { WalkInModal } from "@presentation/components/patient/WalkInModal";
 import { useChat } from "@presentation/contexts/ChatContext";
 import {
   Users,
@@ -185,6 +187,7 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setOpen: setChatOpen } = useChat();
   const auth = useAuthContext();
   const recentPatients = useRecentPatients(auth);
@@ -192,6 +195,14 @@ export function DashboardPage() {
   const activePatientCount = useActivePatientCount(auth);
   const todayAppointmentCount = useTodayAppointmentCount(auth);
   const recentPrescriptions = useRecentPrescriptions(auth);
+
+  const [walkInOpen, setWalkInOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("walkin") === "true") {
+      setWalkInOpen(true);
+    }
+  }, [searchParams]);
 
   const displayName = profile?.firstName
     ? `Dr. ${profile.firstName} ${profile.lastName}`
@@ -262,7 +273,7 @@ export function DashboardPage() {
             <button
               type="button"
               onClick={() => {
-                void navigate("/patients/new?walkin=true");
+                setWalkInOpen(true);
               }}
               className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
             >
@@ -501,6 +512,20 @@ export function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    setWalkInOpen(true);
+                  }}
+                  className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800"
+                >
+                  <span className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    Walk-in Patient Entry
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
                     void navigate("/patients/new");
                   }}
                   className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800"
@@ -595,6 +620,13 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <WalkInModal
+        open={walkInOpen}
+        onClose={() => {
+          setWalkInOpen(false);
+        }}
+      />
     </AppShell>
   );
 }
