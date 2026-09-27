@@ -31,6 +31,7 @@ import { DermatologySection } from "@presentation/components/patient/Dermatology
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
 import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
+import { AIAnalysisSection } from "@presentation/components/patient/AIAnalysisSection";
 import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
 import { BODY_REGIONS } from "@presentation/components/patient/data/body-regions";
 import {
@@ -695,8 +696,12 @@ export function PatientEditPage() {
                   </div>
                   <ClinicalImagesSection
                     images={mappedClinicalImages}
-                    onAdd={(file) => uploadImage.mutateAsync({ file })}
-                    onRemove={(imageId) => deleteImage.mutateAsync(imageId)}
+                    onAdd={async (file) => {
+                      await uploadImage.mutateAsync({ file });
+                    }}
+                    onRemove={async (imageId) => {
+                      await deleteImage.mutateAsync(imageId);
+                    }}
                     isAdding={uploadImage.isPending}
                   />
                 </div>
@@ -752,20 +757,21 @@ export function PatientEditPage() {
 
               {/* Tab 10: AI Analysis */}
               {activeTab === "aianalysis" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Bot className="h-4 w-4 text-teal-600" />
-                    <h2 className="text-sm font-bold text-slate-900">AI Clinical Assistance</h2>
-                  </div>
-                  <div className="space-y-2 rounded-md border border-teal-200 bg-teal-50 p-4 text-xs text-teal-900">
-                    <p className="font-bold">AI Clinical Decision Support Active</p>
-                    <p>
-                      Use the floating AI Assistant icon in the sidebar or bottom right to generate
-                      differential diagnoses, summarize patient history, or consult drug
-                      interactions based on this patient&apos;s record.
-                    </p>
-                  </div>
-                </div>
+                <AIAnalysisSection
+                  patientId={patient.id}
+                  images={clinicalImages}
+                  onTransferSOAPToNotes={(soapDraft) => {
+                    const soapText = `Subjective:\n${soapDraft.subjective}\n\nObjective:\n${soapDraft.objective}\n\nAssessment:\n${soapDraft.assessment}\n\nPlan:\n${soapDraft.plan}`;
+                    addNote.mutate({
+                      note_type: "soap",
+                      subjective: soapDraft.subjective,
+                      objective: soapDraft.objective,
+                      assessment: soapDraft.assessment,
+                      plan: soapDraft.plan,
+                      content: soapText,
+                    });
+                  }}
+                />
               )}
             </div>
           </form>
