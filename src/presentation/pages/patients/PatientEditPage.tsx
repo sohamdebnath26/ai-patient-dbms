@@ -14,6 +14,7 @@ import {
   useRemoveMedication,
   useAddClinicalNote,
 } from "@presentation/hooks/useClinical";
+import { useClinicalImages } from "@presentation/hooks/useClinicalImages";
 import {
   useCompleteLatestAppointment,
   useBookAppointment,
@@ -29,8 +30,25 @@ import {
 import { DermatologySection } from "@presentation/components/patient/DermatologySection";
 import { MedicationSection } from "@presentation/components/patient/MedicationSection";
 import { ClinicalNotesSection } from "@presentation/components/patient/ClinicalNotesSection";
+import { ClinicalImagesSection } from "@presentation/components/patient/ClinicalImagesSection";
+import { AIAnalysisSection } from "@presentation/components/patient/AIAnalysisSection";
 import { SupabaseMedicationSuggestionService } from "@infrastructure/supabase/medication/SupabaseMedicationSuggestionService";
-import { ArrowLeft, Loader2, Save, Pill, Sparkles, Sun } from "lucide-react";
+import { BODY_REGIONS } from "@presentation/components/patient/data/body-regions";
+import {
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+  Pill,
+  Sparkles,
+  Sun,
+  FileCheck,
+  FlaskConical,
+  Scissors,
+  Camera,
+  Calendar,
+  Bot,
+  MapPin,
+} from "lucide-react";
 
 function parseTimelineSnapshots(
   raw: string | null | undefined,
@@ -45,20 +63,20 @@ function parseTimelineSnapshots(
   return [];
 }
 
-const TABS = [
-  { key: "dermatology", label: "Dermatology" },
-  { key: "medications", label: "Medications" },
-  { key: "alerts", label: "Doctor's Notes" },
-  { key: "follow-up-plans", label: "Follow up Date and Plans" },
+const CONSULTATION_TABS = [
+  { key: "diagnosis", label: "Diagnosis", icon: FileCheck },
+  { key: "tests", label: "Tests", icon: FlaskConical },
+  { key: "procedures", label: "Procedure", icon: Scissors },
+  { key: "dermatology", label: "Dermatology", icon: Sun },
+  { key: "medications", label: "Medications", icon: Pill },
+  { key: "notes", label: "Doctor's Notes", icon: Sparkles },
+  { key: "bodymap", label: "Body Map", icon: MapPin },
+  { key: "images", label: "Clinical Images", icon: Camera },
+  { key: "followup", label: "Follow-up", icon: Calendar },
+  { key: "aianalysis", label: "AI Analysis", icon: Bot },
 ] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
-
-const FIELD_TAB_MAP: Record<string, { tab: TabKey; label: string }> = {
-  current_treatment: { tab: "dermatology", label: "Current Treatment" },
-  date_of_onset: { tab: "dermatology", label: "Date of Onset" },
-  symptoms: { tab: "dermatology", label: "Symptoms" },
-};
+type TabKey = (typeof CONSULTATION_TABS)[number]["key"];
 
 export function PatientEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -68,6 +86,7 @@ export function PatientEditPage() {
   const { user } = useAuth();
   const updateMutation = useUpdatePatient();
   const { data: clinical } = usePatientClinicalData(id ?? "");
+  const { images: clinicalImages, uploadImage, deleteImage } = useClinicalImages(id ?? "");
   const addMedication = useAddMedication(id ?? "");
   const removeMedication = useRemoveMedication(id ?? "");
   const addNote = useAddClinicalNote(id ?? "");
@@ -76,8 +95,16 @@ export function PatientEditPage() {
   const bookAppointment = useBookAppointment();
 
   const isReceptionist = profile?.role === "receptionist";
-  const [activeTab, setActiveTab] = useState<TabKey>("dermatology");
+  const [activeTab, setActiveTab] = useState<TabKey>("diagnosis");
   const [validationBanner, setValidationBanner] = useState<string[] | null>(null);
+
+  // Procedure state within consultation
+  const [selectedProcedures, setSelectedProcedures] = useState<string[]>([]);
+  const [procedureInput, setProcedureInput] = useState("");
+
+  // Tests / Lab state
+  const [labTests, setLabTests] = useState<string[]>([]);
+  const [labInput, setLabInput] = useState("");
 
   const methods = useForm<EditPatientFormInput>({
     resolver: zodResolver(EditPatientFormSchema),
@@ -114,11 +141,11 @@ export function PatientEditPage() {
         emergency_contact_name: patient.emergency_contact_name || "",
         emergency_contact_phone: patient.emergency_contact_phone || "",
         emergency_contact_relationship: patient.emergency_contact_relationship || "",
-        chronic_conditions: "",
+        chronic_conditions: patient.chronic_conditions || "",
         primary_diagnosis: patient.primary_diagnosis || "",
         secondary_diagnosis: patient.secondary_diagnosis || "",
         skin_type: "",
-        affected_body_areas: "",
+        affected_body_areas: patient.affected_body_areas || "",
         disease_severity: patient.disease_severity || "",
         duration: "",
         current_flare: patient.current_flare ?? false,
@@ -137,7 +164,7 @@ export function PatientEditPage() {
         alcohol_consumption: patient.alcohol_consumption || "",
         pregnancy_status: patient.pregnancy_status || "",
         date_of_onset: "",
-        symptoms: "",
+        symptoms: patient.symptoms || "",
         sun_exposure_history: patient.sun_exposure_history || "",
         cosmetic_product_usage: patient.cosmetic_product_usage || "",
         occupational_exposure: patient.occupational_exposure || "",
@@ -150,101 +177,10 @@ export function PatientEditPage() {
     }
   }, [patient, reset]);
 
-  useEffect(() => {
-    if (updateMutation.isPending) {
-      const handler = (e: BeforeUnloadEvent) => {
-        e.preventDefault();
-      };
-      window.addEventListener("beforeunload", handler);
-      return () => {
-        window.removeEventListener("beforeunload", handler);
-      };
-    }
-  }, [updateMutation.isPending]);
-
   function onValidationFailed(errs: FieldErrors<EditPatientFormInput>) {
-    const missing: { label: string; tab: TabKey }[] = [];
-
-    // Map all form fields to their respective tab information (key + label)
-    const errorFieldToTabMap: Record<string, { key: TabKey; label: string }> = {
-      ...FIELD_TAB_MAP,
-      follow_up_date: { key: "follow-up-plans", label: "Follow up Date" },
-      follow_up_plan: { key: "follow-up-plans", label: "Follow up Plan" },
-      follow_up_instructions: { key: "follow-up-plans", label: "Follow up Instructions" },
-      chronic_conditions: { key: "dermatology", label: "Chronic Conditions" },
-      primary_diagnosis: { key: "dermatology", label: "Primary Diagnosis" },
-      secondary_diagnosis: { key: "dermatology", label: "Secondary Diagnosis" },
-      skin_type: { key: "dermatology", label: "Skin Type" },
-      affected_body_areas: { key: "dermatology", label: "Affected Body Areas" },
-      disease_severity: { key: "dermatology", label: "Disease Severity" },
-      duration: { key: "dermatology", label: "Duration" },
-      current_flare: { key: "dermatology", label: "Current Flare" },
-      previous_skin_cancer: { key: "dermatology", label: "Previous Skin Cancer" },
-      current_treatment: { key: "dermatology", label: "Current Treatment" },
-      medical_notes: { key: "dermatology", label: "Medical Notes" },
-      chief_complaint: { key: "dermatology", label: "Chief Complaint" },
-      present_illness: { key: "dermatology", label: "Present Illness" },
-      previous_skin_diseases: { key: "dermatology", label: "Previous Skin Diseases" },
-      previous_surgeries: { key: "dermatology", label: "Previous Surgeries" },
-      other_medical_conditions: { key: "dermatology", label: "Other Medical Conditions" },
-      family_history: { key: "dermatology", label: "Family History" },
-      family_history_skin: { key: "dermatology", label: "Family History (Skin)" },
-      family_history_cancer: { key: "dermatology", label: "Family History (Cancer)" },
-      smoking_status: { key: "dermatology", label: "Smoking Status" },
-      alcohol_consumption: { key: "dermatology", label: "Alcohol Consumption" },
-      pregnancy_status: { key: "dermatology", label: "Pregnancy Status" },
-      date_of_onset: { key: "dermatology", label: "Date of Onset" },
-      symptoms: { key: "dermatology", label: "Symptoms" },
-      sun_exposure_history: { key: "dermatology", label: "Sun Exposure" },
-      cosmetic_product_usage: { key: "dermatology", label: "Cosmetic Usage" },
-      occupational_exposure: { key: "dermatology", label: "Occupational Exposure" },
-      height_cm: { key: "dermatology", label: "Height (cm)" },
-      weight_cm: { key: "dermatology", label: "Weight (kg)" },
-      first_name: { key: "dermatology", label: "First Name" },
-      last_name: { key: "dermatology", label: "Last Name" },
-      dob: { key: "dermatology", label: "Date of Birth" },
-      gender: { key: "dermatology", label: "Gender" },
-      blood_group: { key: "dermatology", label: "Blood Group" },
-      email: { key: "dermatology", label: "Email" },
-      phone: { key: "dermatology", label: "Phone" },
-      mrn: { key: "dermatology", label: "MRN" },
-      status: { key: "dermatology", label: "Status" },
-      address_line1: { key: "dermatology", label: "Address Line 1" },
-      address_line2: { key: "dermatology", label: "Address Line 2" },
-      landmark: { key: "dermatology", label: "Landmark" },
-      city: { key: "dermatology", label: "City" },
-      district: { key: "dermatology", label: "District" },
-      state: { key: "dermatology", label: "State" },
-      country: { key: "dermatology", label: "Country" },
-      postal_code: { key: "dermatology", label: "Postal Code" },
-      emergency_contact_name: { key: "dermatology", label: "Emergency Contact Name" },
-      emergency_contact_phone: { key: "dermatology", label: "Emergency Contact Phone" },
-      emergency_contact_relationship: {
-        key: "dermatology",
-        label: "Emergency Contact Relationship",
-      },
-    };
-
-    for (const field of Object.keys(errs)) {
-      const fieldKey = field as keyof EditPatientFormInput;
-      const tabInfo = errorFieldToTabMap[fieldKey];
-      if (tabInfo) {
-        missing.push({
-          label: tabInfo.label,
-          tab: tabInfo.key,
-        });
-      }
-    }
-
-    if (missing.length > 0) {
-      const uniqueMissing = missing.filter(
-        (item, index, self) =>
-          index === self.findIndex((t) => t.label === item.label && t.tab === item.tab),
-      );
-      setValidationBanner(uniqueMissing.map((m) => m.label));
-      if (uniqueMissing.length > 0) {
-        setActiveTab(uniqueMissing[0].tab);
-      }
+    const errorKeys = Object.keys(errs);
+    if (errorKeys.length > 0) {
+      setValidationBanner(errorKeys);
     }
   }
 
@@ -267,7 +203,7 @@ export function PatientEditPage() {
     return (
       <AppShell>
         <div className="flex justify-center py-12">
-          <Loader2 className="text-brand-600 h-8 w-8 animate-spin" />
+          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
         </div>
       </AppShell>
     );
@@ -275,7 +211,7 @@ export function PatientEditPage() {
   if (!patient) {
     return (
       <AppShell>
-        <div className="py-12 text-center text-gray-500">Patient not found.</div>
+        <div className="py-12 text-center text-slate-500">Patient record not found.</div>
       </AppShell>
     );
   }
@@ -284,7 +220,14 @@ export function PatientEditPage() {
     setValidationBanner(null);
     if (!id) return;
     const existingSnapshots = parseTimelineSnapshots(patient.cosmetic_product_usage);
-    const snapshot = { timestamp: new Date().toISOString(), data: { ...data } };
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      data: {
+        ...data,
+        procedures: selectedProcedures,
+        requested_tests: labTests,
+      },
+    };
     const newSnapshots = [...existingSnapshots, snapshot];
     const base: UpdatePatientInput = isReceptionist
       ? {
@@ -315,6 +258,7 @@ export function PatientEditPage() {
     delete (payload as Record<string, unknown>).follow_up_date;
     delete (payload as Record<string, unknown>).follow_up_plan;
     delete (payload as Record<string, unknown>).follow_up_instructions;
+
     updateMutation.mutate(
       { id, input: payload },
       {
@@ -324,7 +268,7 @@ export function PatientEditPage() {
               try {
                 await completeAppointment.mutateAsync({ patientId: id, userId: user.id });
               } catch {
-                /* no active appointment to complete */
+                /* no active appointment */
               }
             }
             if (data.follow_up_date && user?.id) {
@@ -346,8 +290,8 @@ export function PatientEditPage() {
                 );
               }
             }
-            toast.success("Patient saved successfully.");
-            void navigate("/patients");
+            toast.success("Consultation signed and finished successfully.");
+            void navigate(`/patients/${id}`);
           })();
         },
       },
@@ -373,22 +317,50 @@ export function PatientEditPage() {
     .map((a) => a.label);
   const medList = (clinical?.medications ?? []).map((m) => m.medication_name);
 
+  // Map ClinicalImage aggregate items to UI ClinicalImage model
+  const mappedClinicalImages = clinicalImages.map((img) => ({
+    id: img.id,
+    url: img.storage_path,
+    name: img.file_name,
+    uploadedAt: img.created_at,
+    bodyArea: img.body_area ?? "—",
+    diagnosis: img.diagnosis ?? "—",
+    notes: img.notes ?? "",
+  }));
+
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl space-y-4">
-        <button
-          type="button"
-          onClick={() => {
-            void navigate(`/patients/${id}`);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Patient
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => {
+              void navigate(`/patients/${id}`);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Patient Profile
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              form="consultation-form"
+              disabled={updateMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-teal-700 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Sign &amp; Finish
+            </button>
+          </div>
+        </div>
 
         {isReceptionist && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
-            As a receptionist, you can only edit demographic information.
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800">
+            As a receptionist, clinical consultation fields are read-only.
           </div>
         )}
 
@@ -400,86 +372,264 @@ export function PatientEditPage() {
           previousSkinCancer={patient.previous_skin_cancer ?? false}
           lastVisit={lastVisit?.appointment_date ?? null}
           nextFollowUp={upcomingAppointment?.appointment_date ?? null}
-        >
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              form="edit-patient-form"
-              disabled={updateMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-emerald-200 transition-all hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg disabled:opacity-50"
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save Patient
-            </button>
-          </div>
-        </PatientHeader>
+        />
 
         {updateMutation.isError && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
+          <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">
             {updateMutation.error.message}
           </div>
         )}
 
         {validationBanner && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm">
-            <p className="font-bold text-rose-700">
-              Please complete all required fields before saving.
-            </p>
-            <ul className="mt-1.5 list-disc pl-5 font-medium text-rose-500">
-              {validationBanner.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
+          <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs text-rose-700">
+            Please complete required fields before finishing: {validationBanner.join(", ")}
           </div>
         )}
 
         <FormProvider {...methods}>
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-gray-100 p-1.5">
-            <div className="flex gap-0.5">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(tab.key);
-                  }}
-                  className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-bold whitespace-nowrap transition-all duration-150 ${
-                    activeTab === tab.key
-                      ? "bg-white text-emerald-700 shadow-sm ring-1 ring-gray-200"
-                      : "text-gray-500 hover:bg-white/60 hover:text-gray-700"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          {/* Horizontal Consultation Tabs */}
+          <div className="overflow-x-auto rounded-md border border-slate-200 bg-slate-100 p-1">
+            <div className="flex gap-1">
+              {CONSULTATION_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.key);
+                    }}
+                    className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                      isActive
+                        ? "bg-white text-teal-800 shadow-xs ring-1 ring-slate-200"
+                        : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-3.5 w-3.5 ${isActive ? "text-teal-600" : "text-slate-400"}`}
+                    />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
+          {/* Consultation Form Workspace */}
           {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
-          <form id="edit-patient-form" onSubmit={handleSubmit(onSubmit, onValidationFailed)}>
-            <div className="animate-fade-in rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
-              {activeTab === "dermatology" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Sun className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900">Dermatology</h2>
+          <form id="consultation-form" onSubmit={handleSubmit(onSubmit, onValidationFailed)}>
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-xs">
+              {/* Tab 1: Diagnosis */}
+              {activeTab === "diagnosis" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <FileCheck className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Diagnosis &amp; Clinical Overview
+                    </h2>
                   </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Primary Diagnosis <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        {...register("primary_diagnosis")}
+                        placeholder="e.g. Atopic Dermatitis, Psoriasis Vulgaris"
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
+                      />
+                      {errors.primary_diagnosis && (
+                        <p className="mt-1 text-xs text-rose-500">
+                          {errors.primary_diagnosis.message}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Secondary Diagnosis
+                      </label>
+                      <input
+                        type="text"
+                        {...register("secondary_diagnosis")}
+                        placeholder="Secondary clinical finding"
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Disease Severity
+                      </label>
+                      <select
+                        {...register("disease_severity")}
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
+                      >
+                        <option value="">Select severity</option>
+                        <option value="mild">Mild</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="severe">Severe</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Chronic Conditions
+                      </label>
+                      <input
+                        type="text"
+                        {...register("chronic_conditions")}
+                        placeholder="e.g. Hypertension, Diabetes"
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
+              {/* Tab 2: Tests */}
+              {activeTab === "tests" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <FlaskConical className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Lab Reports &amp; Diagnostic Tests
+                    </h2>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Request Diagnostic / Lab Test
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={labInput}
+                        onChange={(e) => {
+                          setLabInput(e.target.value);
+                        }}
+                        placeholder="e.g. Dermoscopy, KOH Mount, Patch Test, CBC"
+                        className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (labInput.trim()) {
+                            setLabTests((prev) => [...prev, labInput.trim()]);
+                            setLabInput("");
+                          }
+                        }}
+                        className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                      >
+                        Add Test
+                      </button>
+                    </div>
+                    {labTests.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {labTests.map((t, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800"
+                          >
+                            {t}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLabTests((prev) => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="text-teal-600 hover:text-teal-900"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Procedures */}
+              {activeTab === "procedures" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Scissors className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Minor Procedures &amp; Interventions
+                    </h2>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Perform / Schedule Procedure
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={procedureInput}
+                        onChange={(e) => {
+                          setProcedureInput(e.target.value);
+                        }}
+                        placeholder="e.g. Skin Punch Biopsy, Cryotherapy, Laser Therapy, Comedone Extraction"
+                        className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (procedureInput.trim()) {
+                            setSelectedProcedures((prev) => [...prev, procedureInput.trim()]);
+                            setProcedureInput("");
+                          }
+                        }}
+                        className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                      >
+                        Add Procedure
+                      </button>
+                    </div>
+                    {selectedProcedures.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {selectedProcedures.map((proc, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800"
+                          >
+                            {proc}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedProcedures((prev) => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="text-teal-600 hover:text-teal-900"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 4: Dermatology */}
+              {activeTab === "dermatology" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Sun className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Detailed Dermatology Assessment
+                    </h2>
+                  </div>
                   <DermatologySection />
                 </div>
               )}
 
+              {/* Tab 5: Medications */}
               {activeTab === "medications" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Pill className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900">Medications</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Pill className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Prescriptions &amp; Medications
+                    </h2>
                   </div>
-
                   <MedicationSection
                     medications={clinical?.medications ?? []}
                     adding={addMedication.isPending}
@@ -490,24 +640,18 @@ export function PatientEditPage() {
                       removeMedication.mutate(itemId);
                     }}
                     suggestionService={medicationSuggestionService}
-                    prescribingDoctor={
-                      profile?.firstName
-                        ? `Dr. ${profile.firstName} ${profile.lastName}`
-                        : undefined
-                    }
+                    prescribingDoctor={assignedDoctor}
                   />
                 </div>
               )}
 
-              {activeTab === "alerts" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                      Doctor&apos;s Notes
-                    </h2>
+              {/* Tab 6: Doctor's Notes */}
+              {activeTab === "notes" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Sparkles className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">Doctor&apos;s Notes (SOAP)</h2>
                   </div>
-
                   <ClinicalNotesSection
                     notes={clinical?.clinicalNotes ?? []}
                     adding={addNote.isPending}
@@ -518,67 +662,116 @@ export function PatientEditPage() {
                 </div>
               )}
 
-              {activeTab === "follow-up-plans" && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="text-brand-600 h-5 w-5" />
-                    <h2 className="text-lg font-bold tracking-tight text-gray-900">
-                      Follow up Date and Plans
+              {/* Tab 7: Body Map */}
+              {activeTab === "bodymap" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <MapPin className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Anatomical Body Region Selection
                     </h2>
                   </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {BODY_REGIONS.map((region) => (
+                      <div
+                        key={region.id}
+                        className="rounded-md border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <p className="text-xs font-bold text-slate-800">{region.label}</p>
+                        <p className="text-[10px] text-slate-400 capitalize">{region.category}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                  <div className="space-y-6">
-                    <div className="grid gap-6 sm:grid-cols-2">
+              {/* Tab 8: Clinical Images */}
+              {activeTab === "images" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Camera className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Lesion &amp; Clinical Photos
+                    </h2>
+                  </div>
+                  <ClinicalImagesSection
+                    images={mappedClinicalImages}
+                    onAdd={async (file) => {
+                      await uploadImage.mutateAsync({ file });
+                    }}
+                    onRemove={async (imageId) => {
+                      await deleteImage.mutateAsync(imageId);
+                    }}
+                    isAdding={uploadImage.isPending}
+                  />
+                </div>
+              )}
+
+              {/* Tab 9: Follow-up */}
+              {activeTab === "followup" && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Calendar className="h-4 w-4 text-teal-600" />
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Follow-up Schedule &amp; Instructions
+                    </h2>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-xs font-semibold text-slate-700">
                           Follow Up Date
                         </label>
                         <input
                           type="date"
                           {...register("follow_up_date")}
-                          className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
+                          className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
                         />
-                        {errors.follow_up_date && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.follow_up_date.message}
-                          </p>
-                        )}
                       </div>
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-xs font-semibold text-slate-700">
                         Follow Up Plan
                       </label>
                       <textarea
                         {...register("follow_up_plan")}
-                        rows={4}
-                        className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                        placeholder="Enter follow-up plan details..."
+                        rows={3}
+                        placeholder="Clinical plan for next visit..."
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
                       />
-                      {errors.follow_up_plan && (
-                        <p className="mt-1 text-sm text-red-600">{errors.follow_up_plan.message}</p>
-                      )}
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Follow Up Instructions
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Instructions for Patient
                       </label>
                       <textarea
                         {...register("follow_up_instructions")}
-                        rows={4}
-                        className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-                        placeholder="Enter follow-up instructions..."
+                        rows={3}
+                        placeholder="Instructions regarding sun exposure, medication routine..."
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:bg-white focus:outline-none"
                       />
-                      {errors.follow_up_instructions && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.follow_up_instructions.message}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Tab 10: AI Analysis */}
+              {activeTab === "aianalysis" && (
+                <AIAnalysisSection
+                  patientId={patient.id}
+                  images={clinicalImages}
+                  onTransferSOAPToNotes={(soapDraft) => {
+                    const soapText = `Subjective:\n${soapDraft.subjective}\n\nObjective:\n${soapDraft.objective}\n\nAssessment:\n${soapDraft.assessment}\n\nPlan:\n${soapDraft.plan}`;
+                    addNote.mutate({
+                      note_type: "soap",
+                      subjective: soapDraft.subjective,
+                      objective: soapDraft.objective,
+                      assessment: soapDraft.assessment,
+                      plan: soapDraft.plan,
+                      content: soapText,
+                    });
+                  }}
+                />
               )}
             </div>
           </form>

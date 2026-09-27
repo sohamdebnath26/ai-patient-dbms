@@ -4,30 +4,27 @@ import { useProfile } from "@presentation/hooks/useProfile";
 import { useNavigate, NavLink, useLocation } from "react-router";
 import { usePatientList } from "@presentation/hooks/usePatients";
 import { useLogout } from "@presentation/hooks/useLogout";
+import { useChat } from "@presentation/contexts/ChatContext";
 import {
   LayoutDashboard,
   Users,
+  UserPlus,
+  Pill,
+  Bot,
   Settings,
   Menu,
   Search,
   ChevronRight,
   Bell,
   LogOut,
-  Plus,
 } from "lucide-react";
-
-const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/patients", label: "Patient", icon: Users },
-  { to: "/patients/new", label: "Add Patient", icon: Plus },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const handleLogout = useLogout();
+  const { setOpen: setChatOpen } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -59,22 +56,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="bg-surface-100 flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-slate-50 font-sans text-slate-900 antialiased">
       <Toaster />
       <aside
-        className={`border-surface-200 fixed inset-y-0 left-0 z-30 w-64 transform border-r bg-white transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-60 transform border-r border-slate-200 bg-white transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
-          <div className="border-surface-200 flex h-14 items-center gap-3 border-b px-5">
-            <div className="bg-brand-600 flex h-8 w-8 items-center justify-center rounded-lg">
+          <div className="flex h-14 items-center gap-3 border-b border-slate-200 px-5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-teal-600 text-white">
               <svg
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="white"
+                stroke="currentColor"
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -82,61 +79,152 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
-            <div>
-              <span className="text-sm font-bold tracking-tight text-gray-900">ClinicOS</span>
-              <span className="text-brand-600 text-xs font-medium"> AI</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-bold tracking-tight text-slate-900">ClinicOS</span>
+              <span className="rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-teal-700 uppercase">
+                Derm
+              </span>
             </div>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4">
-            <div className="mb-3 px-2">
-              <p className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-                Main Menu
+            <div className="mb-2 px-2">
+              <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                Clinical Workflow
               </p>
             </div>
-            <ul className="space-y-0.5">
-              {navItems.map(({ to, label, icon: Icon }) => (
-                <li key={to}>
-                  <NavLink
-                    to={to}
-                    onClick={() => {
-                      setSidebarOpen(false);
-                    }}
-                    className={({ isActive }) =>
-                      `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
-                        isActive
-                          ? "bg-brand-50 text-brand-700"
-                          : "hover:bg-surface-50 text-gray-700 hover:text-gray-900"
-                      }`
-                    }
-                  >
-                    <Icon className="h-[18px] w-[18px] flex-shrink-0" />
-                    <span className="flex-1">{label}</span>
-                  </NavLink>
-                </li>
-              ))}
+            <ul className="space-y-1">
+              <li>
+                <NavLink
+                  to="/dashboard"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                  }}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-teal-50 font-semibold text-teal-800"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`
+                  }
+                >
+                  <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1">Dashboard</span>
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink
+                  to="/patients"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                  }}
+                  end
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-teal-50 font-semibold text-teal-800"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`
+                  }
+                >
+                  <Users className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1">Patients</span>
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink
+                  to="/patients/new"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                  }}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-teal-50 font-semibold text-teal-800"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`
+                  }
+                >
+                  <UserPlus className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1">Add Patient</span>
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink
+                  to="/appointments"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                  }}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-teal-50 font-semibold text-teal-800"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`
+                  }
+                >
+                  <Pill className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1">Prescriptions</span>
+                </NavLink>
+              </li>
+
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    setChatOpen(true);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <Bot className="h-4 w-4 flex-shrink-0 text-teal-600" />
+                  <span className="flex-1">AI Assistant</span>
+                </button>
+              </li>
+
+              <li>
+                <NavLink
+                  to="/settings"
+                  onClick={() => {
+                    setSidebarOpen(false);
+                  }}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-teal-50 font-semibold text-teal-800"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`
+                  }
+                >
+                  <Settings className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1">Settings</span>
+                </NavLink>
+              </li>
             </ul>
           </nav>
 
-          <div className="border-surface-200 border-t p-4">
-            <div className="bg-surface-50 flex items-center gap-3 rounded-lg p-3">
-              <div className="bg-brand-100 flex h-8 w-8 items-center justify-center rounded-full">
-                <span className="text-brand-600 text-xs font-bold">{avatarLetter}</span>
+          <div className="border-t border-slate-200 p-3">
+            <div className="flex items-center gap-2.5 rounded-md border border-slate-200 bg-slate-50 p-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded bg-teal-100 text-xs font-bold text-teal-800">
+                {avatarLetter}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-gray-900">{displayName}</p>
-                <p className="text-[11px] text-gray-500 capitalize">
-                  {profile?.role ?? "Loading..."}
+                <p className="truncate text-xs font-semibold text-slate-900">{displayName}</p>
+                <p className="text-[10px] text-slate-500 capitalize">
+                  {profile?.role ?? "Clinician"}
                 </p>
               </div>
               <button
                 onClick={() => {
                   void handleLogout();
                 }}
-                className="hover:bg-surface-100 rounded-md p-1.5 text-gray-400 hover:text-red-500"
+                className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-rose-600"
                 title="Sign out"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -145,7 +233,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/20 lg:hidden"
+          className="fixed inset-0 z-20 bg-slate-900/30 lg:hidden"
           onClick={() => {
             setSidebarOpen(false);
           }}
@@ -153,26 +241,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="border-surface-200 flex h-14 items-center justify-between border-b bg-white px-6">
+        <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 setSidebarOpen(true);
               }}
-              className="hover:bg-surface-100 rounded-md p-1.5 text-gray-400 lg:hidden"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="hidden items-center gap-2 text-sm text-gray-400 sm:flex">
+            <div className="hidden items-center gap-1.5 text-xs text-slate-400 sm:flex">
               {location.pathname
                 .split("/")
                 .filter(Boolean)
                 .map((segment, i, arr) => (
-                  <span key={i} className="flex items-center gap-2">
-                    {i > 0 && <ChevronRight className="h-3 w-3" />}
+                  <span key={i} className="flex items-center gap-1.5">
+                    {i > 0 && <ChevronRight className="h-3 w-3 text-slate-300" />}
                     <span
                       className={
-                        i === arr.length - 1 ? "font-medium text-gray-700 capitalize" : "capitalize"
+                        i === arr.length - 1
+                          ? "font-semibold text-slate-700 capitalize"
+                          : "capitalize"
                       }
                     >
                       {segment.replace(/-/g, " ")}
@@ -184,7 +274,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-3">
             <form onSubmit={handleSearch} className="relative hidden sm:block">
-              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 name="q"
                 value={searchQuery}
@@ -199,11 +289,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     setSearchFocused(false);
                   }, 200);
                 }}
-                placeholder="Search patients..."
-                className="border-surface-200 bg-surface-50 focus:border-brand-400 focus:ring-brand-100 w-64 rounded-xl border py-2 pr-3 pl-9 text-sm placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:outline-none"
+                placeholder="Search MRN or patient name..."
+                className="w-60 rounded-md border border-slate-200 bg-slate-50 py-1.5 pr-3 pl-8 text-xs text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-1 focus:ring-teal-500 focus:outline-none"
               />
               {searchFocused && searchResults && searchResults.patients.length > 0 && (
-                <div className="border-surface-200 absolute top-full right-0 left-0 z-50 mt-1 rounded-lg border bg-white shadow-lg">
+                <div className="absolute top-full right-0 left-0 z-50 mt-1 rounded-md border border-slate-200 bg-white py-1 shadow-md">
                   {searchResults.patients.map((p) => (
                     <button
                       key={p.id}
@@ -213,19 +303,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         setSearchFocused(false);
                         setSearchQuery("");
                       }}
-                      className="hover:bg-surface-50 flex w-full items-center gap-3 px-4 py-2.5 text-left first:rounded-t-lg last:rounded-b-lg"
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50"
                     >
-                      <div className="bg-brand-50 flex h-7 w-7 items-center justify-center rounded-full">
-                        <span className="text-brand-600 text-[10px] font-bold">
-                          {p.first_name.charAt(0)}
-                          {p.last_name.charAt(0)}
-                        </span>
+                      <div className="flex h-6 w-6 items-center justify-center rounded bg-teal-50 text-[10px] font-bold text-teal-700">
+                        {p.first_name.charAt(0)}
+                        {p.last_name.charAt(0)}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-slate-900">
                           {p.first_name} {p.last_name}
                         </p>
-                        <p className="text-xs text-gray-400">MRN: {p.mrn}</p>
+                        <p className="text-[10px] text-slate-400">MRN: {p.mrn}</p>
                       </div>
                     </button>
                   ))}
@@ -234,15 +322,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </form>
 
             <button
-              className="hover:bg-surface-100 relative rounded-lg p-2 text-gray-400"
-              title="Notifications coming soon"
+              className="relative rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              title="Notifications"
             >
-              <Bell className="h-[18px] w-[18px]" />
+              <Bell className="h-4 w-4" />
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-slate-50 p-6">{children}</main>
       </div>
     </div>
   );

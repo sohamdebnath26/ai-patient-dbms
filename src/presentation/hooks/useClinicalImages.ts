@@ -30,6 +30,25 @@ export function useClinicalImages(patientId: string | undefined) {
     enabled: !!patientId,
   });
 
+  const uploadImage = useMutation({
+    mutationFn: (input: { file: File; bodyArea?: string; diagnosis?: string; notes?: string }) => {
+      if (!patientId) throw new Error("Patient ID is required");
+      return imageService.upload(
+        patientId,
+        {
+          file: input.file,
+          body_area: input.bodyArea,
+          diagnosis: input.diagnosis,
+          notes: input.notes,
+        },
+        auth,
+      );
+    },
+    onSuccess: () => {
+      void images.refetch();
+    },
+  });
+
   const deleteImage = useMutation({
     mutationFn: (imageId: string) => imageService.delete(imageId),
     onSuccess: () => {
@@ -41,6 +60,7 @@ export function useClinicalImages(patientId: string | undefined) {
     images: images.data ?? [],
     isLoading: images.isLoading,
     error: images.error,
+    uploadImage,
     deleteImage,
   };
 }
